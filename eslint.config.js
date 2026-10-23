@@ -11,7 +11,7 @@ export default typescript.config(
       // Booleans read as questions: isSynced, hasMarker, shouldMove, wasEdited.
       '@typescript-eslint/naming-convention': [
         'error',
-        { selector: 'variable', types: ['boolean'], format: ['camelCase', 'UPPER_CASE'], prefix: ['is', 'has', 'should', 'was', 'IS_', 'HAS_', 'SHOULD_', 'WAS_'] },
+        { selector: 'variable', types: ['boolean'], format: ['PascalCase', 'UPPER_CASE'], prefix: ['is', 'has', 'should', 'was', 'IS_', 'HAS_', 'SHOULD_', 'WAS_'] },
       ],
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
     },
