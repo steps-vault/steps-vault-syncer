@@ -15,6 +15,7 @@ function buildInstalledSong(overrides: Partial<InstalledSong> = {}): InstalledSo
     installId: 'install-a',
     folderPath: buildSongsPath('StepsVault', 'Cheap Thrills'),
     chartHashesByFileName: { 'Cheap Thrills.ssc': getChartHash(CHART_TEXT) },
+    music: { fileName: 'Cheap Thrills.ogg', shiftSeconds: 0 },
     installedAt: '2026-10-24T10:00:00Z',
     ...overrides,
   };

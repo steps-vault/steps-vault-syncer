@@ -12,7 +12,7 @@ const BIEBER_SORRY: SongFolderFacts = { vaultSongId: 'b', title: 'Sorry', artist
 const BEYONCE_SORRY: SongFolderFacts = { vaultSongId: 'c', title: 'Sorry', artist: 'Beyoncé', genre: 'R&B' };
 
 function recordWithInstalled({ vaultSongId, folderPath }: { vaultSongId: string; folderPath: SongsPath }, record = buildEmptyInstalledSongsRecord()): InstalledSongsRecord {
-  return withInstalledSong({ record, installedSong: { vaultSongId, folderPath, chartVersion: 'v1', installId: `install-${vaultSongId}`, chartHashesByFileName: {}, installedAt: '2026-10-24T10:00:00Z' } });
+  return withInstalledSong({ record, installedSong: { vaultSongId, folderPath, chartVersion: 'v1', installId: `install-${vaultSongId}`, chartHashesByFileName: {}, music: { fileName: 'song.ogg', shiftSeconds: 0 }, installedAt: '2026-10-24T10:00:00Z' } });
 }
 
 describe('getGroupName', () => {
