@@ -5,7 +5,8 @@ import { getSafeFolderName } from './safe-folder-name';
 export type FolderLayout = 'one-group' | 'by-genre' | 'by-artist';
 
 export const ONE_GROUP_NAME = 'StepsVault';
-export const CLASH_PREFIX = 'StepsVault · ';
+/** Plain ASCII, like every folder name Sync writes (see getSafeFolderName). */
+export const CLASH_PREFIX = 'StepsVault - ';
 const UNKNOWN_GENRE_NAME = 'Other';
 const UNKNOWN_ARTIST_NAME = 'Unknown artist';
 const UNKNOWN_TITLE_NAME = 'Untitled';
@@ -15,18 +16,29 @@ export interface SongFolderFacts {
   vaultSongId: string;
   title: string;
   artist: string;
+  /** The title and artist in English letters when they are written in another script; folders are named by them. */
+  titleTransliteration?: string | null;
+  artistTransliteration?: string | null;
   genre: string | null;
+}
+
+function getFolderTitle(song: SongFolderFacts): string {
+  return song.titleTransliteration || song.title;
+}
+
+function getFolderArtist(song: SongFolderFacts): string {
+  return song.artistTransliteration || song.artist;
 }
 
 export function getGroupBaseName({ layout, song }: { layout: FolderLayout; song: SongFolderFacts }): string {
   if (layout === 'one-group') return ONE_GROUP_NAME;
   if (layout === 'by-genre') return getSafeFolderName({ name: song.genre ?? '', fallback: UNKNOWN_GENRE_NAME });
-  return getSafeFolderName({ name: song.artist, fallback: UNKNOWN_ARTIST_NAME });
+  return getSafeFolderName({ name: getFolderArtist(song), fallback: UNKNOWN_ARTIST_NAME });
 }
 
 /**
  * Our group keeps its plain name unless the player already has a folder called that (compared without case); then
- * it becomes "StepsVault · <name>", so the player's folder and ours never mix.
+ * it becomes "StepsVault - <name>", so the player's folder and ours never mix.
  */
 export function getGroupName({ baseName, playerGroupNames }: { baseName: string; playerGroupNames: readonly string[] }): string {
   const playerNameKeys = new Set(playerGroupNames.map(getNameKey));
@@ -74,9 +86,9 @@ function getKeptPath({ song, groupName, record }: { song: SongFolderFacts; group
 
 /** "Sorry", then "Sorry (Justin Bieber)", then "Sorry (Justin Bieber) 2". */
 function getNewSongFolderName({ song, takenNameKeys }: { song: SongFolderFacts; takenNameKeys: ReadonlySet<string> }): string {
-  const title = getSafeFolderName({ name: song.title, fallback: UNKNOWN_TITLE_NAME });
+  const title = getSafeFolderName({ name: getFolderTitle(song), fallback: UNKNOWN_TITLE_NAME });
   if (!takenNameKeys.has(getNameKey(title))) return title;
-  const withArtist = getSafeFolderName({ name: `${song.title} (${song.artist})`, fallback: title });
+  const withArtist = getSafeFolderName({ name: `${getFolderTitle(song)} (${getFolderArtist(song)})`, fallback: title });
   return getUnusedName({ preferredName: withArtist, takenNameKeys });
 }
 

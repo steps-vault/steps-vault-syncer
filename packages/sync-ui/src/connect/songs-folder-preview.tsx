@@ -46,7 +46,7 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
           <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onChangeLayout}>Change layout</button>
         </li>
       </ul>
-      <Note iconName="lock">StepsVault only adds, updates, moves or removes the songs it added itself. If you already have a group with the same name — like your <b className="sv-sync-strong">Pop</b> — ours is called <b className="sv-sync-strong">StepsVault · Pop</b>, so the two never mix.</Note>
+      <Note iconName="lock">StepsVault only adds, updates, moves or removes the songs it added itself. If you already have a group with the same name — like your <b className="sv-sync-strong">Pop</b> — ours is called <b className="sv-sync-strong">StepsVault - Pop</b>, so the two never mix.</Note>
       <div className="sv-sync-row sv-sync-space-between sv-sync-wrap">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onChooseAnotherFolder}>Choose another folder</button>
         <button className="sv-sync-button sv-sync-button--go sv-sync-button--large" type="button" onClick={props.onContinue}>Looks good — continue<Icon name="chevron" strokeWidth={2.6} /></button>
