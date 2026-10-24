@@ -55,7 +55,7 @@ export function SongList(props: SongListProps): ReactElement {
             </div>
           )}
           <div className="sv-sync-list-footer">
-            <span className="sv-sync-tabular" role="status">Showing {shownRows.length} of {props.rows.length} songs</span>
+            <span className="sv-sync-tabular" role="status">Showing {shownRows.length} of {props.rows.length} {props.rows.length === 1 ? 'song' : 'songs'}</span>
             {shownRows.length < visibleRows.length && <button className="sv-sync-link-button" type="button" onClick={() => { setIsShowingAll(true); }}>Show all {visibleRows.length}</button>}
           </div>
         </div>

@@ -9,8 +9,8 @@ import type { VaultSongDetails } from '../stepsvault-api/stepsvault-api-types';
 import type { SongFiles } from '../writing/song-writer';
 import { runSync, type SyncPhase, type SyncPorts, type SyncSettings, type SyncVault } from './run-sync';
 
-const CHEAP_THRILLS: VaultSongDetails = { vaultSongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, youtubeId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
-const WATCH_ME: VaultSongDetails = { vaultSongId: 'b', slug: 'watch-me', title: 'Watch Me', artist: 'Silentó', album: null, genre: 'Hip-Hop', lengthSeconds: 185, youtubeId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
+const CHEAP_THRILLS: VaultSongDetails = { vaultSongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
+const WATCH_ME: VaultSongDetails = { vaultSongId: 'b', slug: 'watch-me', title: 'Watch Me', artist: 'Silentó', album: null, genre: 'Hip-Hop', lengthSeconds: 185, levels: [1, 3, 5, 8, null], bpm: 140, youtubeId: null, chartVersion: 'v1', imageKinds: ['banner'], hasFingerprint: true };
 const NO_FINGERPRINT: VaultSongDetails = { ...WATCH_ME, vaultSongId: 'c', slug: 'old-song', title: 'Old Song', hasFingerprint: false };
 
 class FakeVault implements SyncVault {

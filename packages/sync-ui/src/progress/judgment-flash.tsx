@@ -35,11 +35,15 @@ export function JudgmentFlash({ syncedCount, needsYouCount, onSeeActivity, onDis
     <section className="sv-sync-panel sv-sync-judgment-panel" role="status">
       <JudgmentText word={getSyncJudgmentWord(needsYouCount)} />
       <div className="sv-sync-judgment-text">
-        <b>{isAllSynced ? `All ${String(syncedCount)} songs synced.` : `${String(syncedCount)} songs synced. ${String(needsYouCount)} need you.`}</b>
+        <b>{isAllSynced ? (syncedCount === 1 ? 'Your song is synced.' : `All ${String(syncedCount)} songs synced.`) : `${countSongs(syncedCount)} synced. ${String(needsYouCount)} ${needsYouCount === 1 ? 'needs' : 'need'} you.`}</b>
         <span className="sv-sync-small sv-sync-muted">{isAllSynced ? 'Everything is lined up with your audio.' : 'Songs that need audio or have a different edit are waiting below.'}</span>
       </div>
       <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onSeeActivity}>See what happened</button>
       <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onDismiss}>Done</button>
     </section>
   );
+}
+
+function countSongs(count: number): string {
+  return `${String(count)} ${count === 1 ? 'song' : 'songs'}`;
 }

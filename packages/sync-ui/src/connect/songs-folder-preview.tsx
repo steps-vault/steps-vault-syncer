@@ -57,5 +57,5 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
 
 function getFolderSummary({ songCount, groupCount }: { songCount: number; groupCount: number }): string {
   if (groupCount === 0) return 'No songs here yet. StepsVault songs will be the first.';
-  return `${NUMBER_FORMAT.format(songCount)} songs in ${String(groupCount)} ${groupCount === 1 ? 'group' : 'groups'} — all yours. We'll never touch them.`;
+  return `${NUMBER_FORMAT.format(songCount)} ${songCount === 1 ? 'song' : 'songs'} in ${String(groupCount)} ${groupCount === 1 ? 'group' : 'groups'} — all yours. We'll never touch them.`;
 }

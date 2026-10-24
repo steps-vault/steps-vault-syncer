@@ -5,3 +5,8 @@ packages:
 # A package version must be at least 7 days old before pnpm installs it: poisoned releases are usually found and
 # pulled within days.
 minimumReleaseAge: 10080
+
+# Install scripts run only for these, by name: esbuild fetches its platform binary, Electron downloads its runtime.
+allowBuilds:
+  electron: true
+  esbuild: true

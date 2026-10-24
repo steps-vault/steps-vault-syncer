@@ -12,6 +12,8 @@ const VAULT_SONG = {
   album: null,
   genre: 'J-Pop',
   lengthSeconds: 212,
+  levels: [3, 5, 8, 11, 13],
+  bpm: 174,
   youtubeId: 'abcdefghijk',
   chartVersion: '0f3a9c1d2e4b5a69',
   imageKinds: ['banner', 'background', 'jacket'],
