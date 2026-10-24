@@ -9,7 +9,8 @@ export interface VaultSong extends SongFolderFacts {
 
 /** What the audio search found for one song (tasks 6 and 7 produce this). */
 export type AudioMatch =
-  | { kind: 'matched'; sourceId: string; shiftSeconds: number }
+  /** videoSourceId: the song's video from the same source as the music, so it shares the music's timing. */
+  | { kind: 'matched'; sourceId: string; shiftSeconds: number; videoSourceId?: string | null }
   | { kind: 'different-edit'; sourceId: string }
   | { kind: 'not-found'; isWaitingForAddon: boolean };
 
@@ -17,7 +18,7 @@ export type AudioMatch =
 export type SongSyncStatus = 'synced' | 'syncing' | 'needs-audio' | 'different-edit' | 'update-available' | 'you-edited-this' | 'removed-from-vault';
 
 export type SyncAction =
-  | { kind: 'add'; vaultSongId: string; to: SongsPath; chartVersion: string; audio: { sourceId: string; shiftSeconds: number } }
+  | { kind: 'add'; vaultSongId: string; to: SongsPath; chartVersion: string; audio: { sourceId: string; shiftSeconds: number; videoSourceId: string | null } }
   | { kind: 'update'; vaultSongId: string; at: SongsPath; chartVersion: string }
   | { kind: 'move'; vaultSongId: string; from: SongsPath; to: SongsPath }
   | { kind: 'remove'; vaultSongId: string; at: SongsPath }

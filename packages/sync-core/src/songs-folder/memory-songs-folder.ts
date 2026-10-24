@@ -54,6 +54,16 @@ export class MemorySongsFolder implements SongsFolder {
     });
   }
 
+  copyVideo({ sourceId, folder, baseName }: { sourceId: string; folder: SongsPath; baseName: string }): Promise<string> {
+    return runLikeADisk(() => {
+      const bytes = this.musicBytesBySourceId.get(sourceId);
+      if (!bytes) throw new SongsFolderError({ failure: 'not-found', message: `The video ${sourceId} is gone.` });
+      const fileName = `${baseName}.mp4`;
+      this.writeFile({ path: [...folder, fileName], contents: bytes });
+      return fileName;
+    });
+  }
+
   rename(options: { from: SongsPath; to: SongsPath }): Promise<void> {
     return runLikeADisk(() => {
       this.renameNow(options);

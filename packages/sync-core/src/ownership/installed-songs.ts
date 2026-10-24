@@ -18,6 +18,8 @@ export interface InstalledSong {
 
 export interface InstalledMusic {
   fileName: string;
+  /** The song's video next to the music, if its source gave one; kept on every update. Older records have none. */
+  videoFileName?: string | null;
   /** Seconds the player's copy starts later than StepsVault's (negative: earlier); reapplied on every update. */
   shiftSeconds: number;
 }

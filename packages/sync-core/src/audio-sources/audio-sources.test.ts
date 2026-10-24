@@ -162,3 +162,48 @@ describe('findAudioForSong', () => {
     expect(result.addonMessages).toEqual(['tapes: Not in our catalog']);
   });
 });
+
+describe('addon video', () => {
+  const answerWithVideo = { status: 200, body: { links: [{ kind: 'file-url', url: 'https://tapes.example.org/x.ogg', label: 'ogg' }, { kind: 'file-url', media: 'video', url: 'https://tapes.example.org/x.mp4', label: 'video' }] } };
+
+  it('comes with the music when the music from the same answer matched', async () => {
+    const downloads: string[] = [];
+    const result = await findAudioForSong({
+      song: CHEAP_THRILLS, pickedSourceId: null, musicIndex: null, addons: [buildAddon('tapes')],
+      httpClient: buildAddonHttpClient({ 'https://tapes.example.org/audio-links': answerWithVideo }),
+      checkAudioSource: buildChecker({ 'download:x.ogg': 'matched' }).checkAudioSource,
+      downloadAddonFile: ({ url }) => {
+        downloads.push(url);
+        return Promise.resolve(url.endsWith('.mp4') ? 'download:x.mp4' : 'download:x.ogg');
+      },
+    });
+    expect(result.match).toEqual({ kind: 'matched', sourceId: 'download:x.ogg', shiftSeconds: 0.1, videoSourceId: 'download:x.mp4' });
+    expect(downloads).toEqual(['https://tapes.example.org/x.ogg', 'https://tapes.example.org/x.mp4']);
+  });
+
+  it('is never downloaded when the music did not match', async () => {
+    const downloads: string[] = [];
+    const result = await findAudioForSong({
+      song: CHEAP_THRILLS, pickedSourceId: null, musicIndex: null, addons: [buildAddon('tapes')],
+      httpClient: buildAddonHttpClient({ 'https://tapes.example.org/audio-links': answerWithVideo }),
+      checkAudioSource: buildChecker({}).checkAudioSource,
+      downloadAddonFile: ({ url }) => {
+        downloads.push(url);
+        return Promise.resolve('download:x.ogg');
+      },
+    });
+    expect(result.match.kind).toBe('different-edit');
+    expect(downloads).toEqual(['https://tapes.example.org/x.ogg']);
+  });
+
+  it('leaves the song with music only when the video fails to download', async () => {
+    const result = await findAudioForSong({
+      song: CHEAP_THRILLS, pickedSourceId: null, musicIndex: null, addons: [buildAddon('tapes')],
+      httpClient: buildAddonHttpClient({ 'https://tapes.example.org/audio-links': answerWithVideo }),
+      checkAudioSource: buildChecker({ 'download:x.ogg': 'matched' }).checkAudioSource,
+      downloadAddonFile: ({ url }) => (url.endsWith('.mp4') ? Promise.reject(new Error('offline')) : Promise.resolve('download:x.ogg')),
+    });
+    expect(result.match).toEqual({ kind: 'matched', sourceId: 'download:x.ogg', shiftSeconds: 0.1 });
+    expect(result.addonMessages[0]).toContain('plays without it');
+  });
+});

@@ -17,7 +17,7 @@ const MUSIC_BYTES = new Uint8Array([79, 103, 103, 83]);
 const BANNER_BYTES = new Uint8Array([137, 80, 78, 71]);
 
 function buildSongFiles({ vaultSongId, chartVersion }: { vaultSongId: string; chartVersion: string }): SongFiles {
-  return { sscText: `#TITLE:${vaultSongId};\n#MUSIC:x.ogg;\n#BANNER:banner.png;\n#OFFSET:-0.100000;\n#VERSIONTAG:${chartVersion};\n`, images: [{ fileName: 'banner.png', bytes: BANNER_BYTES }] };
+  return { sscText: `#TITLE:${vaultSongId};\n#MUSIC:x.ogg;\n#BANNER:banner.png;\n#OFFSET:-0.100000;\n#BPMS:0.000=120.000;\n#VERSIONTAG:${chartVersion};\n`, images: [{ fileName: 'banner.png', bytes: BANNER_BYTES }] };
 }
 
 class SyncedGame {
@@ -132,5 +132,24 @@ describe('carryOutSyncPlan', () => {
     expect(game.savedRecords.map((record) => record.installedSongs.length)).toEqual([1, 2]);
     const second = await game.plan({ vaultSongs: [CHEAP_THRILLS, WATCH_ME] });
     expect(second.songPlans.map((songPlan) => songPlan.status)).toEqual(['synced', 'synced']);
+  });
+});
+
+describe('a song with its video', () => {
+  it('gets video.mp4 and the background line, and keeps both when its steps update', async () => {
+    const game = new SyncedGame();
+    const videoBytes = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112]);
+    game.songsFolder.addMusicSource({ sourceId: 'video:a', bytes: videoBytes });
+    const plan = await game.plan({ vaultSongs: [CHEAP_THRILLS] });
+    const planWithVideo = { ...plan, songPlans: plan.songPlans.map((songPlan) => ({ ...songPlan, actions: songPlan.actions.map((action) => (action.kind === 'add' ? { ...action, audio: { ...action.audio, videoSourceId: 'video:a' } } : action)) })) };
+    game.record = (await carryOutSyncPlan({ plan: planWithVideo, record: game.record, dependencies: game.dependencies })).record;
+    const folder = ['StepsVault', 'Cheap Thrills'];
+    expect(game.songsFolder.readBytes([...folder, 'video.mp4'])).toEqual(videoBytes);
+    expect(await game.songsFolder.readText([...folder, 'Cheap Thrills.ssc'])).toContain('#BGCHANGES:');
+    expect(findInstalledSong({ record: game.record, vaultSongId: 'a' })?.music.videoFileName).toBe('video.mp4');
+    await game.sync({ vaultSongs: [{ ...CHEAP_THRILLS, chartVersion: 'v2' }] });
+    const updated = await game.songsFolder.readText([...folder, 'Cheap Thrills.ssc']);
+    expect(updated).toContain('#VERSIONTAG:v2;');
+    expect(updated).toContain('=video.mp4=');
   });
 });
