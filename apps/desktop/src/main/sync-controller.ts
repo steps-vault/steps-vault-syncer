@@ -19,7 +19,7 @@ import {
   type SyncOutcome,
   type SyncPorts,
 } from '@stepsvault/sync-core';
-import type { AddonInstallPreview, AddonLookupResult, SongAction } from '@stepsvault/sync-ui';
+import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, getTrayStatus, type AddonInstallPreview, type AddonLookupResult, type SongAction } from '@stepsvault/sync-ui';
 import type { DesktopSignIn, DesktopSyncBridge, DesktopSyncState } from '../shared/bridge-types';
 import type { AudioBridge } from './audio-bridge';
 import { buildDefaultSettings, parseSettings, withActivity, type DesktopSettings } from './desktop-settings';
@@ -30,7 +30,6 @@ import { MusicSourceRegistry } from './music-source-registry';
 import { NodeHttpClient } from './node-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
-import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, getTrayStatus } from './view-models';
 
 const MAX_ADDON_FILE_BYTES = 200 * 1024 * 1024;
 const ADDON_DOWNLOAD_TIMEOUT_MILLISECONDS = 120_000;
