@@ -1,0 +1,7 @@
+packages:
+  - packages/*
+  - apps/*
+
+# A package version must be at least 7 days old before pnpm installs it: poisoned releases are usually found and
+# pulled within days.
+minimumReleaseAge: 10080
