@@ -11,3 +11,7 @@ export * from './layout/layout-change';
 export * from './layout/player-groups';
 export type * from './planner/sync-plan-types';
 export * from './planner/sync-planner';
+export type * from './audio-matching/audio-decoder';
+export * from './audio-matching/onset-envelope';
+export * from './audio-matching/realign-offset';
+export * from './audio-matching/audio-match';
