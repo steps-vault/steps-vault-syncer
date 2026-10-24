@@ -27,8 +27,10 @@ pnpm test
 | Folder | What it is |
 |---|---|
 | `packages/sync-core` | The sync engine: plain TypeScript, no DOM or Node APIs; everything outside goes through ports |
+| `packages/sync-ui` | The Sync screens as React components, shared by the website and the desktop app |
 
-The shared screens (`packages/sync-ui`) and the desktop app (`apps/desktop`) come with tasks 10 and 11.
+To see every screen with made-up data, run `pnpm --filter @stepsvault/sync-ui preview` and open the address it prints.
+The desktop app (`apps/desktop`) comes with task 11.
 
 ## Licence
 
