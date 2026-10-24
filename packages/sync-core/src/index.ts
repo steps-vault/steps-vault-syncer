@@ -1,5 +1,5 @@
 export * from './songs-folder/songs-path';
-export type * from './songs-folder/songs-folder';
+export * from './songs-folder/songs-folder';
 export * from './songs-folder/memory-songs-folder';
 export * from './ownership/installed-songs';
 export * from './ownership/song-folder-marker';
@@ -15,3 +15,7 @@ export type * from './audio-matching/audio-decoder';
 export * from './audio-matching/onset-envelope';
 export * from './audio-matching/realign-offset';
 export * from './audio-matching/audio-match';
+export * from './ssc/player-ssc';
+export * from './writing/song-write-error';
+export * from './writing/song-writer';
+export * from './writing/sync-executor';
