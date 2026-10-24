@@ -19,3 +19,7 @@ export * from './ssc/player-ssc';
 export * from './writing/song-write-error';
 export * from './writing/song-writer';
 export * from './writing/sync-executor';
+export * from './network/http-client';
+export * from './addons/addon-address';
+export * from './addons/addon-protocol';
+export * from './addons/addon-client';
