@@ -1,0 +1,31 @@
+# Windows installer for StepsVault Sync. Everything the app runs is already bundled into dist/ (esbuild and Vite);
+# only electron-updater ships as a dependency.
+appId: com.stepsvault.sync
+productName: StepsVault Sync
+copyright: Copyright © StepsVault contributors. Apache-2.0.
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**
+  - package.json
+  - "!**/*.map"
+asar: true
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: StepsVault-Sync-Setup-${version}.${ext}
+nsis:
+  # Installs for the current user only: no admin rights, no UAC prompt.
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: StepsVault Sync
+publish:
+  provider: github
+  owner: steps-vault
+  repo: steps-vault-syncer
+  releaseType: release

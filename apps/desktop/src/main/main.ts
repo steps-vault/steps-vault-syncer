@@ -8,6 +8,7 @@ import { DeviceTokenStore } from './device-token-store';
 import { isGameRunning } from './game-process';
 import { SyncController } from './sync-controller';
 import { SyncTray } from './tray';
+import { installUpdateNow, startUpdateChecks } from './updates';
 import { createAudioWindow, createMainWindow } from './windows';
 
 const BACKGROUND_SYNC_MINUTES = 15;
@@ -69,6 +70,10 @@ function createController(tray: { show: (status: DesktopSyncState['trayStatus'])
         clipboard.writeText(text);
       },
       isGameRunning,
+      installUpdate: () => {
+        isQuitting = true;
+        installUpdateNow();
+      },
     },
     onStateChange: (state) => {
       tray.show(state.trayStatus);
@@ -131,6 +136,7 @@ async function start(): Promise<void> {
   getAudioWindow();
   showMainWindow();
   await controller.initialize();
+  startUpdateChecks({ onUpdateReady: (version) => { controller.setUpdateReady(version); } });
   void controller.syncNow();
   setInterval(() => {
     if (controller.isBackgroundSyncOn) void controller.syncNow();

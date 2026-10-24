@@ -11,7 +11,7 @@ const distFolder = path.join(appFolder, 'dist');
 
 await rm(distFolder, { recursive: true, force: true });
 
-const nodeBuildOptions = { bundle: true, platform: 'node', target: 'node22', format: 'cjs', external: ['electron'], sourcemap: true, logLevel: 'warning' };
+const nodeBuildOptions = { bundle: true, platform: 'node', target: 'node22', format: 'cjs', external: ['electron', 'electron-updater'], sourcemap: true, logLevel: 'warning' };
 await buildWithEsbuild({ ...nodeBuildOptions, entryPoints: [path.join(appFolder, 'src/main/main.ts')], outfile: path.join(distFolder, 'main/main.cjs') });
 for (const preloadName of ['app-preload', 'audio-preload']) {
   await buildWithEsbuild({ ...nodeBuildOptions, entryPoints: [path.join(appFolder, `src/preload/${preloadName}.ts`)], outfile: path.join(distFolder, `preload/${preloadName}.cjs`) });
