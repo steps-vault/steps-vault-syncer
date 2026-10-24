@@ -1,4 +1,4 @@
-import type { FolderLayout, InstalledAddon } from '@stepsvault/sync-core';
+import { loadSavedAddon, type FolderLayout, type InstalledAddon } from '@stepsvault/sync-core';
 import type { ActivityEvent } from '@stepsvault/sync-core';
 
 export const DEFAULT_SITE_URL = 'https://stepsvault.com';
@@ -55,7 +55,7 @@ export function parseSettings(value: unknown): DesktopSettings {
     shouldUpdateAutomatically: saved.shouldUpdateAutomatically !== false,
     isBackgroundSyncOn: saved.isBackgroundSyncOn !== false,
     pickedFilePathsBySongId: getStringsByKey(saved.pickedFilePathsBySongId),
-    addons: Array.isArray(saved.addons) ? saved.addons.filter(isSavedAddon) : [],
+    addons: Array.isArray(saved.addons) ? saved.addons.flatMap((addon) => loadSavedAddon(addon) ?? []) : [],
     replaceEditedSongIds: getStrings(saved.replaceEditedSongIds),
     removeFromGameSongIds: getStrings(saved.removeFromGameSongIds),
     updateSongIds: getStrings(saved.updateSongIds),
@@ -70,12 +70,6 @@ export function withActivity({ settings, events }: { settings: DesktopSettings; 
 
 function isSavedGame(value: unknown): value is DesktopSettings['game'] {
   return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>).songsFolderPath === 'string' && typeof (value as Record<string, unknown>).gameName === 'string';
-}
-
-function isSavedAddon(value: unknown): value is InstalledAddon {
-  if (typeof value !== 'object' || value === null) return false;
-  const addon = value as Record<string, unknown>;
-  return typeof addon.baseUrl === 'string' && typeof addon.manifest === 'object' && addon.manifest !== null && typeof addon.isEnabled === 'boolean';
 }
 
 function getStringsByKey(value: unknown): Record<string, string> {

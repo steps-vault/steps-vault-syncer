@@ -1,5 +1,6 @@
 import { HttpRequestError, type HttpClient } from '../network/http-client';
 import { getAddonBaseUrl } from './addon-address';
+import { getAddonOptionValues, MEDIA_OPTION_ID, MUSIC_ONLY_MEDIA_VALUE, withAddonOptionValue, type AddonOptionValues } from './addon-options';
 import { buildAudioLinksRequestBody, InvalidAddonAnswerError, parseAddonManifest, parseAudioLinksAnswer, type AddonManifest, type AddonSongFacts, type AudioLinksAnswer } from './addon-protocol';
 
 const MANIFEST_TIMEOUT_MILLISECONDS = 10_000;
@@ -12,6 +13,8 @@ export interface InstalledAddon {
   manifest: AddonManifest;
   isEnabled: boolean;
   consentedAt: string;
+  /** The player's pick for each of the manifest's options. Always checked against the manifest before it is sent. */
+  optionValues: AddonOptionValues;
 }
 
 export type AddonCallResult = AudioLinksAnswer | { kind: 'not-answering'; message: string };
@@ -29,9 +32,38 @@ export async function fetchAddonManifest({ httpClient, address }: { httpClient: 
   }
 }
 
-/** Step 2: only after the player agreed on the consent screen. */
-export function buildInstalledAddon({ baseUrl, manifest, consentedAt }: { baseUrl: string; manifest: AddonManifest; consentedAt: string }): InstalledAddon {
-  return { baseUrl, manifest, isEnabled: true, consentedAt };
+/** Step 2: only after the player agreed on the consent screen, with the options they picked there. */
+export function buildInstalledAddon({ baseUrl, manifest, consentedAt, optionValues = {} }: { baseUrl: string; manifest: AddonManifest; consentedAt: string; optionValues?: Readonly<Record<string, unknown>> }): InstalledAddon {
+  return { baseUrl, manifest, isEnabled: true, consentedAt, optionValues: getAddonOptionValues({ options: manifest.options, savedValues: optionValues }) };
+}
+
+/**
+ * Reads an addon from saved settings, checking it again like a fresh manifest. An addon saved before options existed
+ * gets the defaults. Returns null for anything that isn't a valid addon.
+ */
+export function loadSavedAddon(value: unknown): InstalledAddon | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const saved = value as Record<string, unknown>;
+  if (typeof saved.baseUrl !== 'string' || typeof saved.isEnabled !== 'boolean') return null;
+  try {
+    const manifest = parseAddonManifest(saved.manifest);
+    const savedValues = typeof saved.optionValues === 'object' && saved.optionValues !== null ? (saved.optionValues as Record<string, unknown>) : {};
+    const consentedAt = typeof saved.consentedAt === 'string' ? saved.consentedAt : '';
+    return { baseUrl: saved.baseUrl, manifest, isEnabled: saved.isEnabled, consentedAt, optionValues: getAddonOptionValues({ options: manifest.options, savedValues }) };
+  } catch {
+    return null;
+  }
+}
+
+/** Changes one option; an option or choice the addon doesn't declare leaves the addon as it was. */
+export function withAddonOption({ addon, optionId, value }: { addon: InstalledAddon; optionId: string; value: string }): InstalledAddon {
+  const values = getAddonOptionValues({ options: addon.manifest.options, savedValues: addon.optionValues });
+  return { ...addon, optionValues: withAddonOptionValue({ options: addon.manifest.options, values, optionId, value }) };
+}
+
+/** True when the player chose "Music only" for this addon, so Sync must not download its video. */
+export function isAddonSetToMusicOnly(addon: InstalledAddon): boolean {
+  return getAddonOptionValues({ options: addon.manifest.options, savedValues: addon.optionValues })[MEDIA_OPTION_ID] === MUSIC_ONLY_MEDIA_VALUE;
 }
 
 /**
@@ -43,7 +75,7 @@ export async function fetchAudioLinks({ httpClient, addon, song }: { httpClient:
     const response = await httpClient.requestJson({
       url: `${addon.baseUrl}/audio-links`,
       method: 'POST',
-      jsonBody: buildAudioLinksRequestBody(song),
+      jsonBody: buildAudioLinksRequestBody({ song, optionValues: getAddonOptionValues({ options: addon.manifest.options, savedValues: addon.optionValues }) }),
       timeoutMilliseconds: AUDIO_LINKS_TIMEOUT_MILLISECONDS,
       maxResponseBytes: MAX_ANSWER_BYTES,
     });

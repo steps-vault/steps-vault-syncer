@@ -12,6 +12,7 @@ import {
   SignedOutError,
   startDeviceSignIn,
   StepsVaultClient,
+  withAddonOption,
   type AddonManifest,
   type FolderLayout,
   type InstalledSongsRecord,
@@ -19,7 +20,19 @@ import {
   type SyncOutcome,
   type SyncPorts,
 } from '@stepsvault/sync-core';
-import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, getTrayStatus, type AddonInstallPreview, type AddonLookupResult, type SongAction } from '@stepsvault/sync-ui';
+import {
+  buildActivityEntries,
+  buildAddonInstallPreview,
+  buildAddonView,
+  buildLayoutViews,
+  buildSongDetailsById,
+  buildSongRows,
+  getAddonOptionValuesFromViews,
+  getTrayStatus,
+  type AddonInstallPreview,
+  type AddonLookupResult,
+  type SongAction,
+} from '@stepsvault/sync-ui';
 import type { DesktopSignIn, DesktopSyncBridge, DesktopSyncState } from '../shared/bridge-types';
 import type { AudioBridge } from './audio-bridge';
 import { buildDefaultSettings, parseSettings, withActivity, type DesktopSettings } from './desktop-settings';
@@ -205,7 +218,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     try {
       const { baseUrl, manifest } = await fetchAddonManifest({ httpClient: this.httpClient, address });
       this.lookedUpAddonsByAddress.set(address, { baseUrl, manifest });
-      return { kind: 'found', addon: { address, name: manifest.name, version: manifest.version, author: manifest.author } };
+      return { kind: 'found', addon: buildAddonInstallPreview({ address, manifest }) };
     } catch (error) {
       return { kind: 'failed', message: error instanceof Error ? error.message : 'No addon answered at this address.' };
     }
@@ -214,13 +227,19 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   async installAddon(preview: AddonInstallPreview): Promise<void> {
     const lookedUp = this.lookedUpAddonsByAddress.get(preview.address);
     if (!lookedUp) return;
-    const addon = buildInstalledAddon({ ...lookedUp, consentedAt: new Date().toISOString() });
+    const addon = buildInstalledAddon({ ...lookedUp, consentedAt: new Date().toISOString(), optionValues: getAddonOptionValuesFromViews(preview.options) });
     await this.saveSettings({ ...this.settings, addons: [...this.settings.addons.filter((existing) => existing.manifest.id !== addon.manifest.id), addon] });
     await this.syncNow();
   }
 
   async setAddonEnabled({ addonId, isEnabled }: { addonId: string; isEnabled: boolean }): Promise<void> {
     await this.saveSettings({ ...this.settings, addons: this.settings.addons.map((addon) => (addon.manifest.id === addonId ? { ...addon, isEnabled } : addon)) });
+  }
+
+  /** Songs still waiting for audio are asked again with the new choice; songs that already have theirs keep it. */
+  async setAddonOption({ addonId, optionId, value }: { addonId: string; optionId: string; value: string }): Promise<void> {
+    await this.saveSettings({ ...this.settings, addons: this.settings.addons.map((addon) => (addon.manifest.id === addonId ? withAddonOption({ addon, optionId, value }) : addon)) });
+    await this.syncNow();
   }
 
   async removeAddon(addonId: string): Promise<void> {
@@ -412,7 +431,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       musicFolders: this.settings.musicFolders.map((folderPath) => ({ folderPath, scanState: this.scannedFileCount === null ? 'waiting' : 'scanned', summaryText: `${(this.musicIndex?.fileCount ?? 0).toLocaleString('en-US')} music files` })),
       scannedFileCount: this.scannedFileCount,
       pickedFiles: Object.entries(this.settings.pickedFilePathsBySongId).map(([vaultSongId, filePath]) => ({ vaultSongId, title: songs.find((song) => song.vaultSongId === vaultSongId)?.title ?? 'A song', fileName: path.basename(filePath), status: songs.find((song) => song.vaultSongId === vaultSongId)?.status ?? 'needs-audio' })),
-      addons: this.settings.addons.map((addon) => ({ addonId: addon.manifest.id, name: addon.manifest.name, version: addon.manifest.version, author: addon.manifest.author, providesText: 'Audio links', isEnabled: addon.isEnabled, health: { kind: 'working', note: addon.baseUrl } })),
+      addons: this.settings.addons.map((addon) => buildAddonView(addon)),
       layout: this.settings.layout,
       ...layoutViews,
       playerGroupNames: this.playerGroupNames,

@@ -98,12 +98,14 @@ export const FAKE_PICKED_FILES: readonly PickedFileView[] = [
 ];
 
 export const FAKE_ADDONS: readonly AddonView[] = [
-  { addonId: 'open-audio-links', name: 'Open Audio Links', version: '1.4.2', author: '@mixtape_lab', providesText: 'audio links', isEnabled: true, health: { kind: 'working', note: 'Working · gave audio for 2 songs' } },
-  { addonId: 'indie-tapes', name: 'Indie Tapes', version: '0.6.1', author: 'cassette-club', providesText: 'audio links', isEnabled: true, health: { kind: 'not-answering', note: 'Not answering since 14:02. Songs keep the audio they have; new ones wait.' } },
-  { addonId: 'home-server-music', name: 'Home Server Music', version: '0.3.0', author: '@noa', providesText: 'audio links', isEnabled: false, health: { kind: 'working', note: 'Turned off' } },
+  { addonId: 'open-audio-links', name: 'Open Audio Links', version: '1.4.2', author: '@mixtape_lab', providesText: 'audio and video links', isEnabled: true, health: { kind: 'working', note: 'Working · gave audio for 2 songs' }, options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio-and-video' }] },
+  { addonId: 'indie-tapes', name: 'Indie Tapes', version: '0.6.1', author: 'cassette-club', providesText: 'audio links', isEnabled: true, health: { kind: 'not-answering', note: 'Not answering since 14:02. Songs keep the audio they have; new ones wait.' }, options: [] },
+  { addonId: 'home-server-music', name: 'Home Server Music', version: '0.3.0', author: '@noa', providesText: 'audio links', isEnabled: false, health: { kind: 'working', note: 'Turned off' }, options: [] },
 ];
 
-export const FAKE_ADDON_PREVIEW: AddonInstallPreview = { address: 'https://bridge.hyperpad.example/stepsvault', name: 'Bandcamp Bridge', version: '0.9.0', author: 'hyperpad' };
+export const FAKE_ADDON_PREVIEW: AddonInstallPreview = { address: 'https://bridge.hyperpad.example/stepsvault', name: 'Bandcamp Bridge', version: '0.9.0', author: 'hyperpad',
+  options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio-and-video' }],
+};
 
 export const FAKE_LAYOUT_PREVIEWS: LayoutPreviewsByLayout = {
   'one-group': { groups: [{ groupName: 'StepsVault', tagText: '12 songs', songTitles: ['Paper Thrills', 'Watch Me Glow', '桜ドライブ'], moreSongCount: 9 }] },

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse } from '../network/http-client';
 import { getAddonBaseUrl, InvalidAddonAddressError } from './addon-address';
-import { buildInstalledAddon, fetchAddonManifest, fetchAudioLinks } from './addon-client';
+import { buildInstalledAddon, fetchAddonManifest, fetchAudioLinks, isAddonSetToMusicOnly, loadSavedAddon, withAddonOption } from './addon-client';
+import { parseAddonOptions, type AddonChoiceOption } from './addon-options';
 import type { AddonManifest, AddonSongFacts } from './addon-protocol';
 
-const MANIFEST: AddonManifest = { protocol: 1, id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: 'Links to files on our own server.', provides: ['audio-links'] };
+const MANIFEST: AddonManifest = { protocol: 1, id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: 'Links to files on our own server.', provides: ['audio-links'], options: [] };
+const MEDIA_OPTION: AddonChoiceOption = { id: 'media', label: 'What to get', kind: 'choice', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], default: 'audio-and-video' };
+const MANIFEST_WITH_OPTIONS: AddonManifest = { ...MANIFEST, provides: ['audio-links', 'video-links'], options: [MEDIA_OPTION] };
 const SONG: AddonSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: 'Electronic', lengthSeconds: 201, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' };
 
 /** Answers each request with the next canned answer, and remembers what was sent. */
@@ -128,5 +131,64 @@ describe('video links', () => {
     ]);
     expect((await fetchAddonManifest({ httpClient, address: 'https://cdn.example.org' })).manifest.provides).toEqual(['audio-links', 'video-links']);
     expect(await fetchAudioLinks({ httpClient, addon: ADDON, song: SONG })).toMatchObject({ links: [{ media: 'audio', url: 'https://cdn.example.org/a.ogg' }, { media: 'video', url: 'https://cdn.example.org/v.mp4' }] });
+  });
+});
+
+describe('addon options', () => {
+  it('reads valid options from the manifest and drops broken ones without refusing the addon', async () => {
+    const options = [
+      MEDIA_OPTION,
+      { ...MEDIA_OPTION, id: 'Bad Id' },
+      { ...MEDIA_OPTION, id: 'quality', default: 'best' },
+      { ...MEDIA_OPTION, id: 'one-choice', choices: [{ value: 'audio', label: 'Music only' }], default: 'audio' },
+      { ...MEDIA_OPTION, id: 'free-text', kind: 'text' },
+      { ...MEDIA_OPTION, id: 'duplicate-values', choices: [{ value: 'audio', label: 'A' }, { value: 'audio', label: 'B' }], default: 'audio' },
+      { ...MEDIA_OPTION, label: 'A second option with the same id' },
+    ];
+    const httpClient = new RecordedHttpClient([{ status: 200, body: { ...MANIFEST, options } }]);
+    expect((await fetchAddonManifest({ httpClient, address: 'https://addons.example.org' })).manifest.options).toEqual([MEDIA_OPTION]);
+  });
+
+  it('keeps at most 8 options, and an addon without options gets an empty list', () => {
+    const options = Array.from({ length: 10 }, (_, index) => ({ ...MEDIA_OPTION, id: `option-${String(index)}` }));
+    expect(parseAddonOptions(options).map((option) => option.id)).toEqual(['option-0', 'option-1', 'option-2', 'option-3', 'option-4', 'option-5', 'option-6', 'option-7']);
+    expect(parseAddonOptions(undefined)).toEqual([]);
+    expect(parseAddonOptions('media')).toEqual([]);
+  });
+
+  it('installs with the picked values, keeping only declared options and choices', () => {
+    const addon = buildInstalledAddon({ baseUrl: 'https://addons.example.org', manifest: MANIFEST_WITH_OPTIONS, consentedAt: '2026-10-24T10:00:00Z', optionValues: { media: 'audio', email: 'player@example.org' } });
+    expect(addon.optionValues).toEqual({ media: 'audio' });
+    expect(buildInstalledAddon({ baseUrl: 'https://addons.example.org', manifest: MANIFEST_WITH_OPTIONS, consentedAt: '', optionValues: { media: 'everything' } }).optionValues).toEqual({ media: 'audio-and-video' });
+  });
+
+  it('sends the chosen values with every request, and no options field to an addon without options', async () => {
+    const addon = buildInstalledAddon({ baseUrl: 'https://addons.example.org', manifest: MANIFEST_WITH_OPTIONS, consentedAt: '', optionValues: { media: 'audio' } });
+    const httpClient = new RecordedHttpClient([{ status: 200, body: { links: [] } }, { status: 200, body: { links: [] } }]);
+    await fetchAudioLinks({ httpClient, addon, song: SONG });
+    await fetchAudioLinks({ httpClient, addon: ADDON, song: SONG });
+    expect(httpClient.requests[0]?.jsonBody).toEqual({ protocol: 1, song: SONG, options: { media: 'audio' } });
+    expect(httpClient.requests[1]?.jsonBody).toEqual({ protocol: 1, song: SONG });
+  });
+
+  it('changes one option only to a declared choice', () => {
+    const addon = buildInstalledAddon({ baseUrl: 'https://addons.example.org', manifest: MANIFEST_WITH_OPTIONS, consentedAt: '' });
+    expect(isAddonSetToMusicOnly(addon)).toBe(false);
+    const musicOnly = withAddonOption({ addon, optionId: 'media', value: 'audio' });
+    expect(musicOnly.optionValues).toEqual({ media: 'audio' });
+    expect(isAddonSetToMusicOnly(musicOnly)).toBe(true);
+    expect(withAddonOption({ addon: musicOnly, optionId: 'media', value: 'C:\\Windows' }).optionValues).toEqual({ media: 'audio' });
+    expect(withAddonOption({ addon: musicOnly, optionId: 'unknown', value: 'audio' }).optionValues).toEqual({ media: 'audio' });
+  });
+
+  it('loads an addon saved before options existed with the defaults, and refuses broken saved addons', () => {
+    const savedBeforeOptions = { baseUrl: 'https://addons.example.org', manifest: MANIFEST_WITH_OPTIONS, isEnabled: false, consentedAt: '2026-10-01T10:00:00Z' };
+    expect(loadSavedAddon(savedBeforeOptions)).toEqual({ ...savedBeforeOptions, optionValues: { media: 'audio-and-video' } });
+    const manifestWithoutOptions = Object.fromEntries(Object.entries(MANIFEST).filter(([key]) => key !== 'options'));
+    expect(loadSavedAddon({ ...savedBeforeOptions, manifest: manifestWithoutOptions })?.manifest.options).toEqual([]);
+    expect(loadSavedAddon({ ...savedBeforeOptions, optionValues: { media: 'audio' } })?.optionValues).toEqual({ media: 'audio' });
+    expect(loadSavedAddon({ ...savedBeforeOptions, manifest: { ...MANIFEST, protocol: 2 } })).toBeNull();
+    expect(loadSavedAddon({ baseUrl: 7 })).toBeNull();
+    expect(loadSavedAddon(null)).toBeNull();
   });
 });

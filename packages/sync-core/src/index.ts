@@ -22,6 +22,7 @@ export * from './writing/sync-executor';
 export * from './network/http-client';
 export * from './addons/addon-address';
 export * from './addons/addon-protocol';
+export * from './addons/addon-options';
 export * from './addons/addon-client';
 export * from './audio-sources/song-names';
 export * from './audio-sources/music-library';

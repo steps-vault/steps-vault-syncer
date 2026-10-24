@@ -75,9 +75,10 @@ and Sync says so before moving anything.
 
 An addon is a web service the player adds by its address. It serves:
 
-- `GET /manifest.json`: `{ id, name, version, author, description, provides: ["audio-links"], protocol: 1 }`;
-- `POST /audio-links` with one song's facts, answering with zero or more `{ kind: "file-url" | "open-page", url,
-  label }`.
+- `GET /manifest.json`: `{ id, name, version, author, description, provides: ["audio-links"], protocol: 1 }`, and
+  optionally up to 8 simple `options` the player picks from a list (never free text);
+- `POST /audio-links` with one song's facts (and the player's option picks), answering with zero or more
+  `{ kind: "file-url" | "open-page", url, label }`.
 
 Sync calls addons from the app's main process (or the website's page) with a timeout. The full protocol is in [addons.md](addons.md); an addon on the player's own computer may use `http://127.0.0.1`. It treats every answer as
 untrusted data, downloads only `https://` files into a temporary folder, and still checks every file with the
