@@ -2,8 +2,9 @@ import { useState, type FormEvent, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
 import { Icon } from '../icons/icon';
 import { Note } from '../shared/small-parts';
-import type { AddonInstallPreview, AddonLookupResult } from '../sync-ui-types';
+import type { AddonInstallPreview, AddonLookupResult, AddonOptionView } from '../sync-ui-types';
 import { getAddonInitials } from './addon-card';
+import { AddonOptionFields } from './addon-option-fields';
 
 /** The only song facts an addon ever receives (plan.md, "Addons see song facts only"). */
 export const ADDON_VISIBLE_SONG_FACTS = 'title, artist, album, genre, length, and the song’s YouTube link.';
@@ -19,6 +20,7 @@ export function isAddonAddress(address: string): boolean {
 export interface AddAddonDialogProps {
   /** Reads the addon's own description from its address. The dialog only shows the answer. */
   onLookUpAddon: (address: string) => Promise<AddonLookupResult>;
+  /** Gets the preview with the options the player picked on the consent step. */
   onInstall: (addon: AddonInstallPreview) => void;
   onClose: () => void;
 }
@@ -32,7 +34,7 @@ export function AddAddonDialog({ onLookUpAddon, onInstall, onClose }: AddAddonDi
     <SyncDialog titleId="sv-sync-add-addon-title" onClose={onClose} focusKey={step.kind}>
       {step.kind === 'address'
         ? <AddressStep onLookUpAddon={onLookUpAddon} onFound={(addon) => { setStep({ kind: 'consent', addon }); }} onCancel={onClose} />
-        : <ConsentStep addon={step.addon} onInstall={() => { onInstall(step.addon); }} onCancel={onClose} />}
+        : <ConsentStep addon={step.addon} onInstall={onInstall} onCancel={onClose} />}
     </SyncDialog>
   );
 }
@@ -81,7 +83,11 @@ function AddressStep({ onLookUpAddon, onFound, onCancel }: AddressStepProps): Re
   );
 }
 
-function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPreview; onInstall: () => void; onCancel: () => void }): ReactElement {
+function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPreview; onInstall: (addon: AddonInstallPreview) => void; onCancel: () => void }): ReactElement {
+  const [options, setOptions] = useState<readonly AddonOptionView[]>(addon.options);
+  const handleOptionChange = ({ optionId, value }: { optionId: string; value: string }): void => {
+    setOptions((current) => current.map((option) => (option.optionId === optionId ? { ...option, value } : option)));
+  };
   return (
     <>
       <div className="sv-sync-eyebrow">Add addon · step 2 of 2</div>
@@ -99,10 +105,17 @@ function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPrevie
         <b>It never sees:</b>
         <ul><li className="sv-sync-consent-no"><Icon name="close" strokeWidth={2.8} /><span>{ADDON_NEVER_SEES}</span></li></ul>
       </div>
+      {options.length > 0 && (
+        <div className="sv-sync-addon-setup">
+          <b>Choose how it works</b>
+          <span className="sv-sync-small sv-sync-muted">You can change this any time on the addon&apos;s card.</span>
+          <AddonOptionFields addonName={addon.name} options={options} onChange={handleOptionChange} />
+        </div>
+      )}
       <Note className="sv-sync-small">{TRUST_NOTE}</Note>
       <div className="sv-sync-dialog-buttons">
-        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel}>Cancel</button>
-        <button className="sv-sync-button sv-sync-button--go" type="button" onClick={onInstall}>Install</button>
+        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
+        <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onInstall({ ...addon, options }); }}>Install</button>
       </div>
     </>
   );

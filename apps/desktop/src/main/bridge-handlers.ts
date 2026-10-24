@@ -1,5 +1,5 @@
 import type { FolderLayout } from '@stepsvault/sync-core';
-import type { AddonInstallPreview, SongAction } from '@stepsvault/sync-ui';
+import type { AddonInstallPreview, AddonOptionView, SongAction } from '@stepsvault/sync-ui';
 import type { DesktopSyncBridge } from '../shared/bridge-types';
 import type { SyncController } from './sync-controller';
 
@@ -8,6 +8,8 @@ type BridgeHandlers = Record<Exclude<keyof DesktopSyncBridge, 'onState'>, (argum
 const LAYOUTS: readonly string[] = ['one-group', 'by-genre', 'by-artist'];
 const SONG_ACTIONS: readonly string[] = ['sync', 'choose-audio', 'use-different-file', 'update', 'keep-mine', 'replace-with-stepsvault', 'remove-from-game', 'keep-in-game'];
 const MAX_TEXT_LENGTH = 2_000;
+const MAX_ADDON_OPTIONS = 8;
+const MAX_ADDON_OPTION_CHOICES = 6;
 
 export class InvalidBridgeArgumentError extends Error {}
 
@@ -32,6 +34,7 @@ export function buildBridgeHandlers(controller: SyncController): BridgeHandlers 
     lookUpAddon: (argument) => controller.lookUpAddon(getText(argument)),
     installAddon: (argument) => controller.installAddon(getAddonPreview(argument)),
     setAddonEnabled: (argument) => controller.setAddonEnabled(getAddonToggle(argument)),
+    setAddonOption: (argument) => controller.setAddonOption(getAddonOptionChange(argument)),
     removeAddon: (argument) => controller.removeAddon(getText(argument)),
     setLayout: (argument) => controller.setLayout(getLayout(argument)),
     copyActivityDetails: () => controller.copyActivityDetails(),
@@ -68,7 +71,24 @@ function getSongActionRequest(value: unknown): { vaultSongId: string; action: So
 
 function getAddonPreview(value: unknown): AddonInstallPreview {
   const preview = getRecord(value);
-  return { address: getText(preview.address), name: getText(preview.name), version: getText(preview.version), author: getText(preview.author) };
+  return { address: getText(preview.address), name: getText(preview.name), version: getText(preview.version), author: getText(preview.author), options: getList({ value: preview.options, maxLength: MAX_ADDON_OPTIONS }).map(getAddonOptionView) };
+}
+
+/** The controller still checks every picked value against the addon's own manifest; this only checks the shape. */
+function getAddonOptionView(value: unknown): AddonOptionView {
+  const option = getRecord(value);
+  const choices = getList({ value: option.choices, maxLength: MAX_ADDON_OPTION_CHOICES }).map((choice) => ({ value: getText(getRecord(choice).value), label: getText(getRecord(choice).label) }));
+  return { optionId: getText(option.optionId), label: getText(option.label), choices, value: getText(option.value) };
+}
+
+function getAddonOptionChange(value: unknown): { addonId: string; optionId: string; value: string } {
+  const change = getRecord(value);
+  return { addonId: getText(change.addonId), optionId: getText(change.optionId), value: getText(change.value) };
+}
+
+function getList({ value, maxLength }: { value: unknown; maxLength: number }): unknown[] {
+  if (!Array.isArray(value) || value.length > maxLength) throw new InvalidBridgeArgumentError(`Expected a list of at most ${String(maxLength)} items.`);
+  return value;
 }
 
 function getAddonToggle(value: unknown): { addonId: string; isEnabled: boolean } {

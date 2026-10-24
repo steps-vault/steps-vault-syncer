@@ -40,13 +40,38 @@ An addon's address is `https://…`. The only exception is an addon running on t
   "version": "0.6.1",
   "author": "hyperpad",
   "description": "Links to the songs we host ourselves.",
-  "provides": ["audio-links", "video-links"]
+  "provides": ["audio-links", "video-links"],
+  "options": [
+    { "id": "media", "label": "What to get", "kind": "choice", "default": "audio-and-video",
+      "choices": [{ "value": "audio", "label": "Music only" }, { "value": "audio-and-video", "label": "Music and video" }] }
+  ]
 }
 ```
 
 - `id`: lower-case letters, digits, `.` and `-`, 2–64 characters.
 - `name` and `author`: up to 60 characters. `description`: up to 300 characters.
 - `provides`: always `audio-links`; add `video-links` if the addon can also give the song's video.
+- `options` (optional): see below.
+
+## Options
+
+An addon may offer up to 8 simple **options**. The player picks them when they install the addon (each starts at its
+`default`) and can change them any time on the addon's card in Sync. Sync sends the picks with every request.
+
+- `id`: starts with a lower-case letter, then lower-case letters, digits and `-`, up to 32 characters.
+- `label`: a short question, up to 40 characters.
+- `kind`: always `choice` (the player picks one from a list).
+- `choices`: 2 to 6 of `{ "value", "label" }`. `value`: lower-case letters, digits and `-`, up to 32 characters, each
+  different. `label`: up to 40 characters.
+- `default`: one of the `value`s.
+
+An option that breaks any of these rules is left out; the rest of the addon still works. Options never ask for
+personal data: there is no free text, only choices you list, so don't use them for names, e-mails, passwords or
+accounts.
+
+One option means something to Sync itself: `media`. When the player picks `audio` ("Music only"), Sync never
+downloads a video from this addon, even if one is sent. Any other value changes nothing on Sync's side: it still uses
+only the links the addon returns, and a video only together with music that matched.
 
 ## `POST <address>/audio-links`
 
@@ -54,8 +79,11 @@ Request:
 
 ```json
 { "protocol": 1, "song": { "title": "Pulse Garden", "artist": "Kairo Lights", "album": null, "genre": "Electronic",
-  "lengthSeconds": 201, "youtubeId": null, "youtubeUrl": null } }
+  "lengthSeconds": 201, "youtubeId": null, "youtubeUrl": null }, "options": { "media": "audio" } }
 ```
+
+`options` is there only when the manifest declares options. It has one value for every declared option (the
+player's pick, or the default), and only values from that option's `choices`.
 
 Answers:
 

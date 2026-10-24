@@ -70,6 +70,7 @@ export interface DesktopSyncBridge {
   lookUpAddon(address: string): Promise<AddonLookupResult>;
   installAddon(preview: AddonInstallPreview): Promise<void>;
   setAddonEnabled(request: { addonId: string; isEnabled: boolean }): Promise<void>;
+  setAddonOption(request: { addonId: string; optionId: string; value: string }): Promise<void>;
   removeAddon(addonId: string): Promise<void>;
   setLayout(layout: FolderLayout): Promise<void>;
   copyActivityDetails(): Promise<void>;
@@ -108,6 +109,7 @@ export const BRIDGE_METHOD_NAMES = [
   'lookUpAddon',
   'installAddon',
   'setAddonEnabled',
+  'setAddonOption',
   'removeAddon',
   'setLayout',
   'copyActivityDetails',

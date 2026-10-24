@@ -8,7 +8,7 @@ import { AudioSourcesScreen, type AudioSourcesScreenProps } from './audio-source
 function renderAudioSources(overrides: Partial<AudioSourcesScreenProps> = {}): AudioSourcesScreenProps {
   const props: AudioSourcesScreenProps = {
     musicFolders: FAKE_MUSIC_FOLDERS, scan: { scannedFileCount: 241, percent: 62 }, matchedSongCount: 8, vaultSongCount: 12, pickedFiles: FAKE_PICKED_FILES, addons: FAKE_ADDONS,
-    onAddMusicFolder: vi.fn(), onRemoveMusicFolder: vi.fn(), onScanAgain: vi.fn(), onGoToSongs: vi.fn(), onToggleAddon: vi.fn(), onRemoveAddon: vi.fn(),
+    onAddMusicFolder: vi.fn(), onRemoveMusicFolder: vi.fn(), onScanAgain: vi.fn(), onGoToSongs: vi.fn(), onToggleAddon: vi.fn(), onRemoveAddon: vi.fn(), onSetAddonOption: vi.fn(),
     onLookUpAddon: vi.fn(() => Promise.resolve<AddonLookupResult>({ kind: 'found', addon: FAKE_ADDON_PREVIEW })), onInstallAddon: vi.fn(),
     ...overrides,
   };
@@ -39,6 +39,17 @@ describe('AudioSourcesScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove Indie Tapes' }));
     expect(props.onToggleAddon).toHaveBeenCalledWith({ addonId: 'home-server-music', isEnabled: true });
     expect(props.onRemoveAddon).toHaveBeenCalledWith('indie-tapes');
+  });
+
+  it('shows an addon’s options as labelled selects the player can change any time', () => {
+    const props = renderAudioSources();
+    const options = within(screen.getByRole('article', { name: 'Open Audio Links' })).getByRole('group', { name: 'Open Audio Links options' });
+    const mediaSelect = within(options).getByRole('combobox', { name: 'What to get' });
+    expect((mediaSelect as HTMLSelectElement).value).toBe('audio-and-video');
+    expect(within(mediaSelect).getAllByRole('option').map((option) => option.textContent)).toEqual(['Music only', 'Music and video']);
+    fireEvent.change(mediaSelect, { target: { value: 'audio' } });
+    expect(props.onSetAddonOption).toHaveBeenCalledWith({ addonId: 'open-audio-links', optionId: 'media', value: 'audio' });
+    expect(within(screen.getByRole('article', { name: 'Indie Tapes' })).queryByRole('group')).toBeNull();
   });
 
   it('opens the add addon dialog with focus in the address field, and gives focus back on Escape', () => {
@@ -91,6 +102,17 @@ describe('AudioSourcesScreen', () => {
     fireEvent.click(within(consentDialog).getByRole('button', { name: 'Install' }));
     expect(props.onInstallAddon).toHaveBeenCalledWith(FAKE_ADDON_PREVIEW);
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('lets the player pick the addon’s options before installing, starting at the defaults', async () => {
+    const props = renderAudioSources();
+    fireEvent.click(screen.getByRole('button', { name: 'Add addon' }));
+    const consentDialog = await goToConsentStep();
+    const mediaSelect = within(consentDialog).getByRole('combobox', { name: 'What to get' });
+    expect((mediaSelect as HTMLSelectElement).value).toBe('audio-and-video');
+    fireEvent.change(mediaSelect, { target: { value: 'audio' } });
+    fireEvent.click(within(consentDialog).getByRole('button', { name: 'Install' }));
+    expect(props.onInstallAddon).toHaveBeenCalledWith({ ...FAKE_ADDON_PREVIEW, options: [{ ...FAKE_ADDON_PREVIEW.options[0], value: 'audio' }] });
   });
 
   it('moves focus to the start of the consent step', async () => {

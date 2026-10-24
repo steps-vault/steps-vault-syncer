@@ -135,8 +135,9 @@ function AudioSourcesPreview({ onNavigate }: { onNavigate: (screen: SyncScreen) 
       onGoToSongs={() => { onNavigate('songs'); }}
       onToggleAddon={({ addonId, isEnabled }) => { setAddons(addons.map((addon) => (addon.addonId === addonId ? { ...addon, isEnabled } : addon))); }}
       onRemoveAddon={(addonId) => { setAddons(addons.filter((addon) => addon.addonId !== addonId)); }}
+      onSetAddonOption={({ addonId, optionId, value }) => { setAddons(addons.map((addon) => (addon.addonId === addonId ? { ...addon, options: addon.options.map((option) => (option.optionId === optionId ? { ...option, value } : option)) } : addon))); }}
       onLookUpAddon={(address) => Promise.resolve({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, address } })}
-      onInstallAddon={(addon) => { setAddons([...addons, { addonId: addon.address, name: addon.name, version: addon.version, author: addon.author, providesText: 'audio links', isEnabled: true, isNew: true, health: { kind: 'working', note: 'Installed just now · checks for audio on your next sync' } }]); }}
+      onInstallAddon={(addon) => { setAddons([...addons, { addonId: addon.address, name: addon.name, version: addon.version, author: addon.author, providesText: 'audio links', isEnabled: true, isNew: true, health: { kind: 'working', note: 'Installed just now · checks for audio on your next sync' }, options: addon.options }]); }}
     />
   );
 }

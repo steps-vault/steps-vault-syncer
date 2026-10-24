@@ -15,10 +15,14 @@ describe('bridge handlers', () => {
     await handlers.runSongAction({ vaultSongId: 'song_7', action: 'choose-audio' });
     await handlers.setLayout('by-genre');
     await handlers.setAddonEnabled({ addonId: 'indie.tapes', isEnabled: false });
+    await handlers.setAddonOption({ addonId: 'indie.tapes', optionId: 'media', value: 'audio', extra: 'dropped' });
+    await handlers.installAddon({ address: 'https://tapes.example.org', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad', options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio' }] });
     expect(calls).toEqual([
       ['runSongAction', { vaultSongId: 'song_7', action: 'choose-audio' }],
       ['setLayout', 'by-genre'],
       ['setAddonEnabled', { addonId: 'indie.tapes', isEnabled: false }],
+      ['setAddonOption', { addonId: 'indie.tapes', optionId: 'media', value: 'audio' }],
+      ['installAddon', { address: 'https://tapes.example.org', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad', options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio' }] }],
     ]);
   });
 
@@ -29,6 +33,10 @@ describe('bridge handlers', () => {
     ['setBackgroundSync', 'yes'],
     ['useFoundGame', 'x'.repeat(5_000)],
     ['installAddon', null],
+    ['installAddon', { address: 'https://tapes.example.org', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad' }],
+    ['installAddon', { address: 'https://tapes.example.org', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad', options: Array.from({ length: 9 }, () => ({})) }],
+    ['setAddonOption', { addonId: 'indie.tapes', optionId: 'media', value: 42 }],
+    ['setAddonOption', 'media=audio'],
     ['removeMusicFolder', { path: 'C:\\' }],
   ] as const)('refuses %s with %j before it reaches the controller', async (methodName, argument) => {
     const { controller, calls } = buildRecordingController();

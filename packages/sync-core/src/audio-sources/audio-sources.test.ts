@@ -52,7 +52,7 @@ function buildAddonHttpClient(answersByUrl: Record<string, HttpResponse<unknown>
 const NO_ADDONS: Pick<AudioSearchOptions, 'addons' | 'httpClient' | 'downloadAddonFile'> = { addons: [], httpClient: buildAddonHttpClient({}), downloadAddonFile: () => Promise.reject(new Error('unused')) };
 
 function buildAddon(name: string): InstalledAddon {
-  return buildInstalledAddon({ baseUrl: `https://${name}.example.org`, manifest: { protocol: 1, id: `${name}.addon`, name, version: '1.0.0', author: 'someone', description: '', provides: ['audio-links'] }, consentedAt: '2026-10-24T10:00:00Z' });
+  return buildInstalledAddon({ baseUrl: `https://${name}.example.org`, manifest: { protocol: 1, id: `${name}.addon`, name, version: '1.0.0', author: 'someone', description: '', provides: ['audio-links'], options: [] }, consentedAt: '2026-10-24T10:00:00Z' });
 }
 
 describe('song names', () => {
@@ -205,5 +205,22 @@ describe('addon video', () => {
     });
     expect(result.match).toEqual({ kind: 'matched', sourceId: 'download:x.ogg', shiftSeconds: 0.1 });
     expect(result.addonMessages[0]).toContain('plays without it');
+  });
+
+  it('is never downloaded when the player chose music only, even if the addon sends one', async () => {
+    const mediaOption = { id: 'media', label: 'What to get', kind: 'choice' as const, choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], default: 'audio-and-video' };
+    const addon = buildInstalledAddon({ ...buildAddon('tapes'), manifest: { ...buildAddon('tapes').manifest, provides: ['audio-links', 'video-links'], options: [mediaOption] }, optionValues: { media: 'audio' } });
+    const downloads: string[] = [];
+    const result = await findAudioForSong({
+      song: CHEAP_THRILLS, pickedSourceId: null, musicIndex: null, addons: [addon],
+      httpClient: buildAddonHttpClient({ 'https://tapes.example.org/audio-links': answerWithVideo }),
+      checkAudioSource: buildChecker({ 'download:x.ogg': 'matched' }).checkAudioSource,
+      downloadAddonFile: ({ url }) => {
+        downloads.push(url);
+        return Promise.resolve('download:x.ogg');
+      },
+    });
+    expect(result.match).toEqual({ kind: 'matched', sourceId: 'download:x.ogg', shiftSeconds: 0.1 });
+    expect(downloads).toEqual(['https://tapes.example.org/x.ogg']);
   });
 });

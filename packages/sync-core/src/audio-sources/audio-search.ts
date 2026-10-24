@@ -1,4 +1,4 @@
-import { fetchAudioLinks, type InstalledAddon } from '../addons/addon-client';
+import { fetchAudioLinks, isAddonSetToMusicOnly, type InstalledAddon } from '../addons/addon-client';
 import type { AddonSongFacts, AudioLink } from '../addons/addon-protocol';
 import type { HttpClient } from '../network/http-client';
 import type { AudioMatch } from '../planner/sync-plan-types';
@@ -79,7 +79,7 @@ async function searchAddons(options: AudioSearchOptions): Promise<AudioSearchRes
     if (answer.addonError !== null) addonMessages.push(`${addon.manifest.name}: ${answer.addonError}`);
     pageLinks.push(...answer.links.filter((link) => link.kind === 'open-page'));
     const match = await checkAddonFiles({ options, links: answer.links, addonMessages, addonName: addon.manifest.name });
-    if (match.kind === 'matched') return { match: await withAddonVideo({ options, match, links: answer.links, addonMessages, addonName: addon.manifest.name }), addonMessages, pageLinks };
+    if (match.kind === 'matched') return { match: await withAddonVideo({ options, match, links: answer.links, addonMessages, addon }), addonMessages, pageLinks };
     if (match.kind === 'different-edit') firstDifferentEdit ??= match;
   }
   return { match: firstDifferentEdit ?? { kind: 'not-found', isWaitingForAddon }, addonMessages, pageLinks };
@@ -101,15 +101,17 @@ async function checkAddonFiles({ options, links, addonMessages, addonName }: { o
 /**
  * The video is fetched only after the music from the same answer matched: both come from one upload, so the video
  * lines up with the steps using the music's shift. A video that fails to download leaves the song with music only.
+ * When the player chose "Music only", a video the addon sends anyway is ignored.
  */
-async function withAddonVideo(options: { options: AudioSearchOptions; match: Extract<AudioMatch, { kind: 'matched' }>; links: readonly AudioLink[]; addonMessages: string[]; addonName: string }): Promise<AudioMatch> {
+async function withAddonVideo(options: { options: AudioSearchOptions; match: Extract<AudioMatch, { kind: 'matched' }>; links: readonly AudioLink[]; addonMessages: string[]; addon: InstalledAddon }): Promise<AudioMatch> {
   const videoLink = options.links.find((link) => link.kind === 'file-url' && link.media === 'video');
-  if (videoLink?.kind !== 'file-url') return options.match;
+  if (videoLink?.kind !== 'file-url' || isAddonSetToMusicOnly(options.addon)) return options.match;
+  const addonName = options.addon.manifest.name;
   try {
-    const videoSourceId = await options.options.downloadAddonFile({ url: videoLink.url, fileName: videoLink.fileName, addonName: options.addonName });
+    const videoSourceId = await options.options.downloadAddonFile({ url: videoLink.url, fileName: videoLink.fileName, addonName });
     return { ...options.match, videoSourceId };
   } catch {
-    options.addonMessages.push(`${options.addonName}: the video couldn’t be downloaded, so the song plays without it. We’ll try again on an update.`);
+    options.addonMessages.push(`${addonName}: the video couldn’t be downloaded, so the song plays without it. We’ll try again on an update.`);
     return options.match;
   }
 }

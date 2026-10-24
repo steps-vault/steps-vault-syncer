@@ -100,6 +100,15 @@ export interface PickedFileView {
 
 export type AddonHealth = { kind: 'working'; note: string } | { kind: 'not-answering'; note: string };
 
+/** One addon setting the player picks from a short list, for example "What to get: Music only / Music and video". */
+export interface AddonOptionView {
+  optionId: string;
+  label: string;
+  choices: readonly { value: string; label: string }[];
+  /** The player's current pick (the addon's default until they change it). */
+  value: string;
+}
+
 export interface AddonView {
   addonId: string;
   name: string;
@@ -108,6 +117,7 @@ export interface AddonView {
   providesText: string;
   isEnabled: boolean;
   health: AddonHealth;
+  options: readonly AddonOptionView[];
   isNew?: boolean;
 }
 
@@ -117,6 +127,8 @@ export interface AddonInstallPreview {
   name: string;
   version: string;
   author: string;
+  /** Picked on the consent step, before installing; each starts at the addon's default. */
+  options: readonly AddonOptionView[];
 }
 
 export type AddonLookupResult = { kind: 'found'; addon: AddonInstallPreview } | { kind: 'failed'; message: string };

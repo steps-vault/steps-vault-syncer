@@ -33,6 +33,7 @@ export interface AudioSourcesScreenProps {
   onGoToSongs: () => void;
   onToggleAddon: (request: { addonId: string; isEnabled: boolean }) => void;
   onRemoveAddon: (addonId: string) => void;
+  onSetAddonOption: (request: { addonId: string; optionId: string; value: string }) => void;
   onLookUpAddon: (address: string) => Promise<AddonLookupResult>;
   onInstallAddon: (addon: AddonInstallPreview) => void;
 }
@@ -59,7 +60,7 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
           <button className="sv-sync-button" type="button" onClick={() => { setIsAddingAddon(true); }}><Icon name="plus" strokeWidth={2.6} />Add addon</button>
         </div>
         <div className="sv-sync-addon-list">
-          {props.addons.map((addon) => <AddonCard key={addon.addonId} addon={addon} onToggle={props.onToggleAddon} onRemove={props.onRemoveAddon} />)}
+          {props.addons.map((addon) => <AddonCard key={addon.addonId} addon={addon} onToggle={props.onToggleAddon} onRemove={props.onRemoveAddon} onSetOption={props.onSetAddonOption} />)}
           {props.addons.length === 0 && <p className="sv-sync-text sv-sync-small sv-sync-muted">No addons yet. Sync works without them.</p>}
         </div>
         <Note>Addons are made by other people, not StepsVault. Only install ones you trust. You can turn one off or remove it any time — songs keep the audio they already have.</Note>

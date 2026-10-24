@@ -1,4 +1,5 @@
 import { isAllowedAddonLinkUrl, isAllowedPageUrl } from './addon-address';
+import { parseAddonOptions, type AddonOption, type AddonOptionValues } from './addon-options';
 
 export const ADDON_PROTOCOL_VERSION = 1;
 const ADDON_ID_PATTERN = /^[a-z0-9][a-z0-9.-]{1,63}$/;
@@ -21,6 +22,8 @@ export interface AddonManifest {
   description: string;
   /** Always 'audio-links'; 'video-links' too when the addon can also give the song's video. */
   provides: readonly AddonProvides[];
+  /** Simple settings the player picks in Sync (an empty list when the addon has none). See addon-options.ts. */
+  options: readonly AddonOption[];
 }
 
 /**
@@ -59,10 +62,21 @@ export class InvalidAddonAnswerError extends Error {
   }
 }
 
-/** Builds the request body from exactly the allowed facts, so nothing else can slip in. */
-export function buildAudioLinksRequestBody(song: AddonSongFacts): { protocol: number; song: AddonSongFacts } {
+export interface AudioLinksRequestBody {
+  protocol: number;
+  song: AddonSongFacts;
+  /** Only for an addon that declares options, so an addon without them gets exactly the body it always got. */
+  options?: AddonOptionValues;
+}
+
+/**
+ * Builds the request body from exactly the allowed facts, so nothing else can slip in. The option values must already
+ * be checked against the manifest (getAddonOptionValues).
+ */
+export function buildAudioLinksRequestBody({ song, optionValues }: { song: AddonSongFacts; optionValues: AddonOptionValues }): AudioLinksRequestBody {
   const { title, artist, album, genre, lengthSeconds, youtubeId, youtubeUrl } = song;
-  return { protocol: ADDON_PROTOCOL_VERSION, song: { title, artist, album, genre, lengthSeconds, youtubeId, youtubeUrl } };
+  const body: AudioLinksRequestBody = { protocol: ADDON_PROTOCOL_VERSION, song: { title, artist, album, genre, lengthSeconds, youtubeId, youtubeUrl } };
+  return Object.keys(optionValues).length === 0 ? body : { ...body, options: { ...optionValues } };
 }
 
 export function parseAddonManifest(value: unknown): AddonManifest {
@@ -78,6 +92,7 @@ export function parseAddonManifest(value: unknown): AddonManifest {
     author: getText({ value: value.author, maxLength: MAX_NAME_LENGTH }),
     description: getText({ value: value.description, maxLength: MAX_DESCRIPTION_LENGTH, isEmptyAllowed: true }),
     provides: KNOWN_PROVIDES.filter((provided) => (value.provides as unknown[]).includes(provided)),
+    options: parseAddonOptions(value.options),
   };
 }
 
