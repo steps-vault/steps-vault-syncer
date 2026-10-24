@@ -22,7 +22,7 @@ describe('FolderLayoutScreen', () => {
     const options = within(screen.getByRole('radiogroup', { name: 'Folder layout' })).getAllByRole('radio');
     expect(options.map((option) => option.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
     expect(options[1]?.textContent).toContain('Current');
-    expect(screen.getByText(/StepsVault uses/).textContent).toContain('StepsVault · Pop');
+    expect(screen.getByText(/StepsVault uses/).textContent).toContain('StepsVault - Pop');
   });
 
   it('asks first, with the number of songs whose scores start fresh', () => {

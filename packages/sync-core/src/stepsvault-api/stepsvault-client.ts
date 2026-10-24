@@ -119,6 +119,8 @@ function parseVaultSong(value: unknown): VaultSongDetails {
     slug: getString(song.slug),
     title: getString(song.title),
     artist: getString(song.artist),
+    titleTransliteration: typeof song.titleTransliteration === 'string' ? song.titleTransliteration : null,
+    artistTransliteration: typeof song.artistTransliteration === 'string' ? song.artistTransliteration : null,
     album: typeof song.album === 'string' ? song.album : null,
     genre: typeof song.genre === 'string' ? song.genre : null,
     lengthSeconds: typeof song.lengthSeconds === 'number' ? song.lengthSeconds : 0,

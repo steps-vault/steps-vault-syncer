@@ -34,9 +34,9 @@ describe('MemorySongsFolder', () => {
     const songsFolder = new MemorySongsFolder();
     await songsFolder.writeText({ path: ['StepsVault', 'Sorry', 'Sorry.ssc'], text: 'ours' });
     await songsFolder.writeText({ path: ['StepsVault', 'Sorry Not Sorry', 'a.ssc'], text: 'other' });
-    await songsFolder.rename({ from: ['StepsVault', 'Sorry'], to: ['StepsVault · Pop', 'Sorry'] });
-    await songsFolder.removeFolder(['StepsVault · Pop', 'Sorry']);
-    expect(await songsFolder.readText(['StepsVault · Pop', 'Sorry', 'Sorry.ssc'])).toBeNull();
+    await songsFolder.rename({ from: ['StepsVault', 'Sorry'], to: ['StepsVault - Pop', 'Sorry'] });
+    await songsFolder.removeFolder(['StepsVault - Pop', 'Sorry']);
+    expect(await songsFolder.readText(['StepsVault - Pop', 'Sorry', 'Sorry.ssc'])).toBeNull();
     expect(await songsFolder.readText(['StepsVault', 'Sorry Not Sorry', 'a.ssc'])).toBe('other');
   });
 });

@@ -15,7 +15,7 @@ const LAYOUT_DESCRIPTIONS: Readonly<Record<FolderLayout, string>> = {
   'by-artist': 'Mergui, Sia… one group per artist.',
 };
 const PREVIEW_PLAYER_GROUP_COUNT = 2;
-const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: 'StepsVault · Pop', tagText: 'ours', songTitles: ['Pop songs from your vault'] }] };
+const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: 'StepsVault - Pop', tagText: 'ours', songTitles: ['Pop songs from your vault'] }] };
 
 export interface FolderLayoutScreenProps {
   currentLayout: FolderLayout;
@@ -83,7 +83,7 @@ function NameRuleExplainer(): ReactElement {
     <section className="sv-sync-name-rule" aria-labelledby="sv-sync-name-rule-heading">
       <div className="sv-sync-stack-small">
         <h3 id="sv-sync-name-rule-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">When a name is already yours</h3>
-        <p className="sv-sync-text">If you already have a folder with that name — for example your own <b className="sv-sync-strong">Pop</b> — StepsVault uses <b className="sv-sync-light-blue-text">StepsVault · Pop</b> instead. Your folder is never mixed with ours.</p>
+        <p className="sv-sync-text">If you already have a folder with that name — for example your own <b className="sv-sync-strong">Pop</b> — StepsVault uses <b className="sv-sync-light-blue-text">StepsVault - Pop</b> instead. Your folder is never mixed with ours.</p>
         <span className="sv-sync-small sv-sync-muted">This works the same for genres, artists and the single group.</span>
       </div>
       <FolderTreePreview playerGroupNames={['Pop']} morePlayerGroupCount={0} preview={NAME_RULE_PREVIEW} />

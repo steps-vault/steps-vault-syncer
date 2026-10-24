@@ -7,7 +7,9 @@ const SITE_URL = 'https://stepsvault.com/';
 const VAULT_SONG = {
   vaultSongId: 'song_7',
   slug: 'sakura-drive',
-  title: 'Sakura Drive',
+  title: '桜ドライブ',
+  titleTransliteration: 'Sakura Drive',
+  artistTransliteration: null,
   artist: 'Rei Hoshino',
   album: null,
   genre: 'J-Pop',
@@ -115,6 +117,6 @@ describe('StepsVaultClient', () => {
 
 describe('buildAddonSongFacts', () => {
   it('passes only the facts addons may see, with the YouTube link built from the id', () => {
-    expect(buildAddonSongFacts(VAULT_SONG)).toEqual({ title: 'Sakura Drive', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
+    expect(buildAddonSongFacts(VAULT_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
   });
 });

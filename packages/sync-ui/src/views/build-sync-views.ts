@@ -1,5 +1,6 @@
 /** Builds what the screens show from a sync's results; shared by the website and the desktop app. */
 import {
+  CLASH_PREFIX,
   findInstalledSong,
   getSongFolderMoves,
   getTargetFolderPaths,
@@ -148,7 +149,7 @@ function buildLayoutPreview({ targetPathsBySongId, vaultSongs, playerGroupNames 
   const playerNameKeys = new Set(playerGroupNames.map((name) => name.toLowerCase()));
   const groups = [...titlesByGroup].slice(0, PREVIEW_GROUP_COUNT).map(([groupName, titles]) => ({
     groupName,
-    tagText: playerNameKeys.has(groupName.replace(/^StepsVault · /, '').toLowerCase()) && groupName.startsWith('StepsVault · ') ? 'name taken' : `${String(titles.length)} ${titles.length === 1 ? 'song' : 'songs'}`,
+    tagText: groupName.startsWith(CLASH_PREFIX) && playerNameKeys.has(groupName.slice(CLASH_PREFIX.length).toLowerCase()) ? 'name taken' : `${String(titles.length)} ${titles.length === 1 ? 'song' : 'songs'}`,
     songTitles: titles.slice(0, PREVIEW_SONG_COUNT),
     moreSongCount: Math.max(0, titles.length - PREVIEW_SONG_COUNT),
   }));

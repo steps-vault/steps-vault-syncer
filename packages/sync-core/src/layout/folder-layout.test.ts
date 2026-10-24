@@ -21,11 +21,11 @@ describe('getGroupName', () => {
   });
 
   it('adds the prefix when the player already has that folder, even in other letter case', () => {
-    expect(getGroupName({ baseName: 'Pop', playerGroupNames: ['pop'] })).toBe('StepsVault · Pop');
+    expect(getGroupName({ baseName: 'Pop', playerGroupNames: ['pop'] })).toBe('StepsVault - Pop');
   });
 
   it('numbers the prefixed name if the player has that one too', () => {
-    expect(getGroupName({ baseName: 'Pop', playerGroupNames: ['Pop', 'StepsVault · Pop'] })).toBe('StepsVault · Pop 2');
+    expect(getGroupName({ baseName: 'Pop', playerGroupNames: ['Pop', 'StepsVault - Pop'] })).toBe('StepsVault - Pop 2');
   });
 });
 
@@ -37,6 +37,9 @@ describe('getSafeFolderName', () => {
     ['CON', 'CON _'],
     ['con.txt', 'con.txt _'],
     ['???', 'Untitled'],
+    ['Beyoncé', 'Beyonce'],
+    ['הזוג הזה', 'הזוג הזה'],
+    ['StepsVault · Pop', 'StepsVault Pop'],
   ])('%j becomes %j', (name, expected) => {
     expect(getSafeFolderName({ name, fallback: 'Untitled' })).toBe(expected);
   });
@@ -50,7 +53,7 @@ describe('getSafeFolderName', () => {
 describe('getTargetFolderPaths', () => {
   it('groups by genre and prefixes only the genre the player already uses', () => {
     const targets = getTargetFolderPaths({ songs: [CHEAP_THRILLS, BEYONCE_SORRY], layout: 'by-genre', playerGroupNames: ['POP'], record: buildEmptyInstalledSongsRecord() });
-    expect(targets.get('a')).toEqual(['StepsVault · Pop', 'Cheap Thrills']);
+    expect(targets.get('a')).toEqual(['StepsVault - Pop', 'Cheap Thrills']);
     expect(targets.get('c')).toEqual(['R&B', 'Sorry']);
   });
 
@@ -73,14 +76,24 @@ describe('getTargetFolderPaths', () => {
   });
 });
 
+describe('songs written in another script', () => {
+  const MERGUI: SongFolderFacts = { vaultSongId: 'd', title: 'הזוג הזה', artist: 'מרגי', titleTransliteration: 'HaZug HaZe', artistTransliteration: 'Mergui', genre: 'Pop' };
+
+  it('are named by their English-letter spelling', () => {
+    const record = buildEmptyInstalledSongsRecord();
+    expect(getTargetFolderPaths({ songs: [MERGUI], layout: 'one-group', playerGroupNames: [], record }).get('d')).toEqual(['StepsVault', 'HaZug HaZe']);
+    expect(getTargetFolderPaths({ songs: [MERGUI], layout: 'by-artist', playerGroupNames: [], record }).get('d')).toEqual(['Mergui', 'HaZug HaZe']);
+  });
+});
+
 describe('a layout change', () => {
   it('moves only installed songs whose group changes', () => {
     let record = recordWithInstalled({ vaultSongId: 'a', folderPath: buildSongsPath('StepsVault', 'Cheap Thrills') });
     record = recordWithInstalled({ vaultSongId: 'c', folderPath: buildSongsPath('StepsVault', 'Sorry') }, record);
     const targets = getTargetFolderPaths({ songs: [CHEAP_THRILLS, BEYONCE_SORRY], layout: 'by-artist', playerGroupNames: ['Sia'], record });
     expect(getSongFolderMoves({ record, targetPathsBySongId: targets })).toEqual([
-      { vaultSongId: 'a', from: ['StepsVault', 'Cheap Thrills'], to: ['StepsVault · Sia', 'Cheap Thrills'] },
-      { vaultSongId: 'c', from: ['StepsVault', 'Sorry'], to: ['Beyoncé', 'Sorry'] },
+      { vaultSongId: 'a', from: ['StepsVault', 'Cheap Thrills'], to: ['StepsVault - Sia', 'Cheap Thrills'] },
+      { vaultSongId: 'c', from: ['StepsVault', 'Sorry'], to: ['Beyonce', 'Sorry'] },
     ]);
   });
 });

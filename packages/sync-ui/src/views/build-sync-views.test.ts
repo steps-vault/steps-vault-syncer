@@ -60,7 +60,7 @@ describe('activity and layout views', () => {
   it('counts the songs each layout would move, with "song" for one', () => {
     const views = buildLayoutViews({ vaultSongs: [CHEAP_THRILLS], record: RECORD, playerGroupNames: ['Pop'] });
     expect(views.movingSongCountsByLayout).toEqual({ 'one-group': 0, 'by-genre': 1, 'by-artist': 1 });
-    expect(views.previewsByLayout['by-genre'].groups[0]).toMatchObject({ groupName: 'StepsVault · Pop', tagText: 'name taken' });
+    expect(views.previewsByLayout['by-genre'].groups[0]).toMatchObject({ groupName: 'StepsVault - Pop', tagText: 'name taken' });
     expect(views.previewsByLayout['one-group'].groups[0]).toMatchObject({ groupName: 'StepsVault', tagText: '1 song' });
   });
 
