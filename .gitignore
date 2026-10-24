@@ -4,3 +4,4 @@ out/
 coverage/
 *.log
 .env*
+release/

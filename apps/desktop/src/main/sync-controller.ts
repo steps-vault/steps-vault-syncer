@@ -43,6 +43,8 @@ export interface DesktopServices {
   openExternal(url: string): Promise<void>;
   writeClipboard(text: string): void;
   isGameRunning(): Promise<boolean>;
+  /** Quits and runs the downloaded installer. */
+  installUpdate(): void;
 }
 
 export interface SyncControllerOptions {
@@ -78,6 +80,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private finishedSync: DesktopSyncState['finishedSync'] = null;
   private lastLayoutMove: DesktopSyncState['lastLayoutMove'] = null;
   private problem: string | null = null;
+  private readyUpdateVersion: string | null = null;
+  private dismissedUpdateVersion: string | null = null;
   private readonly addonNamesBySourceId = new Map<string, string>();
   private readonly lookedUpAddonsByAddress = new Map<string, { baseUrl: string; manifest: AddonManifest }>();
 
@@ -111,7 +115,13 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   async startSignIn(): Promise<void> {
     const device = { deviceName: this.options.computerName, operatingSystem: this.options.systemName, appVersion: this.options.appVersion };
-    const deviceCode = await startDeviceSignIn({ httpClient: this.httpClient, siteUrl: this.options.siteUrl, device });
+    const deviceCode = await startDeviceSignIn({ httpClient: this.httpClient, siteUrl: this.options.siteUrl, device }).catch(() => null);
+    if (!deviceCode) {
+      this.problem = 'StepsVault can’t be reached right now. Check your internet connection, then choose "Get a new code".';
+      this.publish();
+      return;
+    }
+    this.problem = null;
     this.signIn = { kind: 'waiting-for-code', code: deviceCode.code, expiresAt: deviceCode.expiresAt, computerName: this.options.computerName, systemName: this.options.systemName };
     this.publish();
     void this.waitForSignIn({ pollingId: deviceCode.pollingId, intervalSeconds: deviceCode.pollIntervalSeconds });
@@ -233,11 +243,21 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     return Promise.resolve();
   }
 
-  restartToUpdate(): Promise<void> {
-    return Promise.resolve();
+  /** Called when a new version finished downloading. */
+  setUpdateReady(version: string): void {
+    this.readyUpdateVersion = version;
+    this.publish();
+  }
+
+  /** Never in the middle of a sync: a half-done sync could leave a song half written. */
+  async restartToUpdate(): Promise<void> {
+    while (this.syncRun) await delay(1000);
+    this.options.services.installUpdate();
   }
 
   dismissUpdate(): Promise<void> {
+    this.dismissedUpdateVersion = this.readyUpdateVersion;
+    this.publish();
     return Promise.resolve();
   }
 
@@ -406,7 +426,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       lastSyncAt: this.settings.lastSyncAt,
       activity: buildActivityEntries({ events: this.settings.activity, vaultSongs: outcome?.vaultSongs ?? [] }),
       trayStatus: getTrayStatus({ isSyncing: this.syncRun !== null, isPaused: !this.settings.isBackgroundSyncOn, songPlans: outcome?.finalPlan.songPlans ?? [] }),
-      updateVersion: null,
+      updateVersion: this.readyUpdateVersion !== null && this.readyUpdateVersion !== this.dismissedUpdateVersion ? this.readyUpdateVersion : null,
       problem: this.problem,
     };
   }
