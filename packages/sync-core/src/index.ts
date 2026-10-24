@@ -26,3 +26,5 @@ export * from './addons/addon-client';
 export * from './audio-sources/song-names';
 export * from './audio-sources/music-library';
 export * from './audio-sources/audio-search';
+export * from './stepsvault-api/stepsvault-api-types';
+export * from './stepsvault-api/stepsvault-client';
