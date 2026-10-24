@@ -11,7 +11,15 @@ export interface InstalledSong {
   folderPath: SongsPath;
   /** A hash of each chart file Sync wrote, to tell when the player has edited one. */
   chartHashesByFileName: Readonly<Record<string, string>>;
+  /** The player's music as it sits in the song folder, and how far the steps were moved to fit it. */
+  music: InstalledMusic;
   installedAt: string;
+}
+
+export interface InstalledMusic {
+  fileName: string;
+  /** Seconds the player's copy starts later than StepsVault's (negative: earlier); reapplied on every update. */
+  shiftSeconds: number;
 }
 
 export interface InstalledSongsRecord {
