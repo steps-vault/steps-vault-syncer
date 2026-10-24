@@ -5,6 +5,9 @@ export interface VaultSongDetails extends VaultSong {
   slug: string;
   album: string | null;
   lengthSeconds: number;
+  /** Beginner to Challenge; null where the site sent no level. */
+  levels: (number | null)[];
+  bpm: number | null;
   youtubeId: string | null;
   imageKinds: string[];
   hasFingerprint: boolean;

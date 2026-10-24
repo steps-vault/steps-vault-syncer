@@ -122,6 +122,8 @@ function parseVaultSong(value: unknown): VaultSongDetails {
     album: typeof song.album === 'string' ? song.album : null,
     genre: typeof song.genre === 'string' ? song.genre : null,
     lengthSeconds: typeof song.lengthSeconds === 'number' ? song.lengthSeconds : 0,
+    levels: Array.isArray(song.levels) ? song.levels.slice(0, 5).map((level) => (typeof level === 'number' && level > 0 ? level : null)) : [],
+    bpm: typeof song.bpm === 'number' && song.bpm > 0 ? song.bpm : null,
     youtubeId: typeof song.youtubeId === 'string' ? song.youtubeId : null,
     chartVersion: getString(song.chartVersion),
     imageKinds: Array.isArray(song.imageKinds) ? song.imageKinds.filter((kind): kind is string => typeof kind === 'string' && /^[a-z]+$/.test(kind)) : [],

@@ -137,7 +137,8 @@ export interface LayoutPreview {
 
 export type LayoutPreviewsByLayout = Readonly<Record<FolderLayout, LayoutPreview>>;
 
-export type ActivityKind = 'sync-finished' | 'added' | 'updated' | 'lined-up' | 'no-audio' | 'different-edit' | 'removed' | 'kept-edits' | 'addon-not-answering' | 'moved' | 'connected';
+/** `write-failed`: a song couldn't be written (full disk, StepMania open…); its details say what to do. */
+export type ActivityKind = 'sync-finished' | 'added' | 'updated' | 'lined-up' | 'no-audio' | 'different-edit' | 'removed' | 'kept-edits' | 'addon-not-answering' | 'moved' | 'connected' | 'write-failed';
 
 export interface ActivityEntryView {
   entryId: string;

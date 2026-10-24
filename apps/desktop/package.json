@@ -1,0 +1,30 @@
+{
+  "name": "@stepsvault/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StepsVault Sync for Windows: your vault's songs in your own StepMania, lined up with your own music.",
+  "license": "Apache-2.0",
+  "main": "dist/main/main.cjs",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && electron ."
+  },
+  "dependencies": {
+    "@stepsvault/sync-core": "workspace:*",
+    "@stepsvault/sync-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "electron": "~43.8.0",
+    "esbuild": "^0.28.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

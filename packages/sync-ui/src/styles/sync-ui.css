@@ -321,6 +321,13 @@
 .sv-sync-song-list-head, .sv-sync-song-row { display: grid; grid-template-columns: 52px minmax(170px, 1.3fr) 168px 200px minmax(130px, 1fr) 236px; gap: 14px; align-items: center; }
 .sv-sync-song-browser--compact .sv-sync-song-list-head, .sv-sync-song-browser--compact .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1fr) 168px 190px; }
 .sv-sync-song-browser--compact .sv-sync-song-column--source, .sv-sync-song-browser--compact .sv-sync-song-column--actions { display: none; }
+/* The list measures its own width, not the window's: next to the desktop app's sidebar a full row doesn't fit, so the
+   hover actions fold away (Details still opens from the song title) instead of the page scrolling sideways. */
+.sv-sync-song-browser { container-type: inline-size; }
+@container (max-width: 1060px) {
+  .sv-sync-song-browser:not(.sv-sync-song-browser--compact) .sv-sync-song-list-head, .sv-sync-song-browser:not(.sv-sync-song-browser--compact) .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1.3fr) 168px 190px minmax(110px, 1fr); }
+  .sv-sync-song-column--actions { display: none; }
+}
 .sv-sync-song-list-head { padding: 0 12px; font: italic 800 10px/1 var(--sv-sync-font-display); font-stretch: 120%; letter-spacing: .14em; color: var(--sv-sync-text-subtle); text-transform: uppercase; }
 .sv-sync-song-row { position: relative; min-height: 72px; padding: 10px 12px; border-radius: 12px; background: var(--sv-sync-panel-deep); border: 1px solid var(--sv-sync-border-soft); }
 .sv-sync-song-row:hover { background: #141826; border-color: #33405e; }

@@ -11,7 +11,7 @@ import { findMusicCandidates, type MusicIndex } from './music-library';
 export type CheckAudioSource = (options: { sourceId: string }) => Promise<AudioMatch>;
 
 /** Downloads an addon's file link into a temporary place and returns the sourceId it can be checked and copied by. */
-export type DownloadAddonFile = (options: { url: string; fileName: string | null }) => Promise<string>;
+export type DownloadAddonFile = (options: { url: string; fileName: string | null; addonName: string }) => Promise<string>;
 
 export interface AudioSearchSong extends AddonSongFacts {
   vaultSongId: string;
@@ -90,7 +90,7 @@ async function checkAddonFiles({ options, links, addonMessages, addonName }: { o
   for (const link of links) {
     if (link.kind !== 'file-url') continue;
     try {
-      sourceIds.push(await options.downloadAddonFile({ url: link.url, fileName: link.fileName }));
+      sourceIds.push(await options.downloadAddonFile({ url: link.url, fileName: link.fileName, addonName }));
     } catch {
       addonMessages.push(`${addonName}: a file couldn’t be downloaded. We’ll try again later.`);
     }
