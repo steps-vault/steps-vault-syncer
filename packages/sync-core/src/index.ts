@@ -23,3 +23,6 @@ export * from './network/http-client';
 export * from './addons/addon-address';
 export * from './addons/addon-protocol';
 export * from './addons/addon-client';
+export * from './audio-sources/song-names';
+export * from './audio-sources/music-library';
+export * from './audio-sources/audio-search';
