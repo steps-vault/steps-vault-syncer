@@ -43,6 +43,10 @@ export function isOwnedGroup({ record, groupName }: { record: InstalledSongsReco
   return record.ownedGroupNames.some((ownedName) => getNameKey(ownedName) === getNameKey(groupName));
 }
 
+export function findInstalledSong({ record, vaultSongId }: { record: InstalledSongsRecord; vaultSongId: string }): InstalledSong | undefined {
+  return record.installedSongs.find((song) => song.vaultSongId === vaultSongId);
+}
+
 export function findInstalledSongAt({ record, folderPath }: { record: InstalledSongsRecord; folderPath: SongsPath }): InstalledSong | undefined {
   const pathKey = getPathKey(folderPath);
   return record.installedSongs.find((song) => getPathKey(song.folderPath) === pathKey);
