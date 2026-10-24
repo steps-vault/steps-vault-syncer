@@ -12,7 +12,7 @@ The written spec lives with the website and is summarised here.
 |---|---|---|
 | Runs in | Chrome or Edge on a computer | Windows first (Electron), later macOS and Linux |
 | Songs folder | File System Access API; the browser asks for permission once per visit | Node `fs` |
-| Music decoding | ffmpeg.wasm | ffmpeg.wasm (the same build, so both match the same way) |
+| Music decoding | Chromium's own decoder (`decodeAudioData`) | the same, in a hidden app window (both are Chromium, so both hear a file the same way) |
 | Signs in | the website's own session | "sign in by code" on stepsvault.com/link |
 | Background sync | no (the tab must stay open) | yes, from the tray |
 
@@ -23,13 +23,14 @@ Both use the same packages from this repo:
   and the StepsVault API client. Everything that touches the outside world goes through an interface (a "port")
   that the website and the app each implement:
   - `SongsFolder`: list, read, write, rename, remove inside the game's `Songs` folder;
-  - `AudioDecoder`: a file → mono samples at 44.1 kHz;
+  - `AudioDecoder`: a file → mono samples at 44.1 kHz (Chromium's `decodeAudioData`: mp3, ogg, wav, flac, AAC, Opus; no
+    ffmpeg.wasm download and no unsigned program for Smart App Control to block);
   - `MusicLibrary`: the files in the player's music folders;
   - `HttpClient`: `fetch` with a timeout;
   - `Clock`.
 - **`@stepsvault/sync-ui`**: the React screens from the design, shared by the website and the app.
-- **`apps/desktop`**: the Electron app (main process: folder access, decoding, tray, updates; the renderer runs
-  `sync-ui`).
+- **`apps/desktop`**: the Electron app (main process: folder access, network, tray, updates; a hidden window decodes
+  and matches audio; the visible window runs `sync-ui`).
 
 The website (a private repo) installs `sync-core` and `sync-ui` from npm under the `@stepsvault` scope.
 
@@ -59,7 +60,8 @@ The website (a private repo) installs `sync-core` and `sync-ui` from npm under t
 3. **Line up.** The best shift between the two envelopes moves `#OFFSET`
    (`offset = stored offset − shift`).
 4. **Write to the game.** In a temporary folder next to the target: the `.ssc` (with `#MUSIC` pointing at the
-   player's file and the corrected `#OFFSET`), the music file, images and the marker. Then rename it into place, so
+   player's file and the corrected `#OFFSET`), the music file (ogg, mp3 and wav as they are; other formats as WAV,
+   which StepMania plays), images and the marker. Then rename it into place, so
    a half-written song never appears in the game.
 
 ## Folder layout

@@ -28,3 +28,4 @@ export * from './audio-sources/music-library';
 export * from './audio-sources/audio-search';
 export * from './stepsvault-api/stepsvault-api-types';
 export * from './stepsvault-api/stepsvault-client';
+export * from './session/run-sync';

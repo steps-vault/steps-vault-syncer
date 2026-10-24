@@ -5,8 +5,8 @@ export interface DecodedAudio {
 }
 
 /**
- * Turns one of the player's music files into mono samples at 44.1 kHz. The website and the desktop app implement it
- * with the same ffmpeg.wasm build, so both hear a file the same way.
+ * Turns one of the player's music files into mono samples at 44.1 kHz. The website and the desktop app both use
+ * Chromium's own decoder (an OfflineAudioContext at 44.1 kHz), so both hear a file the same way.
  */
 export interface AudioDecoder {
   /** `sourceId` names the file the way the audio sources (task 7) do. */
