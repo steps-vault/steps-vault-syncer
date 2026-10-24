@@ -35,3 +35,4 @@ export * from './desktop/linked-computers-table';
 export * from './desktop/update-banner';
 export * from './states/empty-and-error-states';
 export * from './phone/phone-status-view';
+export * from './views/build-sync-views';

@@ -1,3 +1,4 @@
+/** Builds what the screens show from a sync's results; shared by the website and the desktop app. */
 import {
   findInstalledSong,
   getSongFolderMoves,
@@ -9,7 +10,7 @@ import {
   type SongPlan,
   type VaultSongDetails,
 } from '@stepsvault/sync-core';
-import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, LayoutPreviewsByLayout, SongAudioSource, SongDetailsView, SongRowView, TrayStatus } from '@stepsvault/sync-ui';
+import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, LayoutPreviewsByLayout, SongAudioSource, SongDetailsView, SongRowView, TrayStatus } from '../sync-ui-types';
 
 const LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist'];
 const PREVIEW_GROUP_COUNT = 3;
