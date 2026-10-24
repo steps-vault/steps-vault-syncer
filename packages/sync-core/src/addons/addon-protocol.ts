@@ -7,6 +7,9 @@ const MAX_DESCRIPTION_LENGTH = 300;
 const MAX_LINKS = 10;
 const MAX_LABEL_LENGTH = 80;
 const MAX_RETRY_AFTER_SECONDS = 600;
+const KNOWN_PROVIDES = ['audio-links', 'video-links'] as const;
+
+export type AddonProvides = (typeof KNOWN_PROVIDES)[number];
 
 /** GET <address>/manifest.json */
 export interface AddonManifest {
@@ -16,7 +19,8 @@ export interface AddonManifest {
   version: string;
   author: string;
   description: string;
-  provides: readonly 'audio-links'[];
+  /** Always 'audio-links'; 'video-links' too when the addon can also give the song's video. */
+  provides: readonly AddonProvides[];
 }
 
 /**
@@ -34,8 +38,12 @@ export interface AddonSongFacts {
 }
 
 export type AudioLink =
-  /** A music file Sync may download and check; it is used only if it matches the song. */
-  | { kind: 'file-url'; url: string; label: string; fileName: string | null }
+  /**
+   * A file Sync may download. Music is used only if its sound matches the song; a video only comes with music that
+   * matched in the same answer (so both are the same upload and share its timing), and must already play in
+   * StepMania (H.264 .mp4, no sound).
+   */
+  | { kind: 'file-url'; media: 'audio' | 'video'; url: string; label: string; fileName: string | null }
   /** A page the player can open themselves (a store, a library); Sync never follows it. */
   | { kind: 'open-page'; url: string; label: string };
 
@@ -69,7 +77,7 @@ export function parseAddonManifest(value: unknown): AddonManifest {
     version: getText({ value: value.version, maxLength: 32 }),
     author: getText({ value: value.author, maxLength: MAX_NAME_LENGTH }),
     description: getText({ value: value.description, maxLength: MAX_DESCRIPTION_LENGTH, isEmptyAllowed: true }),
-    provides: ['audio-links'],
+    provides: KNOWN_PROVIDES.filter((provided) => (value.provides as unknown[]).includes(provided)),
   };
 }
 
@@ -86,7 +94,7 @@ function parseAudioLinkOrNothing(value: unknown): AudioLink[] {
   if (!isRecord(value) || typeof value.url !== 'string' || typeof value.label !== 'string') return [];
   const label = value.label.slice(0, MAX_LABEL_LENGTH);
   if (value.kind === 'file-url' && isAllowedAddonLinkUrl(value.url)) {
-    return [{ kind: 'file-url', url: value.url, label, fileName: typeof value.fileName === 'string' ? value.fileName.slice(0, 200) : null }];
+    return [{ kind: 'file-url', media: value.media === 'video' ? 'video' : 'audio', url: value.url, label, fileName: typeof value.fileName === 'string' ? value.fileName.slice(0, 200) : null }];
   }
   if (value.kind === 'open-page' && isAllowedPageUrl(value.url)) return [{ kind: 'open-page', url: value.url, label }];
   return [];

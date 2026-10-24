@@ -5,6 +5,7 @@ import type { MusicSourceRegistry } from './music-source-registry';
 
 /** StepMania plays these as they are; anything else is converted to WAV first. */
 const PLAYABLE_EXTENSIONS = new Set(['ogg', 'mp3', 'wav']);
+const PLAYABLE_VIDEO_EXTENSIONS = new Set(['mp4', 'm4v', 'avi', 'mpg', 'mpeg']);
 const FAILURES_BY_ERROR_CODE: Readonly<Record<string, SongsFolderFailure>> = {
   ENOSPC: 'disk-full',
   EDQUOT: 'disk-full',
@@ -79,6 +80,21 @@ export class NodeSongsFolder implements SongsFolder {
     }
     const fileName = `${baseName}.wav`;
     await this.writeFileInside({ songsPath: [...folder, fileName], contents: await this.convertMusicToWav({ filePath: source.filePath }) });
+    return fileName;
+  }
+
+  /** Addons send videos StepMania already plays; anything else is refused rather than converted. */
+  async copyVideo({ sourceId, folder, baseName }: { sourceId: string; folder: SongsPath; baseName: string }): Promise<string> {
+    const source = this.musicSources.getSource(sourceId);
+    if (!source) throw new SongsFolderError({ failure: 'not-found', message: 'The video for this song is gone. Sync again to fetch it.' });
+    const extension = path.extname(source.filePath).slice(1).toLowerCase();
+    if (!PLAYABLE_VIDEO_EXTENSIONS.has(extension)) throw new SongsFolderError({ failure: 'other', message: `A .${extension} video can't play in StepMania, so Sync left it out.` });
+    const fileName = `${baseName}.${extension}`;
+    await this.run(async () => {
+      const target = await this.resolveInside([...folder, fileName]);
+      await mkdir(path.dirname(target), { recursive: true });
+      await copyFile(source.filePath, target);
+    });
     return fileName;
   }
 

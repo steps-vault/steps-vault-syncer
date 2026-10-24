@@ -40,6 +40,8 @@ export interface SongsFolder {
    * and wav play as they are). Returns the file name it wrote. The music never leaves the player's computer.
    */
   copyMusic(options: { sourceId: string; folder: SongsPath; baseName: string }): Promise<string>;
+  /** Copies a video that already plays in StepMania (an addon's H.264 .mp4) as `<baseName>.<extension>`; returns its file name. */
+  copyVideo(options: { sourceId: string; folder: SongsPath; baseName: string }): Promise<string>;
   /** Fails with 'already-exists' when `to` exists, so a rename never replaces anything. */
   rename(options: { from: SongsPath; to: SongsPath }): Promise<void>;
   /** A file that is already gone is not an error. */

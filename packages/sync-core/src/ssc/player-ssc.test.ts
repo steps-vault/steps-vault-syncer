@@ -53,3 +53,17 @@ describe('buildPlayerSsc', () => {
     expect(() => buildPlayerSsc({ sscText: SONG_SSC, musicFileName: 'my;song.ogg', shiftSeconds: 0 })).toThrow(InvalidSscError);
   });
 });
+
+describe('the song video', () => {
+  it('starts with the player music: beat OFFSET × BPM / 60 after the shift, written as the engine writes it', () => {
+    const playerSsc = buildPlayerSsc({ sscText: SONG_SSC, musicFileName: 'music.ogg', shiftSeconds: 0.18, videoFileName: 'video.mp4' });
+    expect(playerSsc).toContain('#BPMS:0.000=90.000;\n#BGCHANGES:-0.450=video.mp4=1.000=0=0=1=====,\n99999=-nosongbg-=1.000=0=0=0;\n#NOTEDATA:;');
+    expect(playerSsc.match(/#BGCHANGES/g)).toHaveLength(1);
+  });
+
+  it('keeps Windows line endings and refuses a name StepMania would split', () => {
+    const playerSsc = buildPlayerSsc({ sscText: SONG_SSC.replaceAll('\n', '\r\n'), musicFileName: 'music.ogg', shiftSeconds: 0, videoFileName: 'video.mp4' });
+    expect(playerSsc).toContain('=====,\r\n99999=-nosongbg-=1.000=0=0=0;\r\n');
+    expect(() => buildPlayerSsc({ sscText: SONG_SSC, musicFileName: 'music.ogg', shiftSeconds: 0, videoFileName: 'a=b.mp4' })).toThrow(InvalidSscError);
+  });
+});

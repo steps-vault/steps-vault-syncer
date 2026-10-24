@@ -10,6 +10,7 @@ import { SongWriteError, toSongWriteError } from './song-write-error';
 
 /** The music keeps one plain name in every song folder, so it never needs escaping inside the song file. */
 export const MUSIC_BASE_NAME = 'music';
+export const VIDEO_BASE_NAME = 'video';
 const TEMPORARY_FOLDER_PREFIX = '.stepsvault-new-';
 const NEW_FILE_SUFFIX = '.stepsvault-new';
 
@@ -48,9 +49,10 @@ export async function addSong({ dependencies, action }: { dependencies: SongWrit
   try {
     const files = await fetchFiles({ dependencies, vaultSongId: action.vaultSongId, chartVersion: action.chartVersion });
     const musicFileName = await songsFolder.copyMusic({ sourceId: action.audio.sourceId, folder: temporaryPath, baseName: MUSIC_BASE_NAME });
-    const music = { fileName: musicFileName, shiftSeconds: action.audio.shiftSeconds };
+    const videoFileName = action.audio.videoSourceId === null ? null : await songsFolder.copyVideo({ sourceId: action.audio.videoSourceId, folder: temporaryPath, baseName: VIDEO_BASE_NAME });
+    const music = { fileName: musicFileName, shiftSeconds: action.audio.shiftSeconds, videoFileName };
     const sscFileName = `${folderName}.ssc`;
-    const sscText = buildPlayerSsc({ sscText: files.sscText, musicFileName, shiftSeconds: music.shiftSeconds });
+    const sscText = buildPlayerSsc({ sscText: files.sscText, musicFileName, shiftSeconds: music.shiftSeconds, videoFileName });
     await writeImages({ songsFolder, folder: temporaryPath, files });
     await songsFolder.writeText({ path: [...temporaryPath, sscFileName], text: sscText });
     const installedSong: InstalledSong = { vaultSongId: action.vaultSongId, chartVersion: action.chartVersion, installId, folderPath: action.to, chartHashesByFileName: { [sscFileName]: getChartHash(sscText) }, music, installedAt: dependencies.getNow() };
@@ -70,7 +72,7 @@ export async function updateSong({ dependencies, action, installedSong }: { depe
   try {
     const files = await fetchFiles({ dependencies, vaultSongId: action.vaultSongId, chartVersion: action.chartVersion });
     const sscFileName = `${action.at.at(-1) ?? 'song'}.ssc`;
-    const sscText = buildPlayerSsc({ sscText: files.sscText, musicFileName: installedSong.music.fileName, shiftSeconds: installedSong.music.shiftSeconds });
+    const sscText = buildPlayerSsc({ sscText: files.sscText, musicFileName: installedSong.music.fileName, shiftSeconds: installedSong.music.shiftSeconds, videoFileName: installedSong.music.videoFileName ?? null });
     await writeImages({ songsFolder, folder: action.at, files });
     await replaceText({ songsFolder, path: [...action.at, sscFileName], text: sscText });
     await removeOldChartFiles({ songsFolder, installedSong, keptFileName: sscFileName });

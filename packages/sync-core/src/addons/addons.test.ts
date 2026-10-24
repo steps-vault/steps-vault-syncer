@@ -83,7 +83,7 @@ describe('fetchAudioLinks', () => {
       kind: 'links',
       addonError: null,
       links: [
-        { kind: 'file-url', url: 'https://cdn.example.org/pulse.ogg', label: 'Pulse Garden (ogg)', fileName: 'pulse.ogg' },
+        { kind: 'file-url', media: 'audio', url: 'https://cdn.example.org/pulse.ogg', label: 'Pulse Garden (ogg)', fileName: 'pulse.ogg' },
         { kind: 'open-page', url: 'https://store.example.org/pulse', label: 'Buy it' },
       ],
     });
@@ -117,5 +117,16 @@ describe('fetchAudioLinks', () => {
     const httpClient = new RecordedHttpClient([{ status: 200, body: { links: [], error: 'Video unavailable' } }]);
     expect(await fetchAudioLinks({ httpClient, addon: ADDON, song: SONG })).toEqual({ kind: 'links', links: [], addonError: 'Video unavailable' });
     expect(httpClient.requests[0]).toMatchObject({ timeoutMilliseconds: 20_000, maxResponseBytes: 65_536 });
+  });
+});
+
+describe('video links', () => {
+  it('reads a manifest that also provides videos, and marks each file link as audio or video', async () => {
+    const httpClient = new RecordedHttpClient([
+      { status: 200, body: { ...MANIFEST, provides: ['audio-links', 'video-links', 'lyrics'] } },
+      { status: 200, body: { links: [{ kind: 'file-url', url: 'https://cdn.example.org/a.ogg', label: 'Audio' }, { kind: 'file-url', media: 'video', url: 'https://cdn.example.org/v.mp4', label: 'Video', fileName: 'v.mp4' }] } },
+    ]);
+    expect((await fetchAddonManifest({ httpClient, address: 'https://cdn.example.org' })).manifest.provides).toEqual(['audio-links', 'video-links']);
+    expect(await fetchAudioLinks({ httpClient, addon: ADDON, song: SONG })).toMatchObject({ links: [{ media: 'audio', url: 'https://cdn.example.org/a.ogg' }, { media: 'video', url: 'https://cdn.example.org/v.mp4' }] });
   });
 });

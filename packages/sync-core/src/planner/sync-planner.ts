@@ -53,7 +53,7 @@ function planVaultSong({ song, check, target, input }: { song: VaultSong; check:
 function planNewSong({ song, target, match, forgetActions }: { song: VaultSong; target: SongsPath; match: AudioMatch | undefined; forgetActions: SyncAction[] }): SongPlan {
   const vaultSongId = song.vaultSongId;
   if (match?.kind === 'matched') {
-    const addAction: SyncAction = { kind: 'add', vaultSongId, to: target, chartVersion: song.chartVersion, audio: { sourceId: match.sourceId, shiftSeconds: match.shiftSeconds } };
+    const addAction: SyncAction = { kind: 'add', vaultSongId, to: target, chartVersion: song.chartVersion, audio: { sourceId: match.sourceId, shiftSeconds: match.shiftSeconds, videoSourceId: match.videoSourceId ?? null } };
     return { vaultSongId, status: 'syncing', actions: [...forgetActions, addAction], isWaitingForAddon: false };
   }
   if (match?.kind === 'different-edit') return { vaultSongId, status: 'different-edit', actions: forgetActions, isWaitingForAddon: false };

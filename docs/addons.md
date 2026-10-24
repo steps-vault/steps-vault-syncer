@@ -40,12 +40,13 @@ An addon's address is `https://…`. The only exception is an addon running on t
   "version": "0.6.1",
   "author": "hyperpad",
   "description": "Links to the songs we host ourselves.",
-  "provides": ["audio-links"]
+  "provides": ["audio-links", "video-links"]
 }
 ```
 
 - `id`: lower-case letters, digits, `.` and `-`, 2–64 characters.
 - `name` and `author`: up to 60 characters. `description`: up to 300 characters.
+- `provides`: always `audio-links`; add `video-links` if the addon can also give the song's video.
 
 ## `POST <address>/audio-links`
 
@@ -59,14 +60,20 @@ Request:
 Answers:
 
 - `200 { "links": [...] }`. Zero to 10 links, each one of these:
-  - `{ "kind": "file-url", "url": "https://…/pulse-garden.ogg", "label": "Pulse Garden (ogg)", "fileName": "pulse-garden.ogg" }`:
+  - `{ "kind": "file-url", "media": "audio", "url": "https://…/pulse-garden.ogg", "label": "Pulse Garden (ogg)", "fileName": "pulse-garden.ogg" }`:
     a music file. Sync downloads it into a temporary folder, then **checks that it is the same version of the song**
-    (by its sound) before using it. A file that doesn't match is ignored.
+    (by its sound) before using it. A file that doesn't match is ignored. Links without `media` are music.
+  - `{ "kind": "file-url", "media": "video", "url": "https://…/pulse-garden.mp4", "label": "Video", "fileName": "pulse-garden.mp4" }`:
+    the song's video. Sync uses it **only when the music from the same answer matched**, because the two then come
+    from one upload and share its timing. The video plays behind the steps from the music's first moment. It must
+    already play in StepMania 5: H.264 (Main profile, 8-bit, `yuv420p`) at most 854×480, `.mp4`, no sound track
+    needed. Sync copies it as it is and never converts it.
   - `{ "kind": "open-page", "url": "https://…", "label": "Buy on Example Store" }`: a page Sync shows as a button. The
     player opens it themselves; Sync never follows it.
   - Optionally, `"error": "One short sentence"`. It is shown on the song when there are no links.
 - `202 { "retryAfterSeconds": 5 }`: still working (for example, preparing the file). Sync asks again after that
-  many seconds, between 1 and 600.
+  many seconds, between 1 and 600. An addon that provides videos should answer `200` only once both files are
+  ready; otherwise Sync takes the music alone.
 - Any other status counts as "not answering". So does a timeout (20 s) or an answer over 64 KB. The song simply waits,
   and the player can pick a file meanwhile.
 
