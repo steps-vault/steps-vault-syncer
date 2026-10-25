@@ -4,6 +4,7 @@ import { HttpRequestError, type HttpClient, type HttpResponse } from '../network
 import type { AudioMatch } from '../planner/sync-plan-types';
 import { findAudioForSong, type AudioSearchOptions, type AudioSearchSong } from './audio-search';
 import { findMusicCandidates, scanMusicLibrary, type MusicFile, type MusicLibrary } from './music-library';
+import { searchMusicIndex } from './music-search';
 import { getFileNameFacts, getSongNameKey } from './song-names';
 
 const CHEAP_THRILLS: AudioSearchSong = { vaultSongId: 'a', title: 'Cheap Thrills', artist: 'Sia', album: 'This Is Acting', genre: 'Pop', lengthSeconds: 224, youtubeId: null, youtubeUrl: null };
@@ -224,5 +225,20 @@ describe('addon video', () => {
     });
     expect(result.match).toEqual({ kind: 'matched', sourceId: 'download:x.ogg', shiftSeconds: 0.1 });
     expect(downloads).toEqual(['https://tapes.example.org/x.ogg']);
+  });
+});
+
+describe('searchMusicIndex', () => {
+  it('finds files by every typed word in the title, artist, name or folders, titles that start with it first', async () => {
+    const index = await scanMusicLibrary({ musicLibrary: new ListedMusicLibrary([
+      buildMusicFile({ sourceId: 'night', fileName: 'Lumen Park - Night Drive.mp3' }),
+      buildMusicFile({ sourceId: 'drive', fileName: 'Long Drive Home.ogg', folderNames: ['Music', 'Lumen Park'] }),
+      buildMusicFile({ sourceId: 'tagged', fileName: 'track01.flac', taggedTitle: 'Drive', taggedArtist: 'Marla Quinn' }),
+    ]) });
+    expect(searchMusicIndex({ index, query: 'drive' }).map((file) => file.sourceId)).toEqual(['tagged', 'night', 'drive']);
+    expect(searchMusicIndex({ index, query: 'lumen DRIVE' }).map((file) => file.sourceId).sort()).toEqual(['drive', 'night']);
+    expect(searchMusicIndex({ index, query: 'marla' }).map((file) => file.sourceId)).toEqual(['tagged']);
+    expect(searchMusicIndex({ index, query: '  ' })).toEqual([]);
+    expect(searchMusicIndex({ index, query: 'drive', limit: 1 })).toHaveLength(1);
   });
 });
