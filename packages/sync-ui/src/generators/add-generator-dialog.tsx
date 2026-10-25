@@ -9,7 +9,7 @@ import type { AddonOptionView, GeneratorInstallPreview, GeneratorLookupResult, S
 import { ServiceLocation } from './generator-card';
 
 /** Everything a generator ever gets, for each song (generators.md, "What a generator gets"). */
-export const GENERATOR_GETS = ['the music file you pick.', 'the song’s facts: title, artist and length.', 'the difficulties you pick.'] as const;
+export const GENERATOR_GETS = ['the music file you pick.', 'the song’s facts: title, artist, album, genre, length and YouTube link.', 'the difficulties you pick.'] as const;
 export const GENERATOR_NEVER_GETS = 'your account, your tokens, or anything else on your computer.';
 export const GENERATOR_TRUST_NOTE = 'Generators are made by other people, not StepsVault. Only add ones you trust.';
 const LOOKUP_FAILED_MESSAGE = 'We couldn’t reach that generator. Check the address with whoever made it, then try again.';

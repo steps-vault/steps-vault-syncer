@@ -28,7 +28,8 @@ Never the player's account, name, other songs or anything else on their computer
 **Where the music goes.** A generator on the player's own computer (`http://127.0.0.1:<port>` or
 `http://localhost:<port>`) keeps the music on that computer. A generator at any other address receives the music file
 over the internet: before its first job, Sync tells the player exactly that ("Your music file will be sent to
-<address>") and goes on only when the player agrees.
+<address>") and goes on only when the player agrees. StepsVault's own generator is on the internet too, so it asks the
+same question before the first song.
 
 Sizes in this document: 1 MB is 1,048,576 bytes.
 
@@ -59,7 +60,7 @@ their jobs apart. A generator that needs its own accounts must handle them on it
   "author": "you",
   "description": "Steps on the music's onsets, arrows by simple rules.",
   "difficulties": ["Beginner", "Easy", "Medium", "Hard", "Challenge"],
-  "musicTypes": ["audio/ogg", "audio/mpeg", "audio/wav", "audio/flac"],
+  "musicTypes": ["audio/wav", "audio/ogg", "audio/mpeg", "audio/flac"],
   "usesVideo": false,
   "maxMusicBytes": 31457280,
   "options": []
@@ -69,8 +70,9 @@ their jobs apart. A generator that needs its own accounts must handle them on it
 - `kind`: always `generator` (an addon says `addon`).
 - `id`, `name`, `version`, `author`, `description`, `options`: the same rules as for addons (see `addons.md`).
 - `difficulties`: the ones it can make, at least one. Sync asks only for these.
-- `musicTypes`: the music file types it accepts; must include `audio/ogg`, because Sync converts the player's file to
-  Ogg Vorbis when it is a type the generator doesn't list.
+- `musicTypes`: the music file types it accepts; must include `audio/wav`. Sync sends the player's file as it is when
+  its type is listed, and otherwise decodes it to WAV (Sync has no encoder for other formats). A WAV is about 10 MB a
+  minute, so a generator that lists only WAV should allow a large `maxMusicBytes`.
 - `usesVideo`: `true` if it wants the video (to make its own background video). Sync sends it only then.
 - `maxMusicBytes` (optional): the largest music file it takes, at most 100 MB (the default). Sync refuses a bigger file
   before uploading anything.
