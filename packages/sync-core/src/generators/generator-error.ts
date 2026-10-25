@@ -15,6 +15,12 @@ export type GeneratorErrorReason =
   | 'job-lost'
   | 'took-too-long'
   | 'missing-chart'
+  /** The song file has no usable #OFFSET, so its steps can't be lined up with the music. */
+  | 'missing-offset'
+  /** The song file has no usable #BPMS. */
+  | 'missing-tempo'
+  /** The song file lacks a dance-single chart for a difficulty Sync asked for. */
+  | 'missing-difficulty'
   | 'file-too-large'
   | 'download-failed';
 

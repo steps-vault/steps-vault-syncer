@@ -22,11 +22,14 @@ export interface SongFolderFacts {
   genre: string | null;
 }
 
-function getFolderTitle(song: SongFolderFacts): string {
+/** The names a song folder is named from. */
+export type SongFolderNames = Pick<SongFolderFacts, 'title' | 'artist' | 'titleTransliteration' | 'artistTransliteration'>;
+
+function getFolderTitle(song: SongFolderNames): string {
   return song.titleTransliteration || song.title;
 }
 
-function getFolderArtist(song: SongFolderFacts): string {
+function getFolderArtist(song: SongFolderNames): string {
   return song.artistTransliteration || song.artist;
 }
 
@@ -85,7 +88,7 @@ function getKeptPath({ song, groupName, record }: { song: SongFolderFacts; group
 }
 
 /** "Sorry", then "Sorry (Justin Bieber)", then "Sorry (Justin Bieber) 2". */
-function getNewSongFolderName({ song, takenNameKeys }: { song: SongFolderFacts; takenNameKeys: ReadonlySet<string> }): string {
+export function getNewSongFolderName({ song, takenNameKeys }: { song: SongFolderNames; takenNameKeys: ReadonlySet<string> }): string {
   const title = getSafeFolderName({ name: getFolderTitle(song), fallback: UNKNOWN_TITLE_NAME });
   if (!takenNameKeys.has(getNameKey(title))) return title;
   const withArtist = getSafeFolderName({ name: `${getFolderTitle(song)} (${getFolderArtist(song)})`, fallback: title });
