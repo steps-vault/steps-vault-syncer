@@ -70,6 +70,22 @@ function createController(tray: { show: (status: DesktopSyncState['trayStatus'])
         clipboard.writeText(text);
       },
       isGameRunning,
+      confirmStartCommand: async ({ address, command, folder }) => {
+        const options = {
+          type: 'warning' as const,
+          buttons: ['Allow', 'Don’t allow'],
+          defaultId: 1,
+          cancelId: 1,
+          noLink: true,
+          title: 'Run a program on this computer?',
+          message: `Let StepsVault Sync run this command when it needs ${address}?`,
+          detail: `${command}
+
+It runs in ${folder}, and Sync stops it after 10 minutes without use. Only allow a command you typed yourself and trust.`,
+        };
+        const answer = mainWindow && !mainWindow.isDestroyed() ? await dialog.showMessageBox(mainWindow, options) : await dialog.showMessageBox(options);
+        return answer.response === 0;
+      },
       installUpdate: () => {
         isQuitting = true;
         installUpdateNow();
@@ -133,6 +149,9 @@ async function start(): Promise<void> {
   const controller = createController(tray);
   controllerHolder.current = controller;
   registerBridge(controller);
+  app.on('will-quit', () => {
+    void controller.shutdown();
+  });
   getAudioWindow();
   showMainWindow();
   await controller.initialize();

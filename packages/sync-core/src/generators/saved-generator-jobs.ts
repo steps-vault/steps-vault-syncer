@@ -19,7 +19,10 @@ export interface SavedGeneratorJob {
   /** Sync's own id for the job, known before the generator gives its job id. */
   jobKey: string;
   generatorBaseUrl: string;
+  /** The generator's id, name and version when the job started, for the song's marker even if it is removed since. */
+  generatorId: string;
   generatorName: string;
+  generatorVersion: string;
   isStepsVault: boolean;
   /** The generator's job id; null while the music is being sent. */
   jobId: string | null;
@@ -76,12 +79,14 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
   const difficulties = Array.isArray(value.difficulties) ? GENERATOR_DIFFICULTIES.filter((difficulty) => (value.difficulties as unknown[]).includes(difficulty)) : [];
   const state = getOneOfOrNull({ value: value.state, values: SAVED_JOB_STATES });
   if (!song || difficulties.length === 0 || state === null) return null;
-  const texts = [value.jobKey, value.generatorBaseUrl, value.generatorName, value.playerMusicLocation, value.startedAt, value.updatedAt];
+  const texts = [value.jobKey, value.generatorBaseUrl, value.generatorId, value.generatorName, value.generatorVersion, value.playerMusicLocation, value.startedAt, value.updatedAt];
   if (!texts.every((text) => typeof text === 'string') || typeof value.isStepsVault !== 'boolean') return null;
   return {
     jobKey: value.jobKey as string,
     generatorBaseUrl: value.generatorBaseUrl as string,
+    generatorId: value.generatorId as string,
     generatorName: value.generatorName as string,
+    generatorVersion: value.generatorVersion as string,
     isStepsVault: value.isStepsVault,
     jobId: getTextOrNull(value.jobId),
     song,

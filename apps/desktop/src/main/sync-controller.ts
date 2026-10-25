@@ -1,11 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   buildEmptyInstalledSongsRecord,
   buildInstalledAddon,
   fetchAddonManifest,
+  findSameVaultSong,
+  getAddonBaseUrl,
+  getGeneratedSongs,
   getPlayerGroupNames,
+  loadSavedGeneratorJobs,
   pollDeviceSignIn,
   runSync,
   scanMusicLibrary,
@@ -13,40 +17,69 @@ import {
   startDeviceSignIn,
   StepsVaultClient,
   withAddonOption,
+  writeGeneratedSong,
+  type ActivityLogEvent,
   type AddonManifest,
   type FolderLayout,
+  type GeneratedSongRequest,
+  type GeneratedSongWriteResult,
   type InstalledSongsRecord,
   type MusicIndex,
+  type SavedGeneratorJob,
   type SyncOutcome,
   type SyncPorts,
+  type SyncVault,
+  type VaultSongChoice,
+  type VaultSongIdentity,
 } from '@stepsvault/sync-core';
 import {
   buildActivityEntries,
   buildAddonInstallPreview,
   buildAddonView,
+  buildGeneratedSongViews,
+  buildGeneratorJobView,
+  buildGeneratorView,
   buildLayoutViews,
   buildSongDetailsById,
   buildSongRows,
+  buildSongSourceTabs,
   getAddonOptionValuesFromViews,
   getTrayStatus,
   type AddonInstallPreview,
   type AddonLookupResult,
+  type GeneratorInstallPreview,
+  type GeneratorLookupResult,
+  type MakeSongRequest,
+  type MakeSongResult,
+  type MusicChoiceView,
+  type ServiceLookupRequest,
   type SongAction,
+  type SongSourceSearchRequest,
+  type SongSourceSearchResult,
+  type VaultChoiceAnswer,
 } from '@stepsvault/sync-ui';
 import type { DesktopSignIn, DesktopSyncBridge, DesktopSyncState } from '../shared/bridge-types';
 import type { AudioBridge } from './audio-bridge';
 import { buildDefaultSettings, parseSettings, withActivity, type DesktopSettings } from './desktop-settings';
 import type { DeviceTokenStore } from './device-token-store';
 import { findInstalledGames, getInstallParentFolders, type FoundGame } from './game-detection';
+import { GeneratorJobFiles } from './generator-job-files';
+import { GeneratorJobRunner } from './generator-job-runner';
+import { GeneratorSettings, type StartCommandConfirmation } from './generator-settings';
 import { JsonFileStore } from './json-file-store';
+import { isServiceAnswering, startProgramWithShell, StartingHttpClient } from './local-program-process';
+import { LocalProgramStarter } from './local-program-starter';
+import { MakeSongMusic } from './make-song-music';
 import { MusicSourceRegistry } from './music-source-registry';
 import { NodeHttpClient } from './node-http-client';
+import { NodeMultipartHttpClient } from './node-multipart-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
 
 const MAX_ADDON_FILE_BYTES = 200 * 1024 * 1024;
 const ADDON_DOWNLOAD_TIMEOUT_MILLISECONDS = 120_000;
 const MAX_ACTIVITY_IN_COPY = 50;
+const IDLE_PROGRAM_CHECK_MILLISECONDS = 60_000;
 
 /** What the controller needs from Electron, passed in so the controller itself stays plain Node. */
 export interface DesktopServices {
@@ -55,6 +88,8 @@ export interface DesktopServices {
   openExternal(url: string): Promise<void>;
   writeClipboard(text: string): void;
   isGameRunning(): Promise<boolean>;
+  /** Asks the player, in the app's own dialog, whether Sync may run this command; the window can't answer for them. */
+  confirmStartCommand(confirmation: StartCommandConfirmation): Promise<boolean>;
   /** Quits and runs the downloaded installer. */
   installUpdate(): void;
 }
@@ -76,11 +111,21 @@ export interface SyncControllerOptions {
 export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private readonly options: SyncControllerOptions;
   private readonly httpClient: NodeHttpClient;
+  /** Addons and generators go through this one: it starts a program on this computer when it has a start command. */
+  private readonly serviceClient: StartingHttpClient;
+  private readonly starter: LocalProgramStarter;
   private readonly musicSources = new MusicSourceRegistry();
   private readonly settingsStore: JsonFileStore<DesktopSettings>;
   private readonly recordStore: JsonFileStore<InstalledSongsRecord>;
+  private readonly jobFiles: GeneratorJobFiles;
+  private readonly makeSongMusic: MakeSongMusic;
+  private readonly generatorSettings: GeneratorSettings;
+  private readonly jobRunner: GeneratorJobRunner;
+  private readonly reportsFolder: string;
+  private readonly reportSongKeys = new Set<string>();
   private settings: DesktopSettings = buildDefaultSettings();
   private record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
+  private recordTurn: Promise<unknown> = Promise.resolve();
   private deviceToken: string | null = null;
   private signIn: DesktopSignIn = { kind: 'signed-out' };
   private foundGames: FoundGame[] = [];
@@ -95,22 +140,46 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private readyUpdateVersion: string | null = null;
   private dismissedUpdateVersion: string | null = null;
   private readonly addonNamesBySourceId = new Map<string, string>();
-  private readonly lookedUpAddonsByAddress = new Map<string, { baseUrl: string; manifest: AddonManifest }>();
+  private readonly lookedUpAddonsByAddress = new Map<string, { baseUrl: string; manifest: AddonManifest; startCommand: string | null }>();
 
   constructor(options: SyncControllerOptions) {
     this.options = options;
     this.httpClient = new NodeHttpClient({ appVersion: options.appVersion });
+    this.starter = new LocalProgramStarter({ ports: { startProgram: startProgramWithShell, isAnswering: (baseUrl) => isServiceAnswering({ httpClient: this.httpClient, baseUrl }), getNowMilliseconds: () => Date.now(), waitMilliseconds: delay } });
+    const multipartHttpClient = new NodeMultipartHttpClient({ appVersion: options.appVersion, getSourceFilePath: (sourceId) => this.musicSources.getSource(sourceId)?.filePath ?? null });
+    this.serviceClient = new StartingHttpClient({ httpClient: this.httpClient, multipartHttpClient, starter: this.starter });
     this.settingsStore = new JsonFileStore({ filePath: path.join(options.dataFolder, 'settings.json'), buildDefault: buildDefaultSettings, parse: parseSettings });
     this.recordStore = new JsonFileStore({ filePath: path.join(options.dataFolder, 'installed-songs.json'), buildDefault: buildEmptyInstalledSongsRecord, parse: (value) => value as InstalledSongsRecord });
+    this.jobFiles = new GeneratorJobFiles({ jobsFolder: path.join(options.dataFolder, 'generator-jobs'), musicSources: this.musicSources, appVersion: options.appVersion });
+    this.reportsFolder = path.join(options.dataFolder, 'generated-song-reports');
+    this.makeSongMusic = new MakeSongMusic({
+      httpClient: this.serviceClient, musicSources: this.musicSources, waitMilliseconds: delay,
+      measureLength: (bytes) => options.audioBridge.measureLength(bytes), convertToWav: (bytes) => options.audioBridge.convertToWav(bytes), downloadFile: (download) => this.jobFiles.downloadFile(download),
+    });
+    this.generatorSettings = new GeneratorSettings({
+      httpClient: this.serviceClient, starter: this.starter, siteUrl: options.siteUrl, getDeviceToken: () => this.deviceToken, getSettings: () => this.settings, saveSettings: (settings) => this.saveSettings(settings),
+      confirmStartCommand: (confirmation) => options.services.confirmStartCommand(confirmation), getNow: () => new Date().toISOString(),
+    });
+    this.jobRunner = this.createJobRunner();
   }
 
   async initialize(): Promise<void> {
     [this.settings, this.record, this.deviceToken] = await Promise.all([this.settingsStore.load(), this.recordStore.load(), this.options.tokenStore.load()]);
     if (this.deviceToken) this.signIn = { kind: 'signed-in', computerName: this.options.computerName };
     for (const filePath of Object.values(this.settings.pickedFilePathsBySongId)) this.musicSources.register(filePath);
+    this.generatorSettings.applyStartCommands();
+    for (const fileName of await readdir(this.reportsFolder).catch((): string[] => [])) this.reportSongKeys.add(fileName);
     this.foundGames = await findInstalledGames({ parentFolders: getInstallParentFolders({ appDataFolder: this.options.appDataFolder }) });
+    setInterval(() => void this.starter.stopIdlePrograms(), IDLE_PROGRAM_CHECK_MILLISECONDS);
+    await this.jobRunner.initialize();
+    void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
     this.publish();
     await this.scanMusic();
+  }
+
+  /** When Sync quits, programs it started for addons and generators stop too. */
+  shutdown(): Promise<void> {
+    return this.starter.stopAll();
   }
 
   get isReadyToSync(): boolean {
@@ -183,7 +252,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.problem = null;
     this.publish();
     try {
-      await this.runOneSync();
+      await this.takeRecordTurn(() => this.runOneSync());
     } catch (error) {
       await this.handleSyncError(error);
     } finally {
@@ -214,12 +283,14 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     await this.syncNow();
   }
 
-  async lookUpAddon(address: string): Promise<AddonLookupResult> {
+  async lookUpAddon({ address, startCommand }: ServiceLookupRequest): Promise<AddonLookupResult> {
     try {
-      const { baseUrl, manifest } = await fetchAddonManifest({ httpClient: this.httpClient, address });
-      this.lookedUpAddonsByAddress.set(address, { baseUrl, manifest });
-      return { kind: 'found', addon: buildAddonInstallPreview({ address, manifest }) };
+      const confirmedCommand = startCommand === null ? null : await this.generatorSettings.confirmStartCommand({ baseUrl: getAddonBaseUrl(address), command: startCommand });
+      const { baseUrl, manifest } = await fetchAddonManifest({ httpClient: this.serviceClient, address });
+      this.lookedUpAddonsByAddress.set(address, { baseUrl, manifest, startCommand: confirmedCommand });
+      return { kind: 'found', addon: buildAddonInstallPreview({ address, manifest, startCommand: confirmedCommand }) };
     } catch (error) {
+      this.generatorSettings.applyStartCommands();
       return { kind: 'failed', message: error instanceof Error ? error.message : 'No addon answered at this address.' };
     }
   }
@@ -228,7 +299,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     const lookedUp = this.lookedUpAddonsByAddress.get(preview.address);
     if (!lookedUp) return;
     const addon = buildInstalledAddon({ ...lookedUp, consentedAt: new Date().toISOString(), optionValues: getAddonOptionValuesFromViews(preview.options) });
-    await this.saveSettings({ ...this.settings, addons: [...this.settings.addons.filter((existing) => existing.manifest.id !== addon.manifest.id), addon] });
+    const settings = { ...this.settings, addons: [...this.settings.addons.filter((existing) => existing.manifest.id !== addon.manifest.id), addon] };
+    await this.saveSettings(this.generatorSettings.withStartCommand({ settings, baseUrl: lookedUp.baseUrl, startCommand: lookedUp.startCommand }));
     await this.syncNow();
   }
 
@@ -243,7 +315,75 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   async removeAddon(addonId: string): Promise<void> {
-    await this.saveSettings({ ...this.settings, addons: this.settings.addons.filter((addon) => addon.manifest.id !== addonId) });
+    await this.generatorSettings.removeAddon(addonId);
+  }
+
+  lookUpGenerator(request: ServiceLookupRequest): Promise<GeneratorLookupResult> {
+    return this.generatorSettings.lookUpGenerator(request);
+  }
+
+  installGenerator(preview: GeneratorInstallPreview): Promise<void> {
+    return this.generatorSettings.installGenerator(preview);
+  }
+
+  removeGenerator(generatorId: string): Promise<void> {
+    return this.generatorSettings.removeGenerator(generatorId);
+  }
+
+  setGeneratorOption(change: { generatorId: string; optionId: string; value: string }): Promise<void> {
+    return this.generatorSettings.setGeneratorOption(change);
+  }
+
+  async chooseMusicFileForSong(): Promise<MusicChoiceView | null> {
+    const filePath = await this.options.services.chooseAudioFile();
+    return filePath ? this.makeSongMusic.addPickedFile(filePath) : null;
+  }
+
+  searchMusicFolders(query: string): Promise<MusicChoiceView[]> {
+    return Promise.resolve(this.makeSongMusic.searchMusicFolders({ index: this.musicIndex, query }));
+  }
+
+  async findSongWithSource({ addonId, valuesByInputId }: SongSourceSearchRequest): Promise<SongSourceSearchResult> {
+    const addon = this.settings.addons.find((candidate) => candidate.isEnabled && candidate.manifest.id === addonId);
+    if (!addon) return { kind: 'not-answering', message: 'That addon is turned off or removed. Turn it on under Audio sources, then try again.' };
+    return this.makeSongMusic.findSong({ addon, valuesByInputId });
+  }
+
+  stopFindingSong(): Promise<void> {
+    this.makeSongMusic.stopFindingSong();
+    return Promise.resolve();
+  }
+
+  /** Gets the music ready and starts the job; from then on the job's progress is in the state. */
+  async makeSong({ musicId, generatorId, difficulties, hasAgreedToMusicUpload }: MakeSongRequest): Promise<MakeSongResult> {
+    const jobKey = randomUUID();
+    try {
+      const jobGenerator = await this.generatorSettings.getGeneratorForNewSong({ generatorId, hasAgreedToMusicUpload });
+      const jobFolder = this.jobFiles.getJobFolder(jobKey);
+      await mkdir(jobFolder, { recursive: true });
+      const prepared = await this.makeSongMusic.prepareMusic({ musicId, manifest: jobGenerator.generator.manifest, jobFolder });
+      await this.jobRunner.startJob({ jobKey, generatorBaseUrl: jobGenerator.generator.baseUrl, difficulties, ...prepared });
+      return { kind: 'started', jobKey };
+    } catch (error) {
+      await this.jobFiles.removeJobFiles(jobKey).catch(() => undefined);
+      return { kind: 'failed', message: error instanceof Error ? error.message : 'Sync couldn’t start this song. Try again.' };
+    }
+  }
+
+  cancelGeneratorJob(jobKey: string): Promise<void> {
+    return this.jobRunner.cancelJob(jobKey);
+  }
+
+  answerVaultChoice(answer: VaultChoiceAnswer): Promise<void> {
+    return this.jobRunner.answerVaultChoice(answer);
+  }
+
+  dismissGeneratorJob(jobKey: string): Promise<void> {
+    return this.jobRunner.dismissJob(jobKey);
+  }
+
+  async fetchGeneratedSongReport(songKey: string): Promise<string | null> {
+    return readFile(path.join(this.reportsFolder, getReportFileName(songKey)), 'utf8').catch(() => null);
   }
 
   async setLayout(layout: FolderLayout): Promise<void> {
@@ -256,7 +396,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   copyActivityDetails(): Promise<void> {
-    const lines = this.settings.activity.slice(-MAX_ACTIVITY_IN_COPY).map((event) => `${event.at} ${event.kind} ${event.folderPath.join('/')}${event.message ? ` — ${event.message}` : ''}`);
+    const lines = this.settings.activity.slice(-MAX_ACTIVITY_IN_COPY).map((event) => `${event.at} ${describeActivityKind(event)} ${event.folderPath.join('/')}${event.message ? ` — ${event.message}` : ''}`);
     this.options.services.writeClipboard([`StepsVault Sync ${this.options.appVersion}`, ...lines].join('\n'));
     return Promise.resolve();
   }
@@ -277,6 +417,74 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.dismissedUpdateVersion = this.readyUpdateVersion;
     this.publish();
     return Promise.resolve();
+  }
+
+  private createJobRunner(): GeneratorJobRunner {
+    const jobStore = new JsonFileStore<SavedGeneratorJob[]>({ filePath: path.join(this.options.dataFolder, 'generator-jobs.json'), buildDefault: () => [], parse: loadSavedGeneratorJobs });
+    return new GeneratorJobRunner({
+      httpClient: this.serviceClient,
+      multipartHttpClient: this.serviceClient,
+      jobStore,
+      jobFiles: this.jobFiles,
+      findGenerator: (baseUrl) => this.generatorSettings.findJobGenerator(baseUrl),
+      registerPlayerFile: (location) => this.musicSources.register(location),
+      writeSong: (options) => this.takeRecordTurn(() => this.writeGeneratedSongIntoGame(options)),
+      saveReport: (report) => this.saveReport(report),
+      addVaultSongToGame: (job) => this.addVaultSongToGame(job),
+      logActivity: (event) => this.saveSettings(withActivity({ settings: this.settings, events: [event] })),
+      waitMilliseconds: delay,
+      getNow: () => new Date().toISOString(),
+      onChange: () => { this.publish(); },
+    });
+  }
+
+  /** Syncs and generated songs take turns with the record, so neither writes over the other's changes. */
+  private takeRecordTurn<Result>(work: () => Promise<Result>): Promise<Result> {
+    const turn = this.recordTurn.then(work, work);
+    this.recordTurn = turn.catch(() => undefined);
+    return turn;
+  }
+
+  private async writeGeneratedSongIntoGame({ request, vaultSongChoice }: { request: GeneratedSongRequest; vaultSongChoice: VaultSongChoice | null }): Promise<GeneratedSongWriteResult> {
+    const dependencies = { songsFolder: this.buildSongsFolder(), readDownloadedPicture: (sourceId: string) => this.jobFiles.readDownloadedPicture(sourceId), pictureMaker: this.options.audioBridge, createId: randomUUID, getNow: () => new Date().toISOString() };
+    const result = await writeGeneratedSong({ dependencies, record: this.record, request, vaultSongs: await this.fetchVaultSongIdentities(), vaultSongChoice });
+    if (result.kind === 'needs-vault-choice') return result;
+    this.record = result.record;
+    await this.recordStore.save(result.record);
+    const replacedVaultSongId = result.kind === 'written' ? result.generatedSong.inPlaceOfVaultSongId : null;
+    // The vault song the player chose to replace leaves the game on the next sync, like a song removed from the vault.
+    if (replacedVaultSongId !== null) await this.saveSettings(withSongChoice({ settings: this.settings, vaultSongId: replacedVaultSongId, action: 'remove-from-game' }));
+    return result;
+  }
+
+  private async fetchVaultSongIdentities(): Promise<VaultSongIdentity[]> {
+    const vaultSongs = this.lastOutcome?.vaultSongs ?? (await this.buildVault().fetchVault().catch(() => []));
+    return vaultSongs.map(({ vaultSongId, title, artist, youtubeId }) => ({ vaultSongId, title, artist, youtubeId }));
+  }
+
+  private async saveReport({ songKey, reportText }: { songKey: string; reportText: string }): Promise<void> {
+    await mkdir(this.reportsFolder, { recursive: true });
+    await writeFile(path.join(this.reportsFolder, getReportFileName(songKey)), reportText, 'utf8');
+    this.reportSongKeys.add(getReportFileName(songKey));
+  }
+
+  /**
+   * StepsVault's generator put the song in the vault, so a sync installs it like any vault song. The generator gives no
+   * vault song id, so Sync finds it by its facts, and uses the music the player gave when the song still needs audio.
+   */
+  private async addVaultSongToGame(job: SavedGeneratorJob): Promise<void> {
+    while (this.syncRun) await delay(1000);
+    await this.syncNow();
+    const vaultSong = findSameVaultSong({ song: job.song, vaultSongs: this.lastOutcome?.vaultSongs ?? [] });
+    const songPlan = this.lastOutcome?.finalPlan.songPlans.find((plan) => plan.vaultSongId === vaultSong?.vaultSongId);
+    if (!vaultSong || songPlan?.status !== 'needs-audio') return;
+    this.musicSources.register(job.playerMusicLocation);
+    await this.saveSettings({ ...this.settings, pickedFilePathsBySongId: { ...this.settings.pickedFilePathsBySongId, [vaultSong.vaultSongId]: job.playerMusicLocation } });
+    await this.syncNow();
+    if (!job.playerMusicLocation.startsWith(this.jobFiles.getJobFolder(job.jobKey))) return;
+    // A song source's download is removed with the job; the song keeps its own copy in the game.
+    const pickedFilePathsBySongId = Object.fromEntries(Object.entries(this.settings.pickedFilePathsBySongId).filter(([vaultSongId]) => vaultSongId !== vaultSong.vaultSongId));
+    await this.saveSettings({ ...this.settings, pickedFilePathsBySongId });
   }
 
   private async runOneSync(): Promise<void> {
@@ -324,6 +532,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
         this.deviceToken = poll.deviceToken;
         await this.options.tokenStore.save(poll.deviceToken);
         this.signIn = { kind: 'signed-in', computerName: poll.deviceName };
+        void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
       }
       this.publish();
     }
@@ -351,9 +560,9 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private buildPorts(): SyncPorts {
     return {
       songsFolder: this.buildSongsFolder(),
-      vault: this.buildClient(),
+      vault: this.buildVault(),
       recordStore: this.recordStore,
-      httpClient: this.httpClient,
+      httpClient: this.serviceClient,
       checkAudioSource: async ({ sourceId, fingerprint }) => {
         const source = this.musicSources.getSource(sourceId);
         if (!source) return { kind: 'different-edit', sourceId };
@@ -362,6 +571,17 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       downloadAddonFile: (options) => this.downloadAddonFile(options),
       createId: randomUUID,
       getNow: () => new Date().toISOString(),
+    };
+  }
+
+  /** The vault without the songs the player replaced with one they made: those stay out of the game. */
+  private buildVault(): SyncVault {
+    const client = this.buildClient();
+    const replacedVaultSongIds = new Set(getGeneratedSongs(this.record).flatMap((generatedSong) => generatedSong.inPlaceOfVaultSongId ?? []));
+    return {
+      fetchVault: async () => (await client.fetchVault()).filter((song) => !replacedVaultSongIds.has(song.vaultSongId)),
+      fetchFingerprint: (vaultSongId) => client.fetchFingerprint(vaultSongId),
+      fetchSongFiles: (request) => client.fetchSongFiles(request),
     };
   }
 
@@ -388,7 +608,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   /** An addon's file goes into the app's own folder (never the music folders), named by a hash of its address. */
   private async downloadAddonFile({ url, fileName, addonName }: { url: string; fileName: string | null; addonName: string }): Promise<string> {
-    const response = await this.httpClient.requestBytes({ url, method: 'GET', timeoutMilliseconds: ADDON_DOWNLOAD_TIMEOUT_MILLISECONDS, maxResponseBytes: MAX_ADDON_FILE_BYTES });
+    const response = await this.serviceClient.requestBytes({ url, method: 'GET', timeoutMilliseconds: ADDON_DOWNLOAD_TIMEOUT_MILLISECONDS, maxResponseBytes: MAX_ADDON_FILE_BYTES });
     if (response.status !== 200) throw new Error(`The addon's file answered ${String(response.status)}.`);
     const extension = path.extname(fileName ?? new URL(url).pathname).toLowerCase().replace(/[^.a-z0-9]/g, '') || '.audio';
     const filePath = path.join(this.options.dataFolder, 'addon-downloads', `${createHash('sha256').update(url).digest('hex').slice(0, 24)}${extension}`);
@@ -432,6 +652,11 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       scannedFileCount: this.scannedFileCount,
       pickedFiles: Object.entries(this.settings.pickedFilePathsBySongId).map(([vaultSongId, filePath]) => ({ vaultSongId, title: songs.find((song) => song.vaultSongId === vaultSongId)?.title ?? 'A song', fileName: path.basename(filePath), status: songs.find((song) => song.vaultSongId === vaultSongId)?.status ?? 'needs-audio' })),
       addons: this.settings.addons.map((addon) => buildAddonView(addon)),
+      stepsVaultGenerator: this.generatorSettings.buildStepsVaultGeneratorView(),
+      generators: this.settings.generators.map((generator) => buildGeneratorView({ generator, startCommand: this.settings.startCommandsByBaseUrl[generator.baseUrl] ?? null })),
+      songSourceTabs: buildSongSourceTabs(this.settings.addons),
+      generatorJobs: [...this.jobRunner.jobs].reverse().map(buildGeneratorJobView),
+      generatedSongs: buildGeneratedSongViews({ generatedSongs: getGeneratedSongs(this.record), reportSongKeys: new Set(getGeneratedSongs(this.record).flatMap((song) => (this.reportSongKeys.has(getReportFileName(song.songKey)) ? [song.songKey] : []))) }),
       layout: this.settings.layout,
       ...layoutViews,
       playerGroupNames: this.playerGroupNames,
@@ -448,6 +673,15 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       problem: this.problem,
     };
   }
+}
+
+/** A song's key can hold any title, so its report file is named by a hash of it. */
+function getReportFileName(songKey: string): string {
+  return `${createHash('sha256').update(songKey).digest('hex').slice(0, 32)}.md`;
+}
+
+function describeActivityKind(event: ActivityLogEvent): string {
+  return event.kind === 'generated-song' ? `generated-song ${event.step} ${event.songTitle}` : event.kind;
 }
 
 /** A choice on a song's row, remembered until a sync has acted on it. */

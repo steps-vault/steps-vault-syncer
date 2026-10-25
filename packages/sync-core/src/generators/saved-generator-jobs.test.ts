@@ -3,7 +3,7 @@ import { getGeneratorJobsAfterRestart, isGeneratorJobOpen, loadSavedGeneratorJob
 
 function buildJob(overrides: Partial<SavedGeneratorJob> = {}): SavedGeneratorJob {
   return {
-    jobKey: 'job-1', generatorBaseUrl: 'http://127.0.0.1:7700', generatorName: 'Tap Forge', isStepsVault: false, jobId: 'a1b2c3',
+    jobKey: 'job-1', generatorBaseUrl: 'http://127.0.0.1:7700', generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isStepsVault: false, jobId: 'a1b2c3',
     song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
     difficulties: ['Easy', 'Medium'], state: 'waiting', progress: 0.4, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, vaultChoice: null, result: null,
     playerMusicLocation: 'C:\\Music\\Night Drive.mp3', playerVideoLocation: null, collectedFilesLocation: null, startedAt: '2026-10-25T10:00:00.000Z', updatedAt: '2026-10-25T10:01:00.000Z',
