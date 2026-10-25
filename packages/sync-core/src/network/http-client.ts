@@ -18,7 +18,7 @@ export interface HttpResponse<Body> {
 
 export interface HttpRequest {
   url: string;
-  method: 'GET' | 'POST';
+  method: 'GET' | 'POST' | 'DELETE';
   headers?: Readonly<Record<string, string>>;
   jsonBody?: unknown;
   timeoutMilliseconds: number;
@@ -35,4 +35,27 @@ export interface HttpClient {
   requestJson(request: HttpRequest): Promise<HttpResponse<unknown>>;
   requestText(request: HttpRequest): Promise<HttpResponse<string>>;
   requestBytes(request: HttpRequest): Promise<HttpResponse<Uint8Array>>;
+}
+
+/** One part of a multipart/form-data body. */
+export type MultipartPart =
+  | { kind: 'json'; name: string; value: unknown }
+  /** A file the platform reads by its sourceId (see MusicFile) and streams, so a large video never sits in memory. */
+  | { kind: 'file'; name: string; sourceId: string; fileName: string; contentType: string };
+
+export interface MultipartHttpRequest {
+  url: string;
+  method: 'POST';
+  headers?: Readonly<Record<string, string>>;
+  parts: readonly MultipartPart[];
+  timeoutMilliseconds: number;
+  maxResponseBytes: number;
+}
+
+/**
+ * Uploads files as multipart/form-data and reads a JSON answer, with the same failure rules as HttpClient.requestJson.
+ * A separate port from HttpClient, so platforms that never upload files (the website) don't have to implement it.
+ */
+export interface MultipartHttpClient {
+  requestJsonWithFiles(request: MultipartHttpRequest): Promise<HttpResponse<unknown>>;
 }
