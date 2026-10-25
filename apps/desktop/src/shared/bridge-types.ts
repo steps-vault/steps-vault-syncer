@@ -78,14 +78,21 @@ export interface DesktopSyncBridge {
   dismissUpdate(): Promise<void>;
 }
 
-/** The hidden audio window's side: decode and match, or convert to WAV. */
+/**
+ * The hidden window's side: decode and match, convert to WAV, measure a song's length, or draw a plain picture (the
+ * window has Chromium's canvas, so no drawing library is needed).
+ */
 export type AudioJob =
   | { jobId: number; kind: 'check'; sourceId: string; bytes: Uint8Array; fingerprint: number[]; fingerprintRateHertz: number }
-  | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array };
+  | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array }
+  | { jobId: number; kind: 'measure'; bytes: Uint8Array }
+  | { jobId: number; kind: 'make-picture'; width: number; height: number; title: string; artist: string };
 
 export type AudioJobResult =
   | { jobId: number; kind: 'check'; match: { kind: 'matched'; sourceId: string; shiftSeconds: number } | { kind: 'different-edit'; sourceId: string } }
   | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array }
+  | { jobId: number; kind: 'measure'; lengthSeconds: number }
+  | { jobId: number; kind: 'make-picture'; bytes: Uint8Array }
   | { jobId: number; kind: 'failed'; message: string };
 
 export const BRIDGE_CHANNEL_PREFIX = 'stepsvault-sync:';
