@@ -4,7 +4,7 @@ import { joinClassNames } from '../shared/class-names';
 import { LifeBar } from '../shared/life-bar';
 import { Note } from '../shared/small-parts';
 import { StatusChip } from '../status/status-chip';
-import type { AddonInstallPreview, AddonLookupResult, AddonView, MusicFolderScanState, MusicFolderView, PickedFileView } from '../sync-ui-types';
+import type { AddonInstallPreview, AddonLookupResult, AddonView, MusicFolderScanState, MusicFolderView, PickedFileView, ServiceLookupRequest } from '../sync-ui-types';
 import { AddAddonDialog } from './add-addon-dialog';
 import { AddonCard } from './addon-card';
 
@@ -34,8 +34,10 @@ export interface AudioSourcesScreenProps {
   onToggleAddon: (request: { addonId: string; isEnabled: boolean }) => void;
   onRemoveAddon: (addonId: string) => void;
   onSetAddonOption: (request: { addonId: string; optionId: string; value: string }) => void;
-  onLookUpAddon: (address: string) => Promise<AddonLookupResult>;
+  onLookUpAddon: (request: ServiceLookupRequest) => Promise<AddonLookupResult>;
   onInstallAddon: (addon: AddonInstallPreview) => void;
+  /** Desktop only: offer a start command for an addon on this computer. */
+  canUseStartCommand?: boolean;
 }
 
 /** Screen 4: where Sync looks for the player's own copy of each song. */
@@ -66,7 +68,7 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
         <Note>Addons are made by other people, not StepsVault. Only install ones you trust. You can turn one off or remove it any time — songs keep the audio they already have.</Note>
       </section>
       {isAddingAddon && (
-        <AddAddonDialog onLookUpAddon={props.onLookUpAddon} onInstall={(addon) => { setIsAddingAddon(false); props.onInstallAddon(addon); }} onClose={() => { setIsAddingAddon(false); }} />
+        <AddAddonDialog onLookUpAddon={props.onLookUpAddon} canUseStartCommand={props.canUseStartCommand} onInstall={(addon) => { setIsAddingAddon(false); props.onInstallAddon(addon); }} onClose={() => { setIsAddingAddon(false); }} />
       )}
     </div>
   );

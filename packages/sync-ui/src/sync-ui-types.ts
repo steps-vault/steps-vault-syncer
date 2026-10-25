@@ -1,9 +1,9 @@
-import type { FolderLayout, SongSyncStatus } from '@stepsvault/sync-core';
+import type { FolderLayout, GeneratorDifficulty, SongSourceInput, SongSyncStatus, VaultSongChoice } from '@stepsvault/sync-core';
 
 /** The website shows browser permission prompts; the desktop app has a tray and background sync. */
 export type SyncPlatform = 'website' | 'desktop';
 
-export type SyncScreen = 'songs' | 'audio-sources' | 'folder-layout' | 'activity' | 'account';
+export type SyncScreen = 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account';
 
 /** Levels in the game's order (Beginner, Easy, Medium, Hard, Challenge); null when that chart doesn't exist. */
 export type DifficultyLevels = readonly [number | null, number | null, number | null, number | null, number | null];
@@ -118,6 +118,8 @@ export interface AddonView {
   isEnabled: boolean;
   health: AddonHealth;
   options: readonly AddonOptionView[];
+  /** False for an addon that only brings new songs: it is never asked for a vault song's music. Missing means true. */
+  isAudioSource?: boolean;
   isNew?: boolean;
 }
 
@@ -129,6 +131,16 @@ export interface AddonInstallPreview {
   author: string;
   /** Picked on the consent step, before installing; each starts at the addon's default. */
   options: readonly AddonOptionView[];
+  /** True for a song source: it also sees what the player types in its tab on the Make a song page. */
+  seesWhatYouType?: boolean;
+  /** Desktop only: the command Sync runs to start an addon on this computer, as the player typed it. */
+  startCommand?: string | null;
+}
+
+/** Step 1 of adding an addon or a generator. The start command is only for one on this computer, in the desktop app. */
+export interface ServiceLookupRequest {
+  address: string;
+  startCommand: string | null;
 }
 
 export type AddonLookupResult = { kind: 'found'; addon: AddonInstallPreview } | { kind: 'failed'; message: string };
@@ -150,7 +162,10 @@ export interface LayoutPreview {
 export type LayoutPreviewsByLayout = Readonly<Record<FolderLayout, LayoutPreview>>;
 
 /** `write-failed`: a song couldn't be written (full disk, StepMania open…); its details say what to do. */
-export type ActivityKind = 'sync-finished' | 'added' | 'updated' | 'lined-up' | 'no-audio' | 'different-edit' | 'removed' | 'kept-edits' | 'addon-not-answering' | 'moved' | 'connected' | 'write-failed';
+export type ActivityKind =
+  | 'sync-finished' | 'added' | 'updated' | 'lined-up' | 'no-audio' | 'different-edit' | 'removed' | 'kept-edits' | 'addon-not-answering' | 'moved' | 'connected' | 'write-failed'
+  /** Making a song with a generator: started or still going, in the game (or the vault), stopped by a problem, cancelled. */
+  | 'generating' | 'generated' | 'generate-failed' | 'generate-cancelled';
 
 export interface ActivityEntryView {
   entryId: string;
@@ -182,3 +197,138 @@ export type SignInState =
   | { kind: 'signed-in'; playerName: string; computerName: string };
 
 export type LinkCodeState = 'typing' | 'miss' | 'great' | 'linked';
+
+/** Where an addon or generator runs: on this computer the music stays here, on the internet it is sent there. */
+export type ServiceLocationView = { kind: 'this-computer' } | { kind: 'internet'; address: string };
+
+/** StepsVault's own generator: always listed first, and used when the player doesn't pick another one. */
+export interface StepsVaultGeneratorView {
+  /** The player's tokens; null when Sync doesn't know them. */
+  tokenCount: number | null;
+  /** Where the player buys tokens, opened in their browser. */
+  tokensHref: string;
+  /** What it can make; null while StepsVault can't be reached. */
+  difficulties: readonly GeneratorDifficulty[] | null;
+  /** The sentence to agree to before the first song, since StepsVault receives the music too; null once agreed. */
+  musicUploadWarning: string | null;
+}
+
+/** A community generator the player added. */
+export interface GeneratorView {
+  generatorId: string;
+  name: string;
+  version: string;
+  author: string;
+  description: string;
+  location: ServiceLocationView;
+  /** Desktop only: the command Sync runs to start it, when the player gave one. */
+  startCommand: string | null;
+  /** What it can make, in game order. */
+  difficulties: readonly GeneratorDifficulty[];
+  options: readonly AddonOptionView[];
+  /** The sentence to agree to before the next song, when the player hasn't agreed yet; null otherwise. */
+  musicUploadWarning: string | null;
+  isNew?: boolean;
+}
+
+/** What the generator's own description says about itself, shown before the player adds it. */
+export interface GeneratorInstallPreview {
+  address: string;
+  name: string;
+  version: string;
+  author: string;
+  description: string;
+  location: ServiceLocationView;
+  difficulties: readonly GeneratorDifficulty[];
+  options: readonly AddonOptionView[];
+  startCommand: string | null;
+}
+
+export type GeneratorLookupResult = { kind: 'found'; generator: GeneratorInstallPreview } | { kind: 'failed'; message: string };
+
+/** Music the player picked for a new song: a file, a file from their music folders, or a song a song source found. */
+export interface MusicChoiceView {
+  /** The platform's id for this music; the screens never see a file path. */
+  musicId: string;
+  title: string;
+  artist: string;
+  /** Where it comes from, for example the file's folder, or "From YouTube Songs". */
+  sourceText: string;
+  /** For example "3:21"; null when not known. */
+  lengthText: string | null;
+  /** True when a video comes with it (from a song source): it plays behind the steps. */
+  hasVideo: boolean;
+}
+
+/** One song-source addon's tab on the Make a song page, drawn by Sync from the addon's declared inputs. */
+export interface SongSourceTabView {
+  addonId: string;
+  name: string;
+  inputs: readonly SongSourceInput[];
+}
+
+export interface SongSourceSearchRequest {
+  addonId: string;
+  valuesByInputId: Readonly<Record<string, string>>;
+}
+
+export type SongSourceSearchResult =
+  | { kind: 'found'; music: MusicChoiceView }
+  /** The addon's own sentence: nothing found for what the player typed. */
+  | { kind: 'not-found'; message: string }
+  | { kind: 'not-answering'; message: string }
+  /** What the player typed in one field breaks its rules; shown under that field. */
+  | { kind: 'invalid-input'; inputId: string; message: string }
+  | { kind: 'stopped' };
+
+export interface MakeSongRequest {
+  musicId: string;
+  generatorId: string;
+  difficulties: readonly GeneratorDifficulty[];
+  /** True when the player saw "Your music file will be sent to …" and went on. */
+  hasAgreedToMusicUpload: boolean;
+}
+
+export type MakeSongResult = { kind: 'started'; jobKey: string } | { kind: 'failed'; message: string };
+
+/** working: sending the music or being made; the rest are where the job ended, or a question for the player. */
+export type GeneratorJobStateView = 'working' | 'needs-vault-choice' | 'done' | 'failed' | 'cancelled';
+
+/** A song being made, or recently made, with a generator. */
+export interface GeneratorJobView {
+  jobKey: string;
+  songTitle: string;
+  songArtist: string;
+  generatorName: string;
+  isStepsVault: boolean;
+  state: GeneratorJobStateView;
+  /** For example "Placing the steps"; the generator's own words when it gives them. */
+  stageText: string;
+  progressPercent: number | null;
+  /** Why it failed, or why the generator couldn't stop it. */
+  message: string | null;
+  /** "Keep the vault song, or the generated one?", while the player hasn't answered. */
+  vaultChoiceQuestion: string | null;
+  /** Where the finished song went. */
+  doneText: string | null;
+}
+
+export interface VaultChoiceAnswer {
+  jobKey: string;
+  choice: VaultSongChoice;
+}
+
+/** A song in "My generated songs" in the game. */
+export interface GeneratedSongView {
+  songKey: string;
+  title: string;
+  artist: string;
+  generatorName: string;
+  /** For example "Easy, Medium and Hard". */
+  difficultiesText: string;
+  /** For example "Songs/My generated songs/Night Drive". */
+  folderText: string;
+  madeAtText: string;
+  /** True when the generator said how it made the song ("How it was made"). */
+  hasReport: boolean;
+}

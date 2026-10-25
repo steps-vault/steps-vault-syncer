@@ -31,6 +31,8 @@ const ICON_PATHS = {
   trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />,
   gamepad: <><rect x="2" y="7" width="20" height="11" rx="4" /><path d="M7 11v4M5 13h4M15 12h.01M18 14h.01" /></>,
   disk: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 14h18M7 17h.01" /></>,
+  sparkle: <><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" /><path d="M19 15l.8 1.7 1.7.8-1.7.8L19 20l-.8-1.7-1.7-.8 1.7-.8z" /></>,
+  globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof ICON_PATHS;

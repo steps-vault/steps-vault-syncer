@@ -1,13 +1,13 @@
 import type { FolderLayout } from '@stepsvault/sync-core';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import {
-  ActivityScreen, AudioSourcesScreen, ConnectGameScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
+  ActivityScreen, AudioSourcesScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
-import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_GAME, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
+import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
-type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone';
+type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone';
 type SyncPhase = 'idle' | 'syncing' | 'finished';
 
 const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
@@ -16,6 +16,7 @@ const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
   { value: 'folder-preview', label: '1 · Check the folder' },
   { value: 'songs', label: '2 + 3 · Songs and details' },
   { value: 'audio-sources', label: '4 · Audio sources' },
+  { value: 'generators', label: '4b · Generators, Make a song' },
   { value: 'folder-layout', label: '5 · Folder layout' },
   { value: 'activity', label: '6 · Activity' },
   { value: 'account', label: '7 · Desktop sign in, linked computers' },
@@ -23,7 +24,7 @@ const PREVIEW_SCREENS: readonly { value: PreviewScreen; label: string }[] = [
   { value: 'phone', label: 'Phone · status only' },
 ];
 
-const SCREENS_BY_NAVIGATION: Readonly<Record<SyncScreen, PreviewScreen>> = { 'songs': 'songs', 'audio-sources': 'audio-sources', 'folder-layout': 'folder-layout', 'activity': 'activity', 'account': 'account' };
+const SCREENS_BY_NAVIGATION: Readonly<Record<SyncScreen, PreviewScreen>> = { 'songs': 'songs', 'audio-sources': 'audio-sources', 'generators': 'generators', 'folder-layout': 'folder-layout', 'activity': 'activity', 'account': 'account' };
 
 function getQueryValue<Value extends string>({ name, allowedValues, fallback }: { name: string; allowedValues: readonly Value[]; fallback: Value }): Value {
   const value = new URLSearchParams(window.location.search).get(name);
@@ -83,6 +84,7 @@ function PreviewScreenContent({ screen, platform, syncPhase, onNavigate }: { scr
       {screen === 'folder-preview' && <SongsFolderPreview songsFolderPath={platform === 'website' ? 'Songs  (C:\\Games\\StepMania 5 LTEK Edition)' : FAKE_GAME.songsFolderPath} playerGroups={FAKE_PLAYER_GROUPS} layoutText="by genre" onChangeLayout={noop} onChooseAnotherFolder={noop} onContinue={noop} />}
       {screen === 'songs' && <SongsPreview platform={platform} syncPhase={syncPhase} onNavigate={onNavigate} />}
       {screen === 'audio-sources' && <AudioSourcesPreview onNavigate={onNavigate} />}
+      {screen === 'generators' && <GeneratorsPreview />}
       {screen === 'folder-layout' && <FolderLayoutPreview />}
       {screen === 'activity' && <ActivityPreview />}
       {screen === 'account' && <AccountPreview />}
@@ -136,8 +138,35 @@ function AudioSourcesPreview({ onNavigate }: { onNavigate: (screen: SyncScreen) 
       onToggleAddon={({ addonId, isEnabled }) => { setAddons(addons.map((addon) => (addon.addonId === addonId ? { ...addon, isEnabled } : addon))); }}
       onRemoveAddon={(addonId) => { setAddons(addons.filter((addon) => addon.addonId !== addonId)); }}
       onSetAddonOption={({ addonId, optionId, value }) => { setAddons(addons.map((addon) => (addon.addonId === addonId ? { ...addon, options: addon.options.map((option) => (option.optionId === optionId ? { ...option, value } : option)) } : addon))); }}
-      onLookUpAddon={(address) => Promise.resolve({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, address } })}
+      onLookUpAddon={({ address }) => Promise.resolve({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, address } })}
       onInstallAddon={(addon) => { setAddons([...addons, { addonId: addon.address, name: addon.name, version: addon.version, author: addon.author, providesText: 'audio links', isEnabled: true, isNew: true, health: { kind: 'working', note: 'Installed just now · checks for audio on your next sync' }, options: addon.options }]); }}
+    />
+  );
+}
+
+function GeneratorsPreview(): ReactElement {
+  const [generators, setGenerators] = useState(FAKE_GENERATORS);
+  return (
+    <GeneratorsScreen
+      stepsVaultGenerator={FAKE_STEPSVAULT_GENERATOR}
+      generators={generators}
+      jobs={FAKE_GENERATOR_JOBS}
+      generatedSongs={FAKE_GENERATED_SONGS}
+      canUseStartCommand
+      songSourceTabs={FAKE_SONG_SOURCE_TABS}
+      onLookUpGenerator={({ address }) => Promise.resolve({ kind: 'found', generator: { ...FAKE_GENERATOR_PREVIEW, address } })}
+      onAddGenerator={(preview) => { setGenerators([...generators, { generatorId: preview.address, name: preview.name, version: preview.version, author: preview.author, description: preview.description, location: preview.location, startCommand: preview.startCommand, difficulties: preview.difficulties, options: preview.options, musicUploadWarning: null, isNew: true }]); }}
+      onRemoveGenerator={(generatorId) => { setGenerators(generators.filter((generator) => generator.generatorId !== generatorId)); }}
+      onSetGeneratorOption={noop}
+      onChooseMusicFile={() => Promise.resolve({ musicId: 'picked-file', title: 'my new song', artist: 'Unknown artist', sourceText: 'my_new_song.mp3', lengthText: '3:05', hasVideo: false })}
+      onSearchMusic={() => Promise.resolve(FAKE_MUSIC_CHOICES)}
+      onFindSong={() => Promise.resolve({ kind: 'found', music: { musicId: 'found-song', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true } })}
+      onStopFindingSong={noop}
+      onMakeSong={() => Promise.resolve({ kind: 'started', jobKey: 'job-night-drive' })}
+      onCancelJob={noop}
+      onAnswerVaultChoice={noop}
+      onDismissJob={noop}
+      onFetchSongReport={() => Promise.resolve('# How it was made\n\nOnsets found with a simple energy rule, arrows by flow.')}
     />
   );
 }

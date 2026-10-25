@@ -176,7 +176,7 @@ function renderAudioSources({ state, bridge, setCurrentScreen }: ScreenOptions):
       onToggleAddon={(request) => void bridge.setAddonEnabled(request)}
       onRemoveAddon={(addonId) => void bridge.removeAddon(addonId)}
       onSetAddonOption={(request) => void bridge.setAddonOption(request)}
-      onLookUpAddon={(address) => bridge.lookUpAddon(address)}
+      onLookUpAddon={({ address }) => bridge.lookUpAddon(address)}
       onInstallAddon={(addon) => void bridge.installAddon(addon)}
     />
   );
