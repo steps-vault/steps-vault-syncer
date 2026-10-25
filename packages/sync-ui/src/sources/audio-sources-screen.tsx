@@ -47,7 +47,7 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
     <div className="sv-sync-screen">
       <div className="sv-sync-stack-small">
         <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Audio sources</h2>
-        <p className="sv-sync-text">Every song needs your own copy of the music. Tell Sync where to look — StepsVault never sends anyone music.</p>
+        <p className="sv-sync-text">Every song needs your own copy of the music. Tell Sync where to look. Syncing your songs never uploads your music anywhere.</p>
       </div>
       <div className="sv-sync-two-columns">
         <MusicFolderSource {...props} />

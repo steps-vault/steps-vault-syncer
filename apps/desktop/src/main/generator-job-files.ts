@@ -1,9 +1,8 @@
-import { createWriteStream } from 'node:fs';
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { finished } from 'node:stream/promises';
 import { HttpRequestError, type DownloadGeneratorFile, type DownloadedGeneratorFileKind, type GeneratedSongFiles } from '@stepsvault/sync-core';
 import type { MusicSourceRegistry } from './music-source-registry';
+import { downloadToFile } from './node-file-download';
 import { getUserAgentHeader } from './node-http-client';
 
 // A download that sends nothing for this long is stuck; a slow one that keeps sending is fine, however big.
@@ -54,17 +53,11 @@ export class GeneratorJobFiles {
   /** Streams one file to disk, stopping as soon as it is bigger than maxBytes. A failed download leaves no file. */
   async downloadFile({ url, filePath, maxBytes, headers = {} }: FileDownload): Promise<void> {
     await mkdir(path.dirname(filePath), { recursive: true });
-    const controller = new AbortController();
-    const idleTimer = new IdleTimer({ timeoutMilliseconds: DOWNLOAD_IDLE_TIMEOUT_MILLISECONDS, onIdle: () => { controller.abort(); } });
     try {
-      const response = await fetch(url, { headers: { ...getUserAgentHeader(this.appVersion), ...headers }, signal: controller.signal, redirect: 'error' });
-      if (response.status !== 200 || !response.body) throw new HttpRequestError({ failure: 'network', message: `${url} answered ${String(response.status)}.` });
-      await writeLimitedBody({ body: response.body, filePath, maxBytes, url, onChunk: () => { idleTimer.restart(); } });
+      await downloadToFile({ url, filePath, maxBytes, headers: { ...getUserAgentHeader(this.appVersion), ...headers }, idleTimeoutMilliseconds: DOWNLOAD_IDLE_TIMEOUT_MILLISECONDS });
     } catch (error) {
       await rm(filePath, { force: true });
-      throw toHttpRequestError({ error, url, isTimeout: controller.signal.aborted });
-    } finally {
-      idleTimer.stop();
+      throw toHttpRequestError({ error, url });
     }
   }
 
@@ -106,45 +99,7 @@ export class GeneratorJobFiles {
   }
 }
 
-async function writeLimitedBody({ body, filePath, maxBytes, url, onChunk }: { body: ReadableStream<Uint8Array>; filePath: string; maxBytes: number; url: string; onChunk: () => void }): Promise<void> {
-  const fileStream = createWriteStream(filePath);
-  let totalBytes = 0;
-  try {
-    for await (const chunk of body) {
-      onChunk();
-      totalBytes += chunk.byteLength;
-      if (totalBytes > maxBytes) throw new HttpRequestError({ failure: 'too-large', message: `${url} sent more than ${String(maxBytes)} bytes.` });
-      if (!fileStream.write(chunk)) await new Promise<void>((resolve) => fileStream.once('drain', () => { resolve(); }));
-    }
-  } finally {
-    fileStream.end();
-    await finished(fileStream).catch(() => undefined);
-  }
-}
-
-function toHttpRequestError({ error, url, isTimeout }: { error: unknown; url: string; isTimeout: boolean }): HttpRequestError {
+function toHttpRequestError({ error, url }: { error: unknown; url: string }): HttpRequestError {
   if (error instanceof HttpRequestError) return error;
-  if (isTimeout) return new HttpRequestError({ failure: 'timeout', message: `${url} stopped sending.`, cause: error });
   return new HttpRequestError({ failure: 'network', message: `${url} could not be downloaded.`, cause: error });
-}
-
-class IdleTimer {
-  private readonly timeoutMilliseconds: number;
-  private readonly onIdle: () => void;
-  private timer: NodeJS.Timeout;
-
-  constructor({ timeoutMilliseconds, onIdle }: { timeoutMilliseconds: number; onIdle: () => void }) {
-    this.timeoutMilliseconds = timeoutMilliseconds;
-    this.onIdle = onIdle;
-    this.timer = setTimeout(onIdle, timeoutMilliseconds);
-  }
-
-  restart(): void {
-    clearTimeout(this.timer);
-    this.timer = setTimeout(this.onIdle, this.timeoutMilliseconds);
-  }
-
-  stop(): void {
-    clearTimeout(this.timer);
-  }
 }

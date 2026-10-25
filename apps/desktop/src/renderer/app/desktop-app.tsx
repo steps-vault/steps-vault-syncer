@@ -213,5 +213,5 @@ function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
 
 function getExpiresInText(expiresAt: string): string {
   const minutes = Math.max(0, Math.round((Date.parse(expiresAt) - Date.now()) / 60_000));
-  return `Expires in ${String(minutes)} min`;
+  return `${String(minutes)} min`;
 }

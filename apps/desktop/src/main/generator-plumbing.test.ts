@@ -98,6 +98,25 @@ describe('GeneratorJobFiles', () => {
     await expect(readFile(path.join(workFolder, 'jobs', 'job-2', 'banner.png'))).rejects.toThrow();
   });
 
+  it('downloads a big file from a server that closes the connection after it, and refuses a redirect', async () => {
+    const bigFile = Buffer.alloc(8 * 1024 * 1024, 7);
+    handleRequest = (request, response) => {
+      if (request.url === '/moved') {
+        response.writeHead(302, { Location: `${baseUrl}/big.ogg` }).end();
+        return;
+      }
+      response.writeHead(200, { 'Content-Type': 'audio/ogg', 'Content-Length': String(bigFile.byteLength), Connection: 'close' });
+      response.end(bigFile);
+    };
+    const jobFiles = new GeneratorJobFiles({ jobsFolder: path.join(workFolder, 'jobs'), musicSources: new MusicSourceRegistry(), appVersion: '0.1.0' });
+    const filePath = path.join(workFolder, 'jobs', 'big', 'source-music.ogg');
+
+    await jobFiles.downloadFile({ url: `${baseUrl}/big.ogg`, filePath, maxBytes: 16 * 1024 * 1024 });
+
+    expect((await readFile(filePath)).equals(bigFile)).toBe(true);
+    await expect(jobFiles.downloadFile({ url: `${baseUrl}/moved`, filePath: path.join(workFolder, 'jobs', 'big', 'moved.ogg'), maxBytes: 1024 })).rejects.toThrow('answered 302');
+  });
+
   it('refuses a job key that could leave the jobs folder', () => {
     const jobFiles = new GeneratorJobFiles({ jobsFolder: path.join(workFolder, 'jobs'), musicSources: new MusicSourceRegistry(), appVersion: '0.1.0' });
     expect(() => jobFiles.getJobFolder('..\\..\\Windows')).toThrow();
