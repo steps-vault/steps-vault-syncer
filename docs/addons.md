@@ -141,7 +141,7 @@ function sendJson(response, status, value) {
 ## A program on the player's computer
 
 An addon or generator at `http://127.0.0.1:<port>` or `http://localhost:<port>` is a program the player runs. In the
-desktop app the player can give its **start command** when adding it (for example `C:ddons\youtube\start.cmd`):
+desktop app the player can give its **start command** when adding it (for example `C:/addons/youtube/start.cmd`):
 Sync then starts the program when it needs it, waits for its manifest, and stops it after 10 minutes without a request.
 Sync only ever runs the command the player typed, never one an addon or generator suggests. The website can't start
 programs: there, the player starts it themselves.
