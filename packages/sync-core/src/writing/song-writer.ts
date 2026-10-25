@@ -11,7 +11,8 @@ import { SongWriteError, toSongWriteError } from './song-write-error';
 /** The music keeps one plain name in every song folder, so it never needs escaping inside the song file. */
 export const MUSIC_BASE_NAME = 'music';
 export const VIDEO_BASE_NAME = 'video';
-const TEMPORARY_FOLDER_PREFIX = '.stepsvault-new-';
+/** Hidden from StepMania and most file browsers by the leading dot, while a song is being written. */
+export const TEMPORARY_FOLDER_PREFIX = '.stepsvault-new-';
 const NEW_FILE_SUFFIX = '.stepsvault-new';
 
 /** A song's files on StepsVault, for one chart version. */
@@ -133,7 +134,7 @@ async function removeOldChartFiles({ songsFolder, installedSong, keptFileName }:
   for (const fileName of oldFileNames) await songsFolder.removeFile([...installedSong.folderPath, ...buildSongsPath(fileName)]);
 }
 
-async function removeQuietly({ songsFolder, path }: { songsFolder: SongsFolder; path: SongsPath }): Promise<void> {
+export async function removeQuietly({ songsFolder, path }: { songsFolder: SongsFolder; path: SongsPath }): Promise<void> {
   try {
     await songsFolder.removeFolder(path);
   } catch (error) {

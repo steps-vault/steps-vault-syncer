@@ -4,7 +4,7 @@ const SAMPLE_START_TAG_PATTERN = /^(#SAMPLESTART:)([^;]*)(;)/gm;
 const MUSIC_TAG_PATTERN = /^(#MUSIC:)([^;]*)(;)/gm;
 /** StepsVault's background video isn't part of a synced song (the player brings only music), so its line goes. */
 const BACKGROUND_CHANGES_LINE_PATTERN = /^#BGCHANGES:[^;]*;\r?\n?/gm;
-const SSC_SPECIAL_CHARACTERS_PATTERN = /[;:#\\]/;
+export const SSC_SPECIAL_CHARACTERS_PATTERN = /[;:#\\]/;
 const TIME_DECIMALS = 6;
 const BEAT_DECIMALS = 3;
 const SECONDS_PER_MINUTE = 60;
@@ -38,7 +38,7 @@ export function buildPlayerSsc({ sscText, musicFileName, shiftSeconds, videoFile
 }
 
 /** The video starts at the music's time 0, which is beat OFFSET × BPM / 60 (often negative), as the engine writes it. */
-function withBackgroundVideo({ sscText, videoFileName }: { sscText: string; videoFileName: string }): string {
+export function withBackgroundVideo({ sscText, videoFileName }: { sscText: string; videoFileName: string }): string {
   if (BACKGROUND_FILE_SPECIAL_CHARACTERS_PATTERN.test(videoFileName)) throw new InvalidSscError(`The video file name "${videoFileName}" can't be written into a song file. This is a bug in Sync; please report it.`);
   const offsetSeconds = parseSeconds(/^#OFFSET:([^;]*);/m.exec(sscText)?.[1] ?? '');
   const bpmsMatch = /^#BPMS:[^=;]*=([^,;]*)[^;]*;(\r?\n)/m.exec(sscText);

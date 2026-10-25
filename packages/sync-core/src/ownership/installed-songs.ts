@@ -1,4 +1,5 @@
 import { getNameKey, getPathKey, type SongsPath } from '../songs-folder/songs-path';
+import type { GeneratedSong } from './generated-songs';
 
 /** One song folder Sync wrote. The record of these is kept by the website or the app, outside the Songs folder. */
 export interface InstalledSong {
@@ -29,6 +30,8 @@ export interface InstalledSongsRecord {
   installedSongs: readonly InstalledSong[];
   /** Group folders Sync created; a group the player made is never one of these, even with the same name. */
   ownedGroupNames: readonly string[];
+  /** Songs made with a community generator; missing in records written before generators. */
+  generatedSongs?: readonly GeneratedSong[];
 }
 
 export function buildEmptyInstalledSongsRecord(): InstalledSongsRecord {
