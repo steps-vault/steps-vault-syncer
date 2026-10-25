@@ -19,7 +19,7 @@ For each song, a generator gets:
 |---|---|
 | the music | the player's own music file, as Sync found it (music folders, a file the player picked, or an addon) |
 | the video | the song's video, when Sync has one; otherwise nothing |
-| the song's facts | `title`, `artist`, `album`, `genre`, `lengthSeconds`, `youtubeId` (each may be `null`) |
+| the song's facts | `title`, `artist` and `lengthSeconds` always (Sync falls back to the file's name, `"Unknown artist"`, and the length it measures); `album`, `genre`, `youtubeId` when known, else `null` |
 | the difficulties | which of `Beginner`, `Easy`, `Medium`, `Hard`, `Challenge` to make |
 | the options | the player's picks for the generator's options, as for addons |
 
@@ -35,6 +35,13 @@ over the internet: before its first job, Sync tells the player exactly that ("Yo
 `https://…`, or `http://127.0.0.1:<port>` / `http://localhost:<port>` on the player's own computer. No user name,
 password, `?` or `#`.
 
+## Signing in
+
+Community generators get no sign-in: Sync never sends them the player's StepsVault account or token. Only
+StepsVault's own generator, at the StepsVault address, gets the player's Sync device token
+(`Authorization: Bearer …`) on every call, file downloads included, because it spends the player's token and keeps
+their jobs apart. A generator that needs its own accounts must handle them on its side, outside this protocol.
+
 ## `GET <address>/manifest.json`
 
 ```json
@@ -49,6 +56,7 @@ password, `?` or `#`.
   "difficulties": ["Beginner", "Easy", "Medium", "Hard", "Challenge"],
   "musicTypes": ["audio/ogg", "audio/mpeg", "audio/wav", "audio/flac"],
   "usesVideo": false,
+  "maxMusicBytes": 31457280,
   "options": []
 }
 ```
@@ -58,6 +66,8 @@ password, `?` or `#`.
 - `difficulties`: the ones it can make, at least one. Sync asks only for these.
 - `musicTypes`: the music file types it accepts. Sync converts to Ogg Vorbis when the player's file is another type.
 - `usesVideo`: `true` if it wants the video (to make its own background video). Sync sends it only then.
+- `maxMusicBytes` (optional): the largest music file it takes, at most 100 MB (the default). Sync refuses a bigger file
+  before uploading anything.
 
 ## `POST <address>/jobs`
 
@@ -72,12 +82,17 @@ The request is `multipart/form-data` with these parts:
     "lengthSeconds": 201, "youtubeId": null }, "difficulties": ["Easy", "Medium"], "options": {} }
   ```
 
-- `music`: the music file, one of the manifest's `musicTypes`, at most 100 MB.
-- `video`: the video file, only when the manifest says `usesVideo` and Sync has one, at most 500 MB.
+- `music`: the music file, with its `Content-Type` (one of the manifest's `musicTypes`) and a file name, at most
+  `maxMusicBytes`.
+- `video`: the video file (`video/mp4`), only when the manifest says `usesVideo` and Sync has one, at most 500 MB.
 
-Answers: `202 { "jobId": "a1b2c3", "retryAfterSeconds": 10 }`. `jobId`: letters, digits, `-` and `_`, up to 64.
-Anything else means the generator couldn't take the job; an answer may carry `{ "error": "One short sentence" }`,
-which Sync shows the player.
+Answers:
+
+- `202 { "jobId": "a1b2c3", "retryAfterSeconds": 10 }`. `jobId`: letters, digits, `-` and `_`, up to 64.
+- `409 { "error": "One short sentence", "vaultSongId": "…" }`: the song already exists, or someone is making it right
+  now. Only StepsVault's generator sends `vaultSongId`; Sync then adds that vault song instead, and no token is spent.
+- Anything else means the generator couldn't take the job. An answer may carry `{ "error": "One short sentence" }`,
+  which Sync shows the player.
 
 ## `GET <address>/jobs/<jobId>`
 
@@ -87,23 +102,26 @@ which Sync shows the player.
 
 - `state`: `queued`, `working`, `done` or `failed`.
 - `progress` (optional): 0 to 1. `stage` (optional): up to 60 characters, shown as is.
-- `retryAfterSeconds`: when to ask again, 1 to 600.
+- `retryAfterSeconds`: when to ask again, 1 to 600; needed only while `queued` or `working`.
 - When `failed`: `error`, one short sentence for the player.
 - When `done`: `files`, a list of `{ "kind", "url", "bytes" }`:
 
 | `kind` | File | Needed |
 |---|---|---|
-| `chart` | the song file (`.ssc`, StepMania 5), with a chart for each difficulty asked | yes |
+| `chart` | the song file (`.ssc`, StepMania 5), with a chart for each difficulty asked (Sync keeps only those) | yes |
 | `banner`, `background`, `jacket` | PNG pictures (418×164, 854×480, 512×512) | no: Sync makes plain ones from the title |
 | `video` | the background video, H.264 at most 854×480 in `.mp4` | no |
 | `music` | the music the chart was timed on, Ogg Vorbis | no: Sync uses the player's own file |
 | `report` | how the song was made, Markdown, at most 256 KB | no: shown under "How it was made" |
 
-File `url`s follow the address rules and should stay valid for at least an hour.
+File `url`s are absolute, follow the address rules (on the generator's own address for StepsVault's generator, which
+needs the same sign-in), and stay valid for at least an hour.
 
 ## `DELETE <address>/jobs/<jobId>`
 
-Sync calls it when the player cancels. Any answer is fine.
+Sync calls it when the player cancels. Answer `200 { "cancelled": true }` when the job stopped, or
+`200 { "cancelled": false, "error": "One short sentence" }` when it's too late (for example, StepsVault's generator
+can't stop a song already being made: it still costs the token and still lands in the vault). Sync shows the sentence.
 
 ## What Sync checks before a song reaches the game
 
@@ -116,9 +134,12 @@ Sync calls it when the player cancels. Any answer is fine.
 
 ## Where generated songs go
 
-Into the player's game, in the group **My generated songs**, one folder per song named in English letters (StepMania on
-Windows can't open other scripts). Making a song again replaces the earlier version. When the same song is also in
-the player's vault, Sync asks which one to keep in the game.
+Songs from **StepsVault's generator** are vault songs: Sync adds them to the player's vault and installs them like
+any other vault song. The vault never makes the same song twice.
+
+Songs from a **community generator** go into the player's game, in the group **My generated songs**, one folder per
+song named in English letters (StepMania on Windows can't open other scripts). Making a song again replaces the earlier
+version. When the same song is also in the player's vault, Sync asks which one to keep in the game.
 
 ## On the website
 
