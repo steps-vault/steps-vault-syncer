@@ -16,6 +16,7 @@ export type AddonProvides = (typeof KNOWN_PROVIDES)[number];
 export interface AddonManifest extends ManifestIdentity {
   protocol: typeof ADDON_PROTOCOL_VERSION;
   /** Always 'audio-links'; 'video-links' too when the addon can also give the song's video. */
+  kind: 'addon';
   provides: readonly AddonProvides[];
 }
 
@@ -74,11 +75,14 @@ export function buildAudioLinksRequestBody({ song, optionValues }: { song: Addon
 
 export function parseAddonManifest(value: unknown): AddonManifest {
   if (!isRecord(value) || value.protocol !== ADDON_PROTOCOL_VERSION) throw new InvalidAddonAnswerError('This addon speaks a different version of the addon protocol. Ask its maker for an update.');
+  if (value.kind === 'generator') throw new InvalidAddonAnswerError('This is a generator, not an addon. Add it under Generators instead.');
+  // Addons made before `kind` existed leave it out; they are addons.
+  if (value.kind !== undefined && value.kind !== 'addon') throw new InvalidAddonAnswerError('This address isn’t an addon. Check the address with whoever made it.');
   const identityResult = parseManifestIdentity({ manifest: value, serviceName: 'addon' });
   if (identityResult.kind === 'invalid') throw new InvalidAddonAnswerError(identityResult.problem);
   const provides = Array.isArray(value.provides) ? (value.provides as unknown[]) : [];
   if (!provides.includes('audio-links')) throw new InvalidAddonAnswerError('This addon doesn’t provide audio links, so Sync can’t use it.');
-  return { protocol: ADDON_PROTOCOL_VERSION, ...identityResult.identity, provides: KNOWN_PROVIDES.filter((provided) => provides.includes(provided)) };
+  return { protocol: ADDON_PROTOCOL_VERSION, kind: 'addon', ...identityResult.identity, provides: KNOWN_PROVIDES.filter((provided) => provides.includes(provided)) };
 }
 
 export function parseAudioLinksAnswer({ status, body }: { status: number; body: unknown }): AudioLinksAnswer {

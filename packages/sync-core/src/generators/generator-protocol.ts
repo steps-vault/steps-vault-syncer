@@ -75,7 +75,7 @@ export interface GeneratorReference {
 
 export function parseGeneratorManifest(value: unknown): GeneratorManifest {
   if (!isRecord(value)) throw buildInvalidManifestError('This address didn’t send a generator manifest. Check the address with whoever made the generator.');
-  if (value.kind !== 'generator') throw buildInvalidManifestError(value.provides === undefined ? 'This address isn’t a generator. Check the address with whoever made it.' : 'This is an addon, not a generator. Add it under Addons instead.');
+  if (value.kind !== 'generator') throw buildInvalidManifestError(value.kind === 'addon' || value.provides !== undefined ? 'This is an addon, not a generator. Add it under Addons instead.' : 'This address isn’t a generator. Check the address with whoever made it.');
   if (value.protocol !== GENERATOR_PROTOCOL_VERSION) throw buildInvalidManifestError('This generator speaks a different version of the generator protocol. Ask its maker for an update.');
   const identityResult = parseManifestIdentity({ manifest: value, serviceName: 'generator' });
   if (identityResult.kind === 'invalid') throw buildInvalidManifestError(identityResult.problem);

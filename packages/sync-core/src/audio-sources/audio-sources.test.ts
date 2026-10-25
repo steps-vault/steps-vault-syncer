@@ -52,7 +52,7 @@ function buildAddonHttpClient(answersByUrl: Record<string, HttpResponse<unknown>
 const NO_ADDONS: Pick<AudioSearchOptions, 'addons' | 'httpClient' | 'downloadAddonFile'> = { addons: [], httpClient: buildAddonHttpClient({}), downloadAddonFile: () => Promise.reject(new Error('unused')) };
 
 function buildAddon(name: string): InstalledAddon {
-  return buildInstalledAddon({ baseUrl: `https://${name}.example.org`, manifest: { protocol: 1, id: `${name}.addon`, name, version: '1.0.0', author: 'someone', description: '', provides: ['audio-links'], options: [] }, consentedAt: '2026-10-24T10:00:00Z' });
+  return buildInstalledAddon({ baseUrl: `https://${name}.example.org`, manifest: { protocol: 1, kind: 'addon', id: `${name}.addon`, name, version: '1.0.0', author: 'someone', description: '', provides: ['audio-links'], options: [] }, consentedAt: '2026-10-24T10:00:00Z' });
 }
 
 describe('song names', () => {
