@@ -128,8 +128,12 @@ In the manifest:
 ```
 
 - 1 to 3 inputs. `id`: as for option ids. `label`: up to 40 characters. `placeholder` (optional): up to 80.
-- `kind`: `link` (a web address; Sync accepts only `https` links on the listed `sites` or their subdomains, 1 to 10
-  site names) or `search` (free text, up to 200 characters, such as a title or an artist).
+- `kind`: `link` (a web address; Sync accepts only `https` links, up to 2000 characters, on the listed `sites` or
+  their subdomains) or `search` (free text, up to 200 characters, such as a title or an artist).
+- `sites`: 1 to 10 domain names such as `youtube.com` (not bare `com`, not an IP address). An input with a broken site
+  list is left out; an addon whose inputs are all left out is refused.
+- The player fills in at least one input; empty ones are left out of the request, and every filled one is checked
+  before Sync calls the addon. The addon sees what the player typed, and Sync's consent screen says so.
 
 ### `POST <address>/song-source`
 
@@ -147,6 +151,12 @@ Answers:
 - `202 { "retryAfterSeconds": 5 }`: still working, as for `/audio-links`.
 - `200 { "error": "One short sentence" }`: nothing found for this input.
 
+The same limits as `/audio-links` apply: an answer within 20 seconds and under 64 KB; Sync keeps asking after `202`
+for up to 30 minutes. Facts are trimmed to 200 characters; a `lengthSeconds` outside 0-3600 or a `youtubeId` that
+isn't 11 characters becomes `null`. The first music link is used; `open-page` links are ignored here. An answer with a
+`song` is used even if it also has an `error`; one with neither counts as not answering. A video needs no
+`video-links` in `provides`, and the `media` option "Music only" drops it, as for `/audio-links`.
+
 There is nothing to compare a new song with, so Sync trusts the files a song source returns; the player chose the
 addon.
 
@@ -155,7 +165,7 @@ addon.
 ```js
 import { createServer } from 'node:http';
 
-const manifest = { protocol: 1, id: 'example.hosted', name: 'Example hosted songs', version: '1.0.0',
+const manifest = { protocol: 1, kind: 'addon', id: 'example.hosted', name: 'Example hosted songs', version: '1.0.0',
   author: 'you', description: 'Songs we host ourselves.', provides: ['audio-links'] };
 const filesByTitle = new Map([['pulse garden', 'https://files.example.org/pulse-garden.ogg']]);
 
