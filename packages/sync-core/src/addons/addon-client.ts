@@ -4,8 +4,10 @@ import { getAddonOptionValues, MEDIA_OPTION_ID, MUSIC_ONLY_MEDIA_VALUE, withAddo
 import { buildAudioLinksRequestBody, InvalidAddonAnswerError, parseAddonManifest, parseAudioLinksAnswer, type AddonManifest, type AddonSongFacts, type AudioLinksAnswer } from './addon-protocol';
 
 const MANIFEST_TIMEOUT_MILLISECONDS = 10_000;
-const AUDIO_LINKS_TIMEOUT_MILLISECONDS = 20_000;
-const MAX_ANSWER_BYTES = 64 * 1024;
+/** How long Sync waits for an addon's answer to /audio-links or /song-source. */
+export const ADDON_CALL_TIMEOUT_MILLISECONDS = 20_000;
+/** Larger addon answers are ignored, so a broken or hostile addon can't fill memory. */
+export const MAX_ADDON_ANSWER_BYTES = 64 * 1024;
 
 /** An addon the player installed after seeing what it will see. */
 export interface InstalledAddon {
@@ -23,7 +25,7 @@ export type AddonCallResult = AudioLinksAnswer | { kind: 'not-answering'; messag
 export async function fetchAddonManifest({ httpClient, address }: { httpClient: HttpClient; address: string }): Promise<{ baseUrl: string; manifest: AddonManifest }> {
   const baseUrl = getAddonBaseUrl(address);
   try {
-    const response = await httpClient.requestJson({ url: `${baseUrl}/manifest.json`, method: 'GET', timeoutMilliseconds: MANIFEST_TIMEOUT_MILLISECONDS, maxResponseBytes: MAX_ANSWER_BYTES });
+    const response = await httpClient.requestJson({ url: `${baseUrl}/manifest.json`, method: 'GET', timeoutMilliseconds: MANIFEST_TIMEOUT_MILLISECONDS, maxResponseBytes: MAX_ADDON_ANSWER_BYTES });
     if (response.status !== 200) throw new InvalidAddonAnswerError(`No addon answered at this address (${String(response.status)}). Check the address with whoever made it.`);
     return { baseUrl, manifest: parseAddonManifest(response.body) };
   } catch (error) {
@@ -57,13 +59,18 @@ export function loadSavedAddon(value: unknown): InstalledAddon | null {
 
 /** Changes one option; an option or choice the addon doesn't declare leaves the addon as it was. */
 export function withAddonOption({ addon, optionId, value }: { addon: InstalledAddon; optionId: string; value: string }): InstalledAddon {
-  const values = getAddonOptionValues({ options: addon.manifest.options, savedValues: addon.optionValues });
+  const values = getInstalledAddonOptionValues(addon);
   return { ...addon, optionValues: withAddonOptionValue({ options: addon.manifest.options, values, optionId, value }) };
 }
 
 /** True when the player chose "Music only" for this addon, so Sync must not download its video. */
 export function isAddonSetToMusicOnly(addon: InstalledAddon): boolean {
-  return getAddonOptionValues({ options: addon.manifest.options, savedValues: addon.optionValues })[MEDIA_OPTION_ID] === MUSIC_ONLY_MEDIA_VALUE;
+  return getInstalledAddonOptionValues(addon)[MEDIA_OPTION_ID] === MUSIC_ONLY_MEDIA_VALUE;
+}
+
+/** The values to send with a request: one for every declared option, checked against the manifest again. */
+export function getInstalledAddonOptionValues(addon: InstalledAddon): AddonOptionValues {
+  return getAddonOptionValues({ options: addon.manifest.options, savedValues: addon.optionValues });
 }
 
 /**
@@ -75,9 +82,9 @@ export async function fetchAudioLinks({ httpClient, addon, song }: { httpClient:
     const response = await httpClient.requestJson({
       url: `${addon.baseUrl}/audio-links`,
       method: 'POST',
-      jsonBody: buildAudioLinksRequestBody({ song, optionValues: getAddonOptionValues({ options: addon.manifest.options, savedValues: addon.optionValues }) }),
-      timeoutMilliseconds: AUDIO_LINKS_TIMEOUT_MILLISECONDS,
-      maxResponseBytes: MAX_ANSWER_BYTES,
+      jsonBody: buildAudioLinksRequestBody({ song, optionValues: getInstalledAddonOptionValues(addon) }),
+      timeoutMilliseconds: ADDON_CALL_TIMEOUT_MILLISECONDS,
+      maxResponseBytes: MAX_ADDON_ANSWER_BYTES,
     });
     return parseAudioLinksAnswer(response);
   } catch (error) {

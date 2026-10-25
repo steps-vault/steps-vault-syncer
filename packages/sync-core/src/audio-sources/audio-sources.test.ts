@@ -52,7 +52,7 @@ function buildAddonHttpClient(answersByUrl: Record<string, HttpResponse<unknown>
 const NO_ADDONS: Pick<AudioSearchOptions, 'addons' | 'httpClient' | 'downloadAddonFile'> = { addons: [], httpClient: buildAddonHttpClient({}), downloadAddonFile: () => Promise.reject(new Error('unused')) };
 
 function buildAddon(name: string): InstalledAddon {
-  return buildInstalledAddon({ baseUrl: `https://${name}.example.org`, manifest: { protocol: 1, kind: 'addon', id: `${name}.addon`, name, version: '1.0.0', author: 'someone', description: '', provides: ['audio-links'], options: [] }, consentedAt: '2026-10-24T10:00:00Z' });
+  return buildInstalledAddon({ baseUrl: `https://${name}.example.org`, manifest: { protocol: 1, kind: 'addon', id: `${name}.addon`, name, version: '1.0.0', author: 'someone', description: '', provides: ['audio-links'], inputs: [], options: [] }, consentedAt: '2026-10-24T10:00:00Z' });
 }
 
 describe('song names', () => {
@@ -145,11 +145,13 @@ describe('findAudioForSong', () => {
     expect(result.pageLinks).toEqual([{ kind: 'open-page', url: 'https://store.example.org/x', label: 'Buy it' }]);
   });
 
-  it('waits for an addon that is working or offline, and skips one the player turned off', async () => {
+  it('waits for an addon that is working or offline, and skips one the player turned off or that only brings new songs', async () => {
     const offline = buildAddon('offline');
     const turnedOff = { ...buildAddon('off'), isEnabled: false };
+    const songSourceOnly = buildAddon('source');
+    const songSourceOnlyAddon = { ...songSourceOnly, manifest: { ...songSourceOnly.manifest, provides: ['song-source' as const], inputs: [{ id: 'search', kind: 'search' as const, label: 'Title', placeholder: null }] } };
     const httpClient = buildAddonHttpClient({ 'https://working.example.org/audio-links': { status: 202, body: { retryAfterSeconds: 5 } }, 'https://offline.example.org/audio-links': 'offline' });
-    const result = await findAudioForSong({ song: CHEAP_THRILLS, pickedSourceId: null, musicIndex: null, addons: [buildAddon('working'), offline, turnedOff], httpClient, checkAudioSource: buildChecker({}).checkAudioSource, downloadAddonFile: () => Promise.reject(new Error('unused')) });
+    const result = await findAudioForSong({ song: CHEAP_THRILLS, pickedSourceId: null, musicIndex: null, addons: [buildAddon('working'), offline, turnedOff, songSourceOnlyAddon], httpClient, checkAudioSource: buildChecker({}).checkAudioSource, downloadAddonFile: () => Promise.reject(new Error('unused')) });
     expect(result.match).toEqual({ kind: 'not-found', isWaitingForAddon: true });
     expect(result.addonMessages).toEqual(['offline isn’t answering. We’ll try again later.']);
   });
