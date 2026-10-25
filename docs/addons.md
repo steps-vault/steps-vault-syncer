@@ -35,6 +35,7 @@ An addon's address is `https://…`. The only exception is an addon running on t
 ```json
 {
   "protocol": 1,
+  "kind": "addon",
   "id": "indie.tapes",
   "name": "Indie Tapes",
   "version": "0.6.1",
@@ -48,9 +49,12 @@ An addon's address is `https://…`. The only exception is an addon running on t
 }
 ```
 
+- `kind`: always `addon`. A generator says `generator` instead (see `generators.md`), so Sync can tell which section
+  an address belongs in. A manifest without it is refused.
 - `id`: lower-case letters, digits, `.` and `-`, 2–64 characters.
 - `name` and `author`: up to 60 characters. `description`: up to 300 characters.
-- `provides`: always `audio-links`; add `video-links` if the addon can also give the song's video.
+- `provides`: one or more of `audio-links` (music for a song in the vault), `video-links` (with `audio-links`: the
+  song's video too), and `song-source` (brings a new song to make with a generator; see below).
 - `options` (optional): see below.
 
 ## Options
@@ -108,6 +112,44 @@ Answers:
 Links must follow the same rule as addresses: `https`, or `http` only to the player's own computer. Page links must
 be `https`. Sync drops any link that breaks these rules.
 
+## Song sources: `provides: ["song-source"]`
+
+A song source brings a song that isn't in the vault yet, so the player can make it with a generator. Sync's
+**Make a song** page shows one tab per song source, drawn by Sync from the addon's `inputs`: an addon never brings its
+own screens or code.
+
+In the manifest:
+
+```json
+"inputs": [
+  { "id": "link", "kind": "link", "label": "YouTube link", "placeholder": "https://youtu.be/…",
+    "sites": ["youtube.com", "youtu.be"] }
+]
+```
+
+- 1 to 3 inputs. `id`: as for option ids. `label`: up to 40 characters. `placeholder` (optional): up to 80.
+- `kind`: `link` (a web address; Sync accepts only `https` links on the listed `sites` or their subdomains, 1 to 10
+  site names) or `search` (free text, up to 200 characters, such as a title or an artist).
+
+### `POST <address>/song-source`
+
+```json
+{ "protocol": 1, "inputs": { "link": "https://youtu.be/dQw4w9WgXcQ" }, "options": { "media": "audio-and-video" } }
+```
+
+Answers:
+
+- `200 { "song": { "title", "artist", "album", "genre", "lengthSeconds", "youtubeId" }, "links": [...] }`: the song
+  it found (`title` and `artist` are needed; the rest may be `null`) and its files, as `file-url` links like those of
+  `/audio-links`: one music file, and a video if the addon provides videos. Sync shows the song so the player can
+  check it, then sends the music (and the video, if the generator wants it) to the generator; the video from the same
+  answer plays behind the steps.
+- `202 { "retryAfterSeconds": 5 }`: still working, as for `/audio-links`.
+- `200 { "error": "One short sentence" }`: nothing found for this input.
+
+There is nothing to compare a new song with, so Sync trusts the files a song source returns; the player chose the
+addon.
+
 ## A minimal addon (Node)
 
 ```js
@@ -134,6 +176,14 @@ function sendJson(response, status, value) {
   response.end(JSON.stringify(value));
 }
 ```
+
+## A program on the player's computer
+
+An addon or generator at `http://127.0.0.1:<port>` or `http://localhost:<port>` is a program the player runs. In the
+desktop app the player can give its **start command** when adding it (for example `C:/addons/youtube/start.cmd`):
+Sync then starts the program when it needs it, waits for its manifest, and stops it after 10 minutes without a request.
+Sync only ever runs the command the player typed, never one an addon or generator suggests. The website can't start
+programs: there, the player starts it themselves.
 
 ## Rules for addon makers
 
