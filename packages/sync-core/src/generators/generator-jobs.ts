@@ -43,7 +43,8 @@ export interface StartGeneratorJobOptions extends Omit<GeneratorCallOptions, 'ht
   video: GeneratorUploadFile | null;
 }
 
-export type GeneratorJobOutcome = { kind: 'done'; files: GeneratorFileLink[] } | { kind: 'cancelled'; cancelResult: GeneratorCancelResult };
+/** vaultSongId: the vault song StepsVault's own generator made; null from any other generator. */
+export type GeneratorJobOutcome = { kind: 'done'; files: GeneratorFileLink[]; vaultSongId: string | null } | { kind: 'cancelled'; cancelResult: GeneratorCancelResult };
 
 export interface WaitForGeneratorJobOptions extends GeneratorCallOptions {
   job: GeneratorJob;
@@ -78,7 +79,7 @@ export async function fetchGeneratorJobStatus({ httpClient, generator, signIn, j
   const url = getJobUrl({ generator, jobId });
   try {
     const answer = await httpClient.requestJson({ url, method: 'GET', headers: getSignInHeaders({ signIn, url }), timeoutMilliseconds: STATUS_TIMEOUT_MILLISECONDS, maxResponseBytes: MAX_ANSWER_BYTES });
-    return parseJobStatusAnswer({ answer, generator: getGeneratorReference(generator) });
+    return parseJobStatusAnswer({ answer, generator: getGeneratorReference(generator), isFromStepsVault: isOnSignInSite({ signIn, url }) });
   } catch (error) {
     if (error instanceof HttpRequestError) throw buildNotAnsweringError({ generator, error });
     throw error;
@@ -99,7 +100,7 @@ export async function waitForGeneratorJob(options: WaitForGeneratorJobOptions): 
     progress.waitedSeconds += progress.retryAfterSeconds;
     if (shouldStop()) return cancelAndReport(options);
     const status = await fetchStatusOrNullWhenMissed({ options, progress });
-    if (status?.state === 'done') return { kind: 'done', files: status.files };
+    if (status?.state === 'done') return { kind: 'done', files: status.files, vaultSongId: status.vaultSongId };
     if (status?.state === 'failed') throw new GeneratorError({ reason: 'job-failed', message: status.message });
     if (status) {
       progress.retryAfterSeconds = status.retryAfterSeconds;

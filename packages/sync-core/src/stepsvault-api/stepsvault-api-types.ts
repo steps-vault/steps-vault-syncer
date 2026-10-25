@@ -13,6 +13,13 @@ export interface VaultSongDetails extends VaultSong {
   hasFingerprint: boolean;
 }
 
+/** The signed-in player as GET /api/sync/me describes them. */
+export interface SyncAccount {
+  /** Each song made with StepsVault's generator spends one. */
+  tokenBalance: number;
+  player: { handle: string; initial: string; avatarColor: string };
+}
+
 export interface DeviceCode {
   code: string;
   expiresAt: string;

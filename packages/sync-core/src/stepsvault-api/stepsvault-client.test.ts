@@ -108,6 +108,27 @@ describe('StepsVaultClient', () => {
     await expect(client.fetchSongFiles({ vaultSongId: 'song_9', chartVersion: 'x' })).rejects.toThrow(new StepsVaultApiError({ status: 404, message: 'This song is not in your vault. Sync again to get your current list of songs.' }));
   });
 
+  it('adds a song StepsVault already has to the vault, passing on the site’s sentence when it can’t', async () => {
+    const api = new RecordedApi({
+      'POST https://stepsvault.com/api/sync/vault/song_7': { status: 200, body: { isAdded: true } },
+      'POST https://stepsvault.com/api/sync/vault/song_9': { status: 404, body: { error: 'This song isn’t in StepsVault.' } },
+    });
+    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    await client.addToVault('song_7');
+    expect(api.requests[0]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer device-token' }, jsonBody: undefined });
+    await expect(client.addToVault('song_9')).rejects.toThrow(new StepsVaultApiError({ status: 404, message: 'This song isn’t in StepsVault.' }));
+  });
+
+  it('reads the player’s token balance, and asks to sign in again on 401', async () => {
+    const me = { tokenBalance: 37, player: { handle: 'noa', initial: 'N', avatarColor: '#7405ec' }, device: { id: 'device_1', name: 'LIVING-ROOM-PC' } };
+    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/me': { status: 200, body: me } });
+    expect(await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchAccount()).toEqual({ tokenBalance: 37, player: { handle: 'noa', initial: 'N', avatarColor: '#7405ec' } });
+    const signedOut = new RecordedApi({ 'GET https://stepsvault.com/api/sync/me': { status: 401, body: { error: 'Sign in first.' } } });
+    await expect(new StepsVaultClient({ httpClient: signedOut, siteUrl: SITE_URL, deviceToken: null }).fetchAccount()).rejects.toThrow(SignedOutError);
+    const broken = new RecordedApi({ 'GET https://stepsvault.com/api/sync/me': { status: 200, body: { ...me, tokenBalance: -1 } } });
+    await expect(new StepsVaultClient({ httpClient: broken, siteUrl: SITE_URL, deviceToken: 'device-token' }).fetchAccount()).rejects.toThrow(StepsVaultApiError);
+  });
+
   it('reports the status counts for the phone view', async () => {
     const api = new RecordedApi({ 'POST https://stepsvault.com/api/sync/devices/me/seen': { status: 200, body: { isRecorded: true } } });
     await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportSeen({ songCountsByStatus: { synced: 14 }, gameName: 'StepMania 5 LTEK' });

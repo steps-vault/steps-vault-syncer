@@ -358,7 +358,25 @@ describe('file links', () => {
     const url = 'https://cdn.example.org/a1b2c3/song.ssc?signature=abc';
     const httpClient = new RecordedGenerator({ [`GET ${REMOTE_ADDRESS}/jobs/a1b2c3`]: [{ status: 200, body: { state: 'done', files: [{ kind: 'chart', url, bytes: 100 }] } }] });
     const outcome = await waitForGeneratorJob({ httpClient, generator: buildGenerator({ baseUrl: REMOTE_ADDRESS }), job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds });
-    expect(outcome).toEqual({ kind: 'done', files: [{ kind: 'chart', url, bytes: 100 }] });
+    expect(outcome).toEqual({ kind: 'done', files: [{ kind: 'chart', url, bytes: 100 }], vaultSongId: null });
+  });
+});
+
+describe('the vault song StepsVault’s generator made', () => {
+  const doneAnswer = { status: 200, body: { state: 'done', vaultSongId: 'song_42' } };
+
+  it('is read from StepsVault’s own done answer, which needs no files', async () => {
+    const httpClient = new RecordedGenerator({ [`GET ${STEPSVAULT_ADDRESS}/jobs/a1b2c3`]: [doneAnswer] });
+    const outcome = await waitForGeneratorJob({ httpClient, generator: buildGenerator({ baseUrl: STEPSVAULT_ADDRESS }), signIn: SIGN_IN, job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds });
+    expect(outcome).toEqual({ kind: 'done', files: [], vaultSongId: 'song_42' });
+  });
+
+  it('is ignored from any other generator, which still must send its song file', async () => {
+    const httpClient = new RecordedGenerator({ [`GET ${JOB_URL}`]: [doneAnswer] });
+    const error = await getRejection(waitForGeneratorJob({ httpClient, generator: buildGenerator(), job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds }));
+    expect(error.reason).toBe('invalid-answer');
+    const withChart = new RecordedGenerator({ [`GET ${JOB_URL}`]: [{ status: 200, body: { state: 'done', vaultSongId: 'song_42', files: [{ kind: 'chart', url: `${LOCAL_ADDRESS}/song.ssc`, bytes: 100 }] } }] });
+    expect(await waitForGeneratorJob({ httpClient: withChart, generator: buildGenerator(), job: { jobId: 'a1b2c3', retryAfterSeconds: 5 }, waitSeconds: buildWaitRecorder().waitSeconds })).toMatchObject({ kind: 'done', vaultSongId: null });
   });
 });
 
