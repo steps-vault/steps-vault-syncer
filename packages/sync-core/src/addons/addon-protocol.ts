@@ -76,8 +76,7 @@ export function buildAudioLinksRequestBody({ song, optionValues }: { song: Addon
 export function parseAddonManifest(value: unknown): AddonManifest {
   if (!isRecord(value) || value.protocol !== ADDON_PROTOCOL_VERSION) throw new InvalidAddonAnswerError('This addon speaks a different version of the addon protocol. Ask its maker for an update.');
   if (value.kind === 'generator') throw new InvalidAddonAnswerError('This is a generator, not an addon. Add it under Generators instead.');
-  // Addons made before `kind` existed leave it out; they are addons.
-  if (value.kind !== undefined && value.kind !== 'addon') throw new InvalidAddonAnswerError('This address isn’t an addon. Check the address with whoever made it.');
+  if (value.kind !== 'addon') throw new InvalidAddonAnswerError('This address isn’t an addon (its manifest has no "kind": "addon"). Check the address with whoever made it.');
   const identityResult = parseManifestIdentity({ manifest: value, serviceName: 'addon' });
   if (identityResult.kind === 'invalid') throw new InvalidAddonAnswerError(identityResult.problem);
   const provides = Array.isArray(value.provides) ? (value.provides as unknown[]) : [];

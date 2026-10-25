@@ -194,11 +194,11 @@ describe('addon options', () => {
 });
 
 describe('addon kind', () => {
-  it('reads kind addon, or no kind from addons made before it existed, and refuses a generator', () => {
+  it('needs kind addon, and refuses a generator or a manifest without kind', () => {
     const manifest = { protocol: 1, id: 'indie.tapes', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad', description: 'Our songs.', provides: ['audio-links'] };
     expect(parseAddonManifest({ ...manifest, kind: 'addon' }).kind).toBe('addon');
-    expect(parseAddonManifest(manifest).kind).toBe('addon');
+    expect(() => parseAddonManifest(manifest)).toThrow('This address isn’t an addon');
     expect(() => parseAddonManifest({ ...manifest, kind: 'generator' })).toThrow('This is a generator, not an addon. Add it under Generators instead.');
-    expect(() => parseAddonManifest({ ...manifest, kind: 'theme' })).toThrow('This address isn’t an addon.');
+    expect(() => parseAddonManifest({ ...manifest, kind: 'theme' })).toThrow('This address isn’t an addon');
   });
 });

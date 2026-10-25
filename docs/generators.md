@@ -37,6 +37,9 @@ Sizes in this document: 1 MB is 1,048,576 bytes.
 `https://…`, or `http://127.0.0.1:<port>` / `http://localhost:<port>` on the player's own computer. No user name,
 password, `?` or `#`.
 
+A generator on the player's computer can be started by Sync itself: see "A program on the player's computer" in
+`addons.md`.
+
 ## Signing in
 
 Community generators get no sign-in: Sync never sends them the player's StepsVault account or token. Only
