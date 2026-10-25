@@ -49,8 +49,8 @@ An addon's address is `https://…`. The only exception is an addon running on t
 }
 ```
 
-- `kind`: `addon`. Addons made before it existed may leave it out. A generator says `generator` instead (see
-  `generators.md`), so Sync can tell which section an address belongs in.
+- `kind`: always `addon`. A generator says `generator` instead (see `generators.md`), so Sync can tell which section
+  an address belongs in. A manifest without it is refused.
 - `id`: lower-case letters, digits, `.` and `-`, 2–64 characters.
 - `name` and `author`: up to 60 characters. `description`: up to 300 characters.
 - `provides`: always `audio-links`; add `video-links` if the addon can also give the song's video.
@@ -137,6 +137,14 @@ function sendJson(response, status, value) {
   response.end(JSON.stringify(value));
 }
 ```
+
+## A program on the player's computer
+
+An addon or generator at `http://127.0.0.1:<port>` or `http://localhost:<port>` is a program the player runs. In the
+desktop app the player can give its **start command** when adding it (for example `C:ddons\youtube\start.cmd`):
+Sync then starts the program when it needs it, waits for its manifest, and stops it after 10 minutes without a request.
+Sync only ever runs the command the player typed, never one an addon or generator suggests. The website can't start
+programs: there, the player starts it themselves.
 
 ## Rules for addon makers
 
