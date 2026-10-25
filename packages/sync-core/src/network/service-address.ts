@@ -44,7 +44,8 @@ function isAllowedUrl(url: URL): boolean {
   return url.protocol === 'http:' && LOOPBACK_HOST_NAMES.has(url.hostname);
 }
 
-function parseUrlOrNull(value: string): URL | null {
+/** The parsed address, or null for text that isn't one. */
+export function parseUrlOrNull(value: string): URL | null {
   try {
     return new URL(value);
   } catch {
