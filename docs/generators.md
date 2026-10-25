@@ -63,7 +63,7 @@ their jobs apart. A generator that needs its own accounts must handle them on it
 }
 ```
 
-- `kind`: always `generator` (an addon has none).
+- `kind`: always `generator` (an addon says `addon`).
 - `id`, `name`, `version`, `author`, `description`, `options`: the same rules as for addons (see `addons.md`).
 - `difficulties`: the ones it can make, at least one. Sync asks only for these.
 - `musicTypes`: the music file types it accepts; must include `audio/ogg`, because Sync converts the player's file to

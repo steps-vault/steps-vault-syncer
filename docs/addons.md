@@ -35,6 +35,7 @@ An addon's address is `https://…`. The only exception is an addon running on t
 ```json
 {
   "protocol": 1,
+  "kind": "addon",
   "id": "indie.tapes",
   "name": "Indie Tapes",
   "version": "0.6.1",
@@ -48,6 +49,8 @@ An addon's address is `https://…`. The only exception is an addon running on t
 }
 ```
 
+- `kind`: `addon`. Addons made before it existed may leave it out. A generator says `generator` instead (see
+  `generators.md`), so Sync can tell which section an address belongs in.
 - `id`: lower-case letters, digits, `.` and `-`, 2–64 characters.
 - `name` and `author`: up to 60 characters. `description`: up to 300 characters.
 - `provides`: always `audio-links`; add `video-links` if the addon can also give the song's video.
