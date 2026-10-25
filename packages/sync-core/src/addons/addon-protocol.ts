@@ -1,29 +1,23 @@
-import { isAllowedAddonLinkUrl, isAllowedPageUrl } from './addon-address';
-import { parseAddonOptions, type AddonOption, type AddonOptionValues } from './addon-options';
+import { getRetryAfterSeconds } from '../network/retry-after';
+import { isAllowedPageUrl } from '../network/service-address';
+import { isAllowedAddonLinkUrl } from './addon-address';
+import type { AddonOptionValues } from './addon-options';
+import { parseManifestIdentity, type ManifestIdentity } from './manifest-identity';
 
 export const ADDON_PROTOCOL_VERSION = 1;
-const ADDON_ID_PATTERN = /^[a-z0-9][a-z0-9.-]{1,63}$/;
-const MAX_NAME_LENGTH = 60;
-const MAX_DESCRIPTION_LENGTH = 300;
+const MAX_ADDON_ERROR_LENGTH = 300;
 const MAX_LINKS = 10;
 const MAX_LABEL_LENGTH = 80;
-const MAX_RETRY_AFTER_SECONDS = 600;
 const KNOWN_PROVIDES = ['audio-links', 'video-links'] as const;
 
 export type AddonProvides = (typeof KNOWN_PROVIDES)[number];
 
 /** GET <address>/manifest.json */
-export interface AddonManifest {
+export interface AddonManifest extends ManifestIdentity {
   protocol: typeof ADDON_PROTOCOL_VERSION;
-  id: string;
-  name: string;
-  version: string;
-  author: string;
-  description: string;
   /** Always 'audio-links'; 'video-links' too when the addon can also give the song's video. */
+  kind: 'addon';
   provides: readonly AddonProvides[];
-  /** Simple settings the player picks in Sync (an empty list when the addon has none). See addon-options.ts. */
-  options: readonly AddonOption[];
 }
 
 /**
@@ -81,26 +75,20 @@ export function buildAudioLinksRequestBody({ song, optionValues }: { song: Addon
 
 export function parseAddonManifest(value: unknown): AddonManifest {
   if (!isRecord(value) || value.protocol !== ADDON_PROTOCOL_VERSION) throw new InvalidAddonAnswerError('This addon speaks a different version of the addon protocol. Ask its maker for an update.');
-  const id = getText({ value: value.id, maxLength: 64 });
-  if (!ADDON_ID_PATTERN.test(id)) throw new InvalidAddonAnswerError('This addon’s manifest has no valid id.');
-  if (!Array.isArray(value.provides) || !value.provides.includes('audio-links')) throw new InvalidAddonAnswerError('This addon doesn’t provide audio links, so Sync can’t use it.');
-  return {
-    protocol: ADDON_PROTOCOL_VERSION,
-    id,
-    name: getText({ value: value.name, maxLength: MAX_NAME_LENGTH }),
-    version: getText({ value: value.version, maxLength: 32 }),
-    author: getText({ value: value.author, maxLength: MAX_NAME_LENGTH }),
-    description: getText({ value: value.description, maxLength: MAX_DESCRIPTION_LENGTH, isEmptyAllowed: true }),
-    provides: KNOWN_PROVIDES.filter((provided) => (value.provides as unknown[]).includes(provided)),
-    options: parseAddonOptions(value.options),
-  };
+  if (value.kind === 'generator') throw new InvalidAddonAnswerError('This is a generator, not an addon. Add it under Generators instead.');
+  if (value.kind !== 'addon') throw new InvalidAddonAnswerError('This address isn’t an addon (its manifest has no "kind": "addon"). Check the address with whoever made it.');
+  const identityResult = parseManifestIdentity({ manifest: value, serviceName: 'addon' });
+  if (identityResult.kind === 'invalid') throw new InvalidAddonAnswerError(identityResult.problem);
+  const provides = Array.isArray(value.provides) ? (value.provides as unknown[]) : [];
+  if (!provides.includes('audio-links')) throw new InvalidAddonAnswerError('This addon doesn’t provide audio links, so Sync can’t use it.');
+  return { protocol: ADDON_PROTOCOL_VERSION, kind: 'addon', ...identityResult.identity, provides: KNOWN_PROVIDES.filter((provided) => provides.includes(provided)) };
 }
 
 export function parseAudioLinksAnswer({ status, body }: { status: number; body: unknown }): AudioLinksAnswer {
   if (status === 202) return { kind: 'working', retryAfterSeconds: getRetryAfterSeconds(body) };
   if (status !== 200 || !isRecord(body) || !Array.isArray(body.links)) throw new InvalidAddonAnswerError(`The addon answered with an error (${String(status)}).`);
   const links = body.links.slice(0, MAX_LINKS).flatMap((link) => parseAudioLinkOrNothing(link));
-  const addonError = typeof body.error === 'string' ? body.error.slice(0, MAX_DESCRIPTION_LENGTH) : null;
+  const addonError = typeof body.error === 'string' ? body.error.slice(0, MAX_ADDON_ERROR_LENGTH) : null;
   return { kind: 'links', links, addonError };
 }
 
@@ -113,17 +101,6 @@ function parseAudioLinkOrNothing(value: unknown): AudioLink[] {
   }
   if (value.kind === 'open-page' && isAllowedPageUrl(value.url)) return [{ kind: 'open-page', url: value.url, label }];
   return [];
-}
-
-function getRetryAfterSeconds(body: unknown): number {
-  const seconds = isRecord(body) && typeof body.retryAfterSeconds === 'number' ? body.retryAfterSeconds : 5;
-  return Math.min(MAX_RETRY_AFTER_SECONDS, Math.max(1, seconds));
-}
-
-function getText({ value, maxLength, isEmptyAllowed = false }: { value: unknown; maxLength: number; isEmptyAllowed?: boolean }): string {
-  const text = typeof value === 'string' ? value.trim() : '';
-  if (!isEmptyAllowed && text === '') throw new InvalidAddonAnswerError('This addon’s manifest is missing its name, version or author.');
-  return text.slice(0, maxLength);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

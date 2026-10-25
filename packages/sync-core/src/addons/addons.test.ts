@@ -3,9 +3,9 @@ import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse 
 import { getAddonBaseUrl, InvalidAddonAddressError } from './addon-address';
 import { buildInstalledAddon, fetchAddonManifest, fetchAudioLinks, isAddonSetToMusicOnly, loadSavedAddon, withAddonOption } from './addon-client';
 import { parseAddonOptions, type AddonChoiceOption } from './addon-options';
-import type { AddonManifest, AddonSongFacts } from './addon-protocol';
+import { parseAddonManifest, type AddonManifest, type AddonSongFacts } from './addon-protocol';
 
-const MANIFEST: AddonManifest = { protocol: 1, id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: 'Links to files on our own server.', provides: ['audio-links'], options: [] };
+const MANIFEST: AddonManifest = { protocol: 1, kind: 'addon', id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: 'Links to files on our own server.', provides: ['audio-links'], options: [] };
 const MEDIA_OPTION: AddonChoiceOption = { id: 'media', label: 'What to get', kind: 'choice', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], default: 'audio-and-video' };
 const MANIFEST_WITH_OPTIONS: AddonManifest = { ...MANIFEST, provides: ['audio-links', 'video-links'], options: [MEDIA_OPTION] };
 const SONG: AddonSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: 'Electronic', lengthSeconds: 201, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' };
@@ -190,5 +190,15 @@ describe('addon options', () => {
     expect(loadSavedAddon({ ...savedBeforeOptions, manifest: { ...MANIFEST, protocol: 2 } })).toBeNull();
     expect(loadSavedAddon({ baseUrl: 7 })).toBeNull();
     expect(loadSavedAddon(null)).toBeNull();
+  });
+});
+
+describe('addon kind', () => {
+  it('needs kind addon, and refuses a generator or a manifest without kind', () => {
+    const manifest = { protocol: 1, id: 'indie.tapes', name: 'Indie Tapes', version: '1.0.0', author: 'hyperpad', description: 'Our songs.', provides: ['audio-links'] };
+    expect(parseAddonManifest({ ...manifest, kind: 'addon' }).kind).toBe('addon');
+    expect(() => parseAddonManifest(manifest)).toThrow('This address isn’t an addon');
+    expect(() => parseAddonManifest({ ...manifest, kind: 'generator' })).toThrow('This is a generator, not an addon. Add it under Generators instead.');
+    expect(() => parseAddonManifest({ ...manifest, kind: 'theme' })).toThrow('This address isn’t an addon');
   });
 });

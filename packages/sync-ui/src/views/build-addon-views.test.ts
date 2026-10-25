@@ -4,7 +4,7 @@ import { buildAddonInstallPreview, buildAddonView, getAddonOptionValuesFromViews
 
 const MEDIA_CHOICES = [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }];
 const MANIFEST: AddonManifest = {
-  protocol: 1, id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: '', provides: ['audio-links', 'video-links'],
+  protocol: 1, kind: 'addon', id: 'indie.tapes', name: 'Indie Tapes', version: '0.6.1', author: 'hyperpad', description: '', provides: ['audio-links', 'video-links'],
   options: [{ id: 'media', label: 'What to get', kind: 'choice', choices: MEDIA_CHOICES, default: 'audio-and-video' }],
 };
 
