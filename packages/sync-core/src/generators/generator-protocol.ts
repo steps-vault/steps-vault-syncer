@@ -136,7 +136,8 @@ function describeExistingSong({ body, generatorName }: { body: unknown; generato
   return getGeneratorErrorSentence(body) ?? `${generatorName} already has this song, or is making it right now.`;
 }
 
-function getVaultSongIdOrNull(body: unknown): string | null {
+/** A vault song id in a generator's answer; only ever trusted from StepsVault's own generator. */
+export function getVaultSongIdOrNull(body: unknown): string | null {
   const vaultSongId = isRecord(body) ? body.vaultSongId : undefined;
   return typeof vaultSongId === 'string' && VAULT_SONG_ID_PATTERN.test(vaultSongId) ? vaultSongId : null;
 }

@@ -4,7 +4,11 @@ import {
   findInstalledSong,
   getSongFolderMoves,
   getTargetFolderPaths,
+  isGeneratedSongActivityEvent,
   type ActivityEvent,
+  type ActivityLogEvent,
+  type GeneratedSongActivityEvent,
+  type GeneratedSongActivityStep,
   type AudioSearchResult,
   type FolderLayout,
   type InstalledSongsRecord,
@@ -18,6 +22,16 @@ const PREVIEW_GROUP_COUNT = 3;
 const PREVIEW_SONG_COUNT = 3;
 const ACTIVITY_KINDS_BY_EVENT_KIND: Readonly<Record<ActivityEvent['kind'], ActivityKind>> = { added: 'added', updated: 'updated', moved: 'moved', removed: 'removed', failed: 'write-failed' };
 const ACTIVITY_VERBS_BY_EVENT_KIND: Readonly<Record<ActivityEvent['kind'], string>> = { added: 'Added ', updated: 'Updated ', moved: 'Moved ', removed: 'Removed ', failed: 'Couldn’t write ' };
+const GENERATED_SONG_TEXTS_BY_STEP: Readonly<Record<GeneratedSongActivityStep, { kind: ActivityKind; textBefore: string; getTextAfter: (event: GeneratedSongActivityEvent) => string }>> = {
+  'started': { kind: 'generating', textBefore: 'Started making ', getTextAfter: (event) => ` with ${event.generatorName}` },
+  'resumed': { kind: 'generating', textBefore: 'Went on making ', getTextAfter: (event) => ` with ${event.generatorName}` },
+  'not-cancelled': { kind: 'generating', textBefore: 'Couldn’t cancel ', getTextAfter: () => '' },
+  'written': { kind: 'generated', textBefore: 'Made ', getTextAfter: (event) => ` in ${event.folderPath[0] ?? 'your game'}` },
+  'added-to-vault': { kind: 'generated', textBefore: 'Made ', getTextAfter: () => ' for the vault' },
+  'kept-vault-song': { kind: 'generated', textBefore: 'Kept the vault song of ', getTextAfter: () => '' },
+  'failed': { kind: 'generate-failed', textBefore: 'Couldn’t make ', getTextAfter: (event) => ` with ${event.generatorName}` },
+  'cancelled': { kind: 'generate-cancelled', textBefore: 'Cancelled ', getTextAfter: () => '' },
+};
 const DAY_FORMAT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const TIME_FORMAT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
@@ -110,23 +124,47 @@ function formatLength(seconds: number): string {
   return `${String(Math.floor(wholeSeconds / 60))}:${String(wholeSeconds % 60).padStart(2, '0')}`;
 }
 
-export function buildActivityEntries({ events, vaultSongs }: { events: readonly ActivityEvent[]; vaultSongs: readonly VaultSongDetails[] }): ActivityEntryView[] {
+/** Newest first: a sync's events and the steps of making songs with generators. */
+export function buildActivityEntries({ events, vaultSongs }: { events: readonly ActivityLogEvent[]; vaultSongs: readonly VaultSongDetails[] }): ActivityEntryView[] {
   const titlesById = new Map(vaultSongs.map((song) => [song.vaultSongId, song.title]));
   return [...events].reverse().map((event, index) => {
-    const at = new Date(event.at);
-    const groupName = event.folderPath[0] ?? 'your game';
-    return {
-      entryId: `${event.at}-${String(index)}`,
-      kind: ACTIVITY_KINDS_BY_EVENT_KIND[event.kind],
-      dayText: DAY_FORMAT.format(at),
-      timeText: TIME_FORMAT.format(at),
-      textBefore: ACTIVITY_VERBS_BY_EVENT_KIND[event.kind],
-      highlightedText: titlesById.get(event.vaultSongId) ?? event.folderPath.at(-1) ?? 'a song',
-      textAfter: event.kind === 'failed' ? '' : event.kind === 'removed' ? ' from your game' : ` in ${groupName}`,
-      summaryText: event.message ?? `Songs/${event.folderPath.join('/')}`,
-      details: [{ label: 'Folder', value: `Songs/${event.folderPath.join('/')}` }, ...(event.failure ? [{ label: 'Problem', value: event.failure }] : [])],
-    };
+    const entryId = `${event.at}-${String(index)}`;
+    return isGeneratedSongActivityEvent(event) ? buildGeneratedSongEntry({ event, entryId }) : buildSyncEntry({ event, entryId, titlesById });
   });
+}
+
+function buildSyncEntry({ event, entryId, titlesById }: { event: ActivityEvent; entryId: string; titlesById: ReadonlyMap<string, string> }): ActivityEntryView {
+  const groupName = event.folderPath[0] ?? 'your game';
+  return {
+    entryId,
+    kind: ACTIVITY_KINDS_BY_EVENT_KIND[event.kind],
+    ...formatEntryTime(event.at),
+    textBefore: ACTIVITY_VERBS_BY_EVENT_KIND[event.kind],
+    highlightedText: titlesById.get(event.vaultSongId) ?? event.folderPath.at(-1) ?? 'a song',
+    textAfter: event.kind === 'failed' ? '' : event.kind === 'removed' ? ' from your game' : ` in ${groupName}`,
+    summaryText: event.message ?? `Songs/${event.folderPath.join('/')}`,
+    details: [{ label: 'Folder', value: `Songs/${event.folderPath.join('/')}` }, ...(event.failure ? [{ label: 'Problem', value: event.failure }] : [])],
+  };
+}
+
+function buildGeneratedSongEntry({ event, entryId }: { event: GeneratedSongActivityEvent; entryId: string }): ActivityEntryView {
+  const texts = GENERATED_SONG_TEXTS_BY_STEP[event.step];
+  const folderText = event.folderPath.length > 0 ? `Songs/${event.folderPath.join('/')}` : null;
+  return {
+    entryId,
+    kind: texts.kind,
+    ...formatEntryTime(event.at),
+    textBefore: texts.textBefore,
+    highlightedText: event.songTitle,
+    textAfter: texts.getTextAfter(event),
+    summaryText: event.message ?? folderText ?? `With ${event.generatorName}`,
+    details: [{ label: 'Generator', value: event.generatorName }, ...(folderText ? [{ label: 'Folder', value: folderText }] : []), ...(event.message ? [{ label: 'Problem', value: event.message }] : [])],
+  };
+}
+
+function formatEntryTime(isoTime: string): { dayText: string; timeText: string } {
+  const at = new Date(isoTime);
+  return { dayText: DAY_FORMAT.format(at), timeText: TIME_FORMAT.format(at) };
 }
 
 export function buildLayoutViews({ vaultSongs, record, playerGroupNames }: { vaultSongs: readonly VaultSongDetails[]; record: InstalledSongsRecord; playerGroupNames: readonly string[] }): { previewsByLayout: LayoutPreviewsByLayout; movingSongCountsByLayout: Record<FolderLayout, number> } {

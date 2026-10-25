@@ -6,6 +6,7 @@ import {
   DesktopSignInScreen,
   EmptyVaultState,
   FolderLayoutScreen,
+  GeneratorsScreen,
   SyncHomeScreen,
   SyncShell,
   UpdateBanner,
@@ -102,6 +103,7 @@ interface ScreenOptions {
 function renderScreen(options: ScreenOptions): ReactNode {
   const { state, bridge } = options;
   if (options.currentScreen === 'audio-sources') return renderAudioSources(options);
+  if (options.currentScreen === 'generators') return renderGenerators(options);
   if (options.currentScreen === 'folder-layout') {
     return <FolderLayoutScreen currentLayout={state.layout} previewsByLayout={state.previewsByLayout} movingSongCountsByLayout={state.movingSongCountsByLayout} playerGroupNames={state.playerGroupNames} onChangeLayout={(layout) => void bridge.setLayout(layout)} lastMove={state.lastLayoutMove} />;
   }
@@ -130,7 +132,7 @@ function renderSongs({ state, bridge, selectedSongId, setSelectedSongId, setCurr
       platform="desktop"
       topBar={{
         game: state.game,
-        audioSources: { sourceNames: [...(state.musicFolders.length > 0 ? ['My music folder'] : []), ...state.addons.filter((addon) => addon.isEnabled).map((addon) => addon.name)] },
+        audioSources: { sourceNames: [...(state.musicFolders.length > 0 ? ['My music folder'] : []), ...state.addons.filter((addon) => addon.isEnabled && addon.isAudioSource !== false).map((addon) => addon.name)] },
         lastSync: state.lastSyncAt ? { timeText: TIME_FORMAT.format(new Date(state.lastSyncAt)), noteText: '' } : null,
         onSyncNow: () => void bridge.syncNow(),
         onChangeGame: () => void bridge.chooseSongsFolder(),
@@ -176,13 +178,40 @@ function renderAudioSources({ state, bridge, setCurrentScreen }: ScreenOptions):
       onToggleAddon={(request) => void bridge.setAddonEnabled(request)}
       onRemoveAddon={(addonId) => void bridge.removeAddon(addonId)}
       onSetAddonOption={(request) => void bridge.setAddonOption(request)}
-      onLookUpAddon={(address) => bridge.lookUpAddon(address)}
+      onLookUpAddon={(request) => bridge.lookUpAddon(request)}
       onInstallAddon={(addon) => void bridge.installAddon(addon)}
+      canUseStartCommand
+    />
+  );
+}
+
+function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
+  return (
+    <GeneratorsScreen
+      stepsVaultGenerator={state.stepsVaultGenerator}
+      generators={state.generators}
+      jobs={state.generatorJobs}
+      generatedSongs={state.generatedSongs}
+      songSourceTabs={state.songSourceTabs}
+      canUseStartCommand
+      onLookUpGenerator={(request) => bridge.lookUpGenerator(request)}
+      onAddGenerator={(generator) => void bridge.installGenerator(generator)}
+      onRemoveGenerator={(generatorId) => void bridge.removeGenerator(generatorId)}
+      onSetGeneratorOption={(change) => void bridge.setGeneratorOption(change)}
+      onChooseMusicFile={() => bridge.chooseMusicFileForSong()}
+      onSearchMusic={(query) => bridge.searchMusicFolders(query)}
+      onFindSong={(request) => bridge.findSongWithSource(request)}
+      onStopFindingSong={() => void bridge.stopFindingSong()}
+      onMakeSong={(request) => bridge.makeSong(request)}
+      onCancelJob={(jobKey) => void bridge.cancelGeneratorJob(jobKey)}
+      onAnswerVaultChoice={(answer) => void bridge.answerVaultChoice(answer)}
+      onDismissJob={(jobKey) => void bridge.dismissGeneratorJob(jobKey)}
+      onFetchSongReport={(songKey) => bridge.fetchGeneratedSongReport(songKey)}
     />
   );
 }
 
 function getExpiresInText(expiresAt: string): string {
   const minutes = Math.max(0, Math.round((Date.parse(expiresAt) - Date.now()) / 60_000));
-  return `Expires in ${String(minutes)} min`;
+  return `${String(minutes)} min`;
 }

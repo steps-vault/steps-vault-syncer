@@ -67,6 +67,11 @@ function getArtistRank({ musicFile, artistKey }: { musicFile: MusicFile; artistK
   return UNKNOWN_ARTIST_RANK;
 }
 
+/** The title and artist a music file says it has: its tags, else its file name ("Sia - Cheap Thrills.mp3"). */
+export function getMusicFileFacts(musicFile: MusicFile): { title: string; artist: string | null } {
+  return { title: getMusicFileTitle(musicFile), artist: getMusicFileArtist(musicFile) };
+}
+
 function getMusicFileTitle(musicFile: MusicFile): string {
   return musicFile.taggedTitle ?? getFileNameFacts(musicFile.fileName).title;
 }

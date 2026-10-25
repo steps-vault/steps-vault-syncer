@@ -2,6 +2,11 @@ import { HttpRequestError, type HttpClient, type HttpRequest, type HttpResponse 
 
 const USER_AGENT = 'StepsVaultSync';
 
+/** What every request of the app sends: its name and version, never anything about the player. */
+export function getUserAgentHeader(appVersion: string): Record<string, string> {
+  return { 'User-Agent': `${USER_AGENT}/${appVersion}` };
+}
+
 /** The network for the desktop app: Node's fetch, with a timeout and a size limit that stop a bad server early. */
 export class NodeHttpClient implements HttpClient {
   private readonly appVersion: string;
@@ -11,13 +16,7 @@ export class NodeHttpClient implements HttpClient {
   }
 
   async requestJson(request: HttpRequest): Promise<HttpResponse<unknown>> {
-    const { status, bytes } = await this.fetchBytes(request);
-    if (bytes.byteLength === 0) return { status, body: null };
-    try {
-      return { status, body: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
-    } catch (error) {
-      throw new HttpRequestError({ failure: 'not-json', message: `${request.url} did not answer with JSON.`, cause: error });
-    }
+    return parseJsonAnswer({ answer: await this.fetchBytes(request), url: request.url });
   }
 
   async requestText(request: HttpRequest): Promise<HttpResponse<string>> {
@@ -30,27 +29,41 @@ export class NodeHttpClient implements HttpClient {
     return { status, body: bytes };
   }
 
-  private async fetchBytes(request: HttpRequest): Promise<{ status: number; bytes: Uint8Array }> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      controller.abort();
-    }, request.timeoutMilliseconds);
-    try {
-      const response = await fetch(request.url, {
-        method: request.method,
-        headers: { 'User-Agent': `${USER_AGENT}/${this.appVersion}`, ...(request.jsonBody === undefined ? {} : { 'Content-Type': 'application/json' }), ...request.headers },
-        body: request.jsonBody === undefined ? undefined : JSON.stringify(request.jsonBody),
-        signal: controller.signal,
-        redirect: 'error',
-      });
-      return { status: response.status, bytes: await readLimitedBody({ response, maxBytes: request.maxResponseBytes, url: request.url }) };
-    } catch (error) {
-      if (error instanceof HttpRequestError) throw error;
-      const isTimeout = controller.signal.aborted;
-      throw new HttpRequestError({ failure: isTimeout ? 'timeout' : 'network', message: isTimeout ? `${request.url} took too long to answer.` : `${request.url} could not be reached.`, cause: error });
-    } finally {
-      clearTimeout(timer);
-    }
+  private fetchBytes(request: HttpRequest): Promise<{ status: number; bytes: Uint8Array }> {
+    const headers = { ...getUserAgentHeader(this.appVersion), ...(request.jsonBody === undefined ? {} : { 'Content-Type': 'application/json' }), ...request.headers };
+    const body = request.jsonBody === undefined ? undefined : JSON.stringify(request.jsonBody);
+    return fetchWithLimits({ url: request.url, init: { method: request.method, headers, body }, timeoutMilliseconds: request.timeoutMilliseconds, maxResponseBytes: request.maxResponseBytes });
+  }
+}
+
+/**
+ * One fetch with the rules every request of the app follows: no redirects (a service can't send Sync somewhere else),
+ * a time limit, and an answer size limit. Failures throw HttpRequestError; any HTTP status is returned.
+ */
+export async function fetchWithLimits({ url, init, timeoutMilliseconds, maxResponseBytes }: { url: string; init: RequestInit; timeoutMilliseconds: number; maxResponseBytes: number }): Promise<{ status: number; bytes: Uint8Array }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeoutMilliseconds);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal, redirect: 'error' });
+    return { status: response.status, bytes: await readLimitedBody({ response, maxBytes: maxResponseBytes, url }) };
+  } catch (error) {
+    if (error instanceof HttpRequestError) throw error;
+    const isTimeout = controller.signal.aborted;
+    throw new HttpRequestError({ failure: isTimeout ? 'timeout' : 'network', message: isTimeout ? `${url} took too long to answer.` : `${url} could not be reached.`, cause: error });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function parseJsonAnswer({ answer, url }: { answer: { status: number; bytes: Uint8Array }; url: string }): HttpResponse<unknown> {
+  const { status, bytes } = answer;
+  if (bytes.byteLength === 0) return { status, body: null };
+  try {
+    return { status, body: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
+  } catch (error) {
+    throw new HttpRequestError({ failure: 'not-json', message: `${url} did not answer with JSON.`, cause: error });
   }
 }
 

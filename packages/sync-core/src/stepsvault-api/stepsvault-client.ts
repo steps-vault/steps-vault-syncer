@@ -3,7 +3,7 @@ import type { AudioFingerprint } from '../audio-matching/audio-match';
 import { ENVELOPE_RATE_HERTZ } from '../audio-matching/onset-envelope';
 import type { HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
 import type { SongFiles, VaultFiles } from '../writing/song-writer';
-import { SignedOutError, StepsVaultApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type VaultSongDetails } from './stepsvault-api-types';
+import { SignedOutError, StepsVaultApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type VaultSongDetails } from './stepsvault-api-types';
 
 const TIMEOUT_MILLISECONDS = 30_000;
 const MAX_JSON_BYTES = 4 * 1024 * 1024;
@@ -38,6 +38,25 @@ export class StepsVaultClient implements VaultFiles {
     const songs = response.body.map((song) => parseVaultSong(song));
     for (const song of songs) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
     return songs;
+  }
+
+  /**
+   * Adds a song that is already in StepsVault to the player's vault (free, and fine to repeat), for example the one
+   * StepsVault's generator said it already has. The next sync installs it.
+   */
+  async addToVault(vaultSongId: string): Promise<void> {
+    const response = await this.httpClient.requestJson(this.buildRequest({ path: `/vault/${encodeURIComponent(vaultSongId)}`, method: 'POST', maxResponseBytes: MAX_JSON_BYTES }));
+    assertOk(response);
+  }
+
+  /** The signed-in player and their token balance. */
+  async fetchAccount(): Promise<SyncAccount> {
+    const response = await this.httpClient.requestJson(this.buildRequest({ path: '/me', maxResponseBytes: MAX_JSON_BYTES }));
+    assertOk(response);
+    const body = asRecord(response.body);
+    const player = asRecord(body.player);
+    if (typeof body.tokenBalance !== 'number' || !Number.isInteger(body.tokenBalance) || body.tokenBalance < 0) throw new StepsVaultApiError({ status: response.status, message: 'StepsVault sent a token balance Sync can’t read. Update Sync to the latest version.' });
+    return { tokenBalance: body.tokenBalance, player: { handle: getString(player.handle), initial: getString(player.initial), avatarColor: getString(player.avatarColor) } };
   }
 
   /** The files of the song's current steps; if they changed since the vault was read, the next sync updates the song. */
@@ -108,8 +127,16 @@ export function buildAddonSongFacts(song: VaultSongDetails): AddonSongFacts {
 function assertOk(response: HttpResponse<unknown>): void {
   if (response.status === 401) throw new SignedOutError();
   if (response.status >= 200 && response.status < 300) return;
-  const message = typeof response.body === 'object' && response.body !== null && 'message' in response.body ? String((response.body).message) : null;
+  const message = getErrorSentenceOrNull(response.body);
   throw new StepsVaultApiError({ status: response.status, message: message ?? `StepsVault answered with an error (${String(response.status)}). Try again in a minute.` });
+}
+
+/** The site's own sentence, sent as `error` (newer routes) or `message`. */
+function getErrorSentenceOrNull(body: unknown): string | null {
+  if (typeof body !== 'object' || body === null) return null;
+  const record = body as Record<string, unknown>;
+  const sentence = typeof record.error === 'string' ? record.error : typeof record.message === 'string' ? record.message : '';
+  return sentence.trim() === '' ? null : sentence.trim();
 }
 
 function parseVaultSong(value: unknown): VaultSongDetails {

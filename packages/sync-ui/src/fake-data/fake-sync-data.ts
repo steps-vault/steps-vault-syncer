@@ -1,5 +1,5 @@
 import type { FolderLayout } from '@stepsvault/sync-core';
-import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
+import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, MusicChoiceView, SongSourceTabView, StepsVaultGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
 
 // Made-up songs and artists for the preview page and the tests; the cover art is drawn here, so nothing loads from the network.
 
@@ -101,6 +101,7 @@ export const FAKE_ADDONS: readonly AddonView[] = [
   { addonId: 'open-audio-links', name: 'Open Audio Links', version: '1.4.2', author: '@mixtape_lab', providesText: 'audio and video links', isEnabled: true, health: { kind: 'working', note: 'Working · gave audio for 2 songs' }, options: [{ optionId: 'media', label: 'What to get', choices: [{ value: 'audio', label: 'Music only' }, { value: 'audio-and-video', label: 'Music and video' }], value: 'audio-and-video' }] },
   { addonId: 'indie-tapes', name: 'Indie Tapes', version: '0.6.1', author: 'cassette-club', providesText: 'audio links', isEnabled: true, health: { kind: 'not-answering', note: 'Not answering since 14:02. Songs keep the audio they have; new ones wait.' }, options: [] },
   { addonId: 'home-server-music', name: 'Home Server Music', version: '0.3.0', author: '@noa', providesText: 'audio links', isEnabled: false, health: { kind: 'working', note: 'Turned off' }, options: [] },
+  { addonId: 'tube-songs', name: 'Tube Songs', version: '0.2.0', author: '@noa', providesText: 'New songs to make', isEnabled: true, isAudioSource: false, health: { kind: 'working', note: 'http://127.0.0.1:7801' }, options: [] },
 ];
 
 export const FAKE_ADDON_PREVIEW: AddonInstallPreview = { address: 'https://bridge.hyperpad.example/stepsvault', name: 'Bandcamp Bridge', version: '0.9.0', author: 'hyperpad',
@@ -131,4 +132,35 @@ export const FAKE_ACTIVITY_ENTRIES: readonly ActivityEntryView[] = [
 export const FAKE_LINKED_COMPUTERS: readonly LinkedComputerView[] = [
   { computerId: 'living-room', computerName: 'LIVING-ROOM-PC', systemText: 'Windows 11 · linked Oct 3, 2026', isOnline: true, lastSyncText: '2 minutes ago', gameName: 'StepMania 5 LTEK Edition' },
   { computerId: 'arcade-cab', computerName: 'ARCADE-CAB', systemText: 'Windows 10 · linked Aug 21, 2026', isOnline: false, lastSyncText: '3 days ago', gameName: 'ITGmania' },
+];
+
+export const FAKE_STEPSVAULT_GENERATOR: StepsVaultGeneratorView = { tokenCount: 37, tokensHref: '#tokens', difficulties: ['Beginner', 'Easy', 'Medium', 'Hard', 'Challenge'], musicUploadWarning: 'Your music file will be sent to https://stepsvault.example/api/generator.' };
+
+export const FAKE_GENERATORS: readonly GeneratorView[] = [
+  { generatorId: 'stepcat.tap-forge', name: 'Tap Forge', version: '1.2.0', author: '@stepcat', description: 'Flowing steps on the beat.', location: { kind: 'this-computer' }, startCommand: 'C:/generators/tap-forge/start.cmd', difficulties: ['Easy', 'Medium', 'Hard'], musicUploadWarning: null,
+    options: [{ optionId: 'style', label: 'Step style', choices: [{ value: 'flowing', label: 'Flowing' }, { value: 'technical', label: 'Technical' }], value: 'flowing' }, { optionId: 'jumps', label: 'Jumps', choices: [{ value: 'few', label: 'Few' }, { value: 'some', label: 'Some' }, { value: 'many', label: 'Many' }], value: 'some' }] },
+  { generatorId: 'grooveworks.groove-lab', name: 'Groove Lab', version: '0.4.1', author: 'grooveworks', description: 'Modern charts with holds.', location: { kind: 'internet', address: 'https://gen.grooveworks.example' }, startCommand: null, difficulties: ['Beginner', 'Easy', 'Medium', 'Hard', 'Challenge'], musicUploadWarning: null,
+    options: [{ optionId: 'feel', label: 'Feel', choices: [{ value: 'classic', label: 'Classic' }, { value: 'modern', label: 'Modern' }], value: 'classic' }] },
+];
+
+export const FAKE_GENERATOR_PREVIEW: GeneratorInstallPreview = { address: 'https://gen.beatsmith.example', name: 'Beatsmith', version: '0.2.0', author: 'beatsmith-crew', description: 'Calm to fast steps.', location: { kind: 'internet', address: 'https://gen.beatsmith.example' }, difficulties: ['Easy', 'Medium'], startCommand: null,
+  options: [{ optionId: 'speed', label: 'Speed', choices: [{ value: 'calm', label: 'Calm' }, { value: 'normal', label: 'Normal' }, { value: 'fast', label: 'Fast' }], value: 'normal' }],
+};
+
+export const FAKE_GENERATOR_JOBS: readonly GeneratorJobView[] = [
+  { jobKey: 'job-night-drive', songTitle: 'Night Drive', songArtist: 'Lumen Park', generatorName: 'Tap Forge', isStepsVault: false, state: 'working', stageText: 'Placing the steps', progressPercent: 45, message: null, vaultChoiceQuestion: null, doneText: null },
+  { jobKey: 'job-low-tide', songTitle: 'Low Tide', songArtist: 'Marla Quinn', generatorName: 'Groove Lab', isStepsVault: false, state: 'needs-vault-choice', stageText: 'Waiting for your answer', progressPercent: null, message: null, vaultChoiceQuestion: '“Low Tide” is also in your vault. Which one do you want in your game: the vault song or the one you made?', doneText: null },
+];
+
+export const FAKE_GENERATED_SONGS: readonly GeneratedSongView[] = [
+  { songKey: 'song:paper planes club', title: 'Paper Planes Club', artist: 'Sora Vega', generatorName: 'Tap Forge', difficultiesText: 'Easy, Medium and Hard', folderText: 'Songs/My generated songs/Paper Planes Club', madeAtText: '24 Oct 2026, 21:14', hasReport: true },
+];
+
+export const FAKE_MUSIC_CHOICES: readonly MusicChoiceView[] = [
+  { musicId: 'music-night-drive', title: 'Night Drive', artist: 'Lumen Park', sourceText: 'C:\\Users\\Noa\\Music', lengthText: '3:21', hasVideo: false },
+  { musicId: 'music-paper-planes', title: 'Paper Planes Club', artist: 'Sora Vega', sourceText: 'D:\\Rips\\Albums', lengthText: '2:58', hasVideo: false },
+];
+
+export const FAKE_SONG_SOURCE_TABS: readonly SongSourceTabView[] = [
+  { addonId: 'tube-songs', name: 'Tube Songs', inputs: [{ id: 'link', kind: 'link', label: 'YouTube link', placeholder: 'https://youtu.be/…', sites: ['youtube.com', 'youtu.be'] }, { id: 'search', kind: 'search', label: 'Or search', placeholder: 'Title and artist' }] },
 ];

@@ -22,10 +22,10 @@ player's game under **My generated songs**. Your songs never go to the StepsVaul
 { "protocol": 1, "kind": "generator", "id": "you.your-generator", "name": "Your Generator", "version": "0.1.0",
   "author": "you", "description": "One sentence: how it makes steps and what it does with the music.",
   "difficulties": ["Beginner", "Easy", "Medium", "Hard", "Challenge"],
-  "musicTypes": ["audio/ogg", "audio/mpeg", "audio/wav"], "usesVideo": false, "options": [] }
+  "musicTypes": ["audio/wav", "audio/ogg", "audio/mpeg"], "usesVideo": false, "options": [] }
 ```
 
-`musicTypes` must include `audio/ogg`. Add `maxMusicBytes` if you take less than 100 MB. Options follow the addon
+`musicTypes` must include `audio/wav` (Sync decodes any other file to WAV when you don't list its type). Add `maxMusicBytes` if you take less than 100 MB. Options follow the addon
 rules (choices only).
 
 ## 3. Jobs
@@ -88,7 +88,8 @@ WORK_FOLDER = pathlib.Path("jobs")
 status_by_job_id: dict[str, dict] = {}
 MANIFEST = {"protocol": 1, "kind": "generator", "id": "you.your-generator", "name": "Your Generator",
             "version": "0.1.0", "author": "you", "description": "Makes steps on the beat. Keeps nothing.",
-            "difficulties": ["Easy", "Medium"], "musicTypes": ["audio/ogg"], "usesVideo": False, "options": []}
+            "difficulties": ["Easy", "Medium"], "musicTypes": ["audio/wav", "audio/ogg"], "usesVideo": False,
+            "maxMusicBytes": 104857600, "options": []}
 
 
 @app.get("/manifest.json")
@@ -101,7 +102,7 @@ async def start_job(request: str = Form(...), music: UploadFile = File(...)):
     job_id = uuid.uuid4().hex
     folder = WORK_FOLDER / job_id
     folder.mkdir(parents=True)
-    music_path = folder / "music.ogg"
+    music_path = folder / ("music.ogg" if music.content_type == "audio/ogg" else "music.wav")
     music_path.write_bytes(await music.read())
     status_by_job_id[job_id] = {"state": "queued", "retryAfterSeconds": 5}
     threading.Thread(target=run_job, args=(job_id, json.loads(request), music_path), daemon=True).start()
@@ -159,7 +160,7 @@ address in Sync under **Generators** and make a song from there.
 
 ## Checklist
 
-- [ ] Manifest has `kind: "generator"`, the difficulties you really make, `audio/ogg` in `musicTypes`.
+- [ ] Manifest has `kind: "generator"`, the difficulties you really make, `audio/wav` in `musicTypes`.
 - [ ] `POST /jobs` answers at once; the work runs in the background; status answers never hang.
 - [ ] Every finished song has a `chart` file with a `dance-single` chart per difficulty asked, `#OFFSET` and `#BPMS`.
 - [ ] File URLs are absolute and stay valid for an hour.

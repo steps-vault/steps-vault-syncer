@@ -28,4 +28,4 @@ publishes it, how old it is and how widely it is used. pnpm refuses versions you
 ## Rules that never change
 
 Read the "Rules that never bend" in [docs/plan.md](docs/plan.md): never touch the player's own folders, never send
-music, addons see song facts only, and every song has one clear status.
+music unasked, addons see song facts only, and every song has one clear status.

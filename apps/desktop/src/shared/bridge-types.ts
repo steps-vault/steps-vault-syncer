@@ -6,14 +6,28 @@ import type {
   AddonView,
   FinishedSyncView,
   FoundGameView,
+  GeneratedSongView,
+  GeneratorInstallPreview,
+  GeneratorJobView,
+  GeneratorLookupResult,
+  GeneratorView,
   LayoutPreviewsByLayout,
+  MakeSongRequest,
+  MakeSongResult,
+  MusicChoiceView,
   MusicFolderView,
   PickedFileView,
+  ServiceLookupRequest,
   SongAction,
   SongDetailsView,
   SongRowView,
+  SongSourceSearchRequest,
+  SongSourceSearchResult,
+  SongSourceTabView,
+  StepsVaultGeneratorView,
   SyncRunView,
   TrayStatus,
+  VaultChoiceAnswer,
 } from '@stepsvault/sync-ui';
 
 export type DesktopSignIn =
@@ -34,6 +48,12 @@ export interface DesktopSyncState {
   scannedFileCount: number | null;
   pickedFiles: PickedFileView[];
   addons: AddonView[];
+  stepsVaultGenerator: StepsVaultGeneratorView;
+  generators: GeneratorView[];
+  /** One tab on the Make a song page per song-source addon that is on. */
+  songSourceTabs: SongSourceTabView[];
+  generatorJobs: GeneratorJobView[];
+  generatedSongs: GeneratedSongView[];
   layout: FolderLayout;
   previewsByLayout: LayoutPreviewsByLayout;
   movingSongCountsByLayout: Record<FolderLayout, number>;
@@ -67,25 +87,47 @@ export interface DesktopSyncBridge {
   dismissFinishedSync(): Promise<void>;
   setBackgroundSync(isOn: boolean): Promise<void>;
   runSongAction(request: { vaultSongId: string; action: SongAction }): Promise<void>;
-  lookUpAddon(address: string): Promise<AddonLookupResult>;
+  /** A start command is confirmed by the player in the app's own dialog before Sync ever runs it. */
+  lookUpAddon(request: ServiceLookupRequest): Promise<AddonLookupResult>;
   installAddon(preview: AddonInstallPreview): Promise<void>;
   setAddonEnabled(request: { addonId: string; isEnabled: boolean }): Promise<void>;
   setAddonOption(request: { addonId: string; optionId: string; value: string }): Promise<void>;
   removeAddon(addonId: string): Promise<void>;
+  lookUpGenerator(request: ServiceLookupRequest): Promise<GeneratorLookupResult>;
+  installGenerator(preview: GeneratorInstallPreview): Promise<void>;
+  removeGenerator(generatorId: string): Promise<void>;
+  setGeneratorOption(request: { generatorId: string; optionId: string; value: string }): Promise<void>;
+  /** Opens the app's own file dialog; the window gets a musicId, never a path. */
+  chooseMusicFileForSong(): Promise<MusicChoiceView | null>;
+  searchMusicFolders(query: string): Promise<MusicChoiceView[]>;
+  findSongWithSource(request: SongSourceSearchRequest): Promise<SongSourceSearchResult>;
+  stopFindingSong(): Promise<void>;
+  makeSong(request: MakeSongRequest): Promise<MakeSongResult>;
+  cancelGeneratorJob(jobKey: string): Promise<void>;
+  answerVaultChoice(answer: VaultChoiceAnswer): Promise<void>;
+  dismissGeneratorJob(jobKey: string): Promise<void>;
+  fetchGeneratedSongReport(songKey: string): Promise<string | null>;
   setLayout(layout: FolderLayout): Promise<void>;
   copyActivityDetails(): Promise<void>;
   restartToUpdate(): Promise<void>;
   dismissUpdate(): Promise<void>;
 }
 
-/** The hidden audio window's side: decode and match, or convert to WAV. */
+/**
+ * The hidden window's side: decode and match, convert to WAV, measure a song's length, or draw a plain picture (the
+ * window has Chromium's canvas, so no drawing library is needed).
+ */
 export type AudioJob =
   | { jobId: number; kind: 'check'; sourceId: string; bytes: Uint8Array; fingerprint: number[]; fingerprintRateHertz: number }
-  | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array };
+  | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array }
+  | { jobId: number; kind: 'measure'; bytes: Uint8Array }
+  | { jobId: number; kind: 'make-picture'; width: number; height: number; title: string; artist: string };
 
 export type AudioJobResult =
   | { jobId: number; kind: 'check'; match: { kind: 'matched'; sourceId: string; shiftSeconds: number } | { kind: 'different-edit'; sourceId: string } }
   | { jobId: number; kind: 'convert-to-wav'; bytes: Uint8Array }
+  | { jobId: number; kind: 'measure'; lengthSeconds: number }
+  | { jobId: number; kind: 'make-picture'; bytes: Uint8Array }
   | { jobId: number; kind: 'failed'; message: string };
 
 export const BRIDGE_CHANNEL_PREFIX = 'stepsvault-sync:';
@@ -111,6 +153,19 @@ export const BRIDGE_METHOD_NAMES = [
   'setAddonEnabled',
   'setAddonOption',
   'removeAddon',
+  'lookUpGenerator',
+  'installGenerator',
+  'removeGenerator',
+  'setGeneratorOption',
+  'chooseMusicFileForSong',
+  'searchMusicFolders',
+  'findSongWithSource',
+  'stopFindingSong',
+  'makeSong',
+  'cancelGeneratorJob',
+  'answerVaultChoice',
+  'dismissGeneratorJob',
+  'fetchGeneratedSongReport',
   'setLayout',
   'copyActivityDetails',
   'restartToUpdate',

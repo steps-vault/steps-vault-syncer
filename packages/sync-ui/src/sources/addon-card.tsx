@@ -49,6 +49,9 @@ function AddonState({ addon }: { addon: AddonView }): ReactElement {
   if (!addon.isEnabled) {
     return <div className="sv-sync-addon-state sv-sync-subtle"><Icon name="none" size={14} strokeWidth={2.4} />Turned off — not asked for audio</div>;
   }
+  if (addon.isAudioSource === false) {
+    return <div className="sv-sync-addon-state sv-sync-subtle"><Icon name="sparkle" size={14} strokeWidth={2.4} />Not an audio source — it brings new songs to make on the Generators page</div>;
+  }
   if (addon.health.kind === 'not-answering') {
     return <div className="sv-sync-addon-state sv-sync-warning-text"><Icon name="note" size={14} strokeWidth={2.4} />{addon.health.note}</div>;
   }

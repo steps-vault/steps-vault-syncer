@@ -1,5 +1,5 @@
-import type { FolderLayout } from '@stepsvault/sync-core';
-import type { AddonInstallPreview, AddonOptionView, SongAction } from '@stepsvault/sync-ui';
+import { GENERATOR_DIFFICULTIES, type FolderLayout, type GeneratorDifficulty, type VaultSongChoice } from '@stepsvault/sync-core';
+import type { AddonInstallPreview, AddonOptionView, GeneratorInstallPreview, MakeSongRequest, ServiceLocationView, ServiceLookupRequest, SongAction, SongSourceSearchRequest, VaultChoiceAnswer } from '@stepsvault/sync-ui';
 import type { DesktopSyncBridge } from '../shared/bridge-types';
 import type { SyncController } from './sync-controller';
 
@@ -10,6 +10,8 @@ const SONG_ACTIONS: readonly string[] = ['sync', 'choose-audio', 'use-different-
 const MAX_TEXT_LENGTH = 2_000;
 const MAX_ADDON_OPTIONS = 8;
 const MAX_ADDON_OPTION_CHOICES = 6;
+const MAX_SONG_SOURCE_INPUTS = 3;
+const VAULT_SONG_CHOICES: readonly string[] = ['keep-vault-song', 'keep-generated-song'];
 
 export class InvalidBridgeArgumentError extends Error {}
 
@@ -31,16 +33,86 @@ export function buildBridgeHandlers(controller: SyncController): BridgeHandlers 
     dismissFinishedSync: () => controller.dismissFinishedSync(),
     setBackgroundSync: (argument) => controller.setBackgroundSync(getBoolean(argument)),
     runSongAction: (argument) => controller.runSongAction(getSongActionRequest(argument)),
-    lookUpAddon: (argument) => controller.lookUpAddon(getText(argument)),
+    lookUpAddon: (argument) => controller.lookUpAddon(getLookupRequest(argument)),
     installAddon: (argument) => controller.installAddon(getAddonPreview(argument)),
     setAddonEnabled: (argument) => controller.setAddonEnabled(getAddonToggle(argument)),
     setAddonOption: (argument) => controller.setAddonOption(getAddonOptionChange(argument)),
     removeAddon: (argument) => controller.removeAddon(getText(argument)),
+    lookUpGenerator: (argument) => controller.lookUpGenerator(getLookupRequest(argument)),
+    installGenerator: (argument) => controller.installGenerator(getGeneratorPreview(argument)),
+    removeGenerator: (argument) => controller.removeGenerator(getText(argument)),
+    setGeneratorOption: (argument) => controller.setGeneratorOption(getGeneratorOptionChange(argument)),
+    chooseMusicFileForSong: () => controller.chooseMusicFileForSong(),
+    searchMusicFolders: (argument) => controller.searchMusicFolders(getText(argument)),
+    findSongWithSource: (argument) => controller.findSongWithSource(getSongSourceSearch(argument)),
+    stopFindingSong: () => controller.stopFindingSong(),
+    makeSong: (argument) => controller.makeSong(getMakeSongRequest(argument)),
+    cancelGeneratorJob: (argument) => controller.cancelGeneratorJob(getText(argument)),
+    answerVaultChoice: (argument) => controller.answerVaultChoice(getVaultChoiceAnswer(argument)),
+    dismissGeneratorJob: (argument) => controller.dismissGeneratorJob(getText(argument)),
+    fetchGeneratedSongReport: (argument) => controller.fetchGeneratedSongReport(getText(argument)),
     setLayout: (argument) => controller.setLayout(getLayout(argument)),
     copyActivityDetails: () => controller.copyActivityDetails(),
     restartToUpdate: () => controller.restartToUpdate(),
     dismissUpdate: () => controller.dismissUpdate(),
   };
+}
+
+function getTextOrNull(value: unknown): string | null {
+  return value === null ? null : getText(value);
+}
+
+function getLookupRequest(value: unknown): ServiceLookupRequest {
+  const request = getRecord(value);
+  return { address: getText(request.address), startCommand: getTextOrNull(request.startCommand) };
+}
+
+/** Only the address and the option picks are used: the controller takes everything else from the manifest it read. */
+function getGeneratorPreview(value: unknown): GeneratorInstallPreview {
+  const preview = getRecord(value);
+  return {
+    address: getText(preview.address), name: getText(preview.name), version: getText(preview.version), author: getText(preview.author), description: getText(preview.description),
+    location: getServiceLocation(preview.location), difficulties: getDifficulties(preview.difficulties), options: getList({ value: preview.options, maxLength: MAX_ADDON_OPTIONS }).map(getAddonOptionView), startCommand: getTextOrNull(preview.startCommand),
+  };
+}
+
+function getServiceLocation(value: unknown): ServiceLocationView {
+  const location = getRecord(value);
+  if (location.kind === 'this-computer') return { kind: 'this-computer' };
+  if (location.kind === 'internet') return { kind: 'internet', address: getText(location.address) };
+  throw new InvalidBridgeArgumentError('Expected where the generator runs.');
+}
+
+function getDifficulties(value: unknown): GeneratorDifficulty[] {
+  const difficulties = getList({ value, maxLength: GENERATOR_DIFFICULTIES.length });
+  return difficulties.map((difficulty) => {
+    const knownDifficulty = GENERATOR_DIFFICULTIES.find((candidate) => candidate === difficulty);
+    if (!knownDifficulty) throw new InvalidBridgeArgumentError('Expected a difficulty.');
+    return knownDifficulty;
+  });
+}
+
+function getGeneratorOptionChange(value: unknown): { generatorId: string; optionId: string; value: string } {
+  const change = getRecord(value);
+  return { generatorId: getText(change.generatorId), optionId: getText(change.optionId), value: getText(change.value) };
+}
+
+function getSongSourceSearch(value: unknown): SongSourceSearchRequest {
+  const search = getRecord(value);
+  const entries = Object.entries(getRecord(search.valuesByInputId));
+  if (entries.length > MAX_SONG_SOURCE_INPUTS) throw new InvalidBridgeArgumentError(`Expected at most ${String(MAX_SONG_SOURCE_INPUTS)} fields.`);
+  return { addonId: getText(search.addonId), valuesByInputId: Object.fromEntries(entries.map(([inputId, text]) => [getText(inputId), getText(text)])) };
+}
+
+function getMakeSongRequest(value: unknown): MakeSongRequest {
+  const request = getRecord(value);
+  return { musicId: getText(request.musicId), generatorId: getText(request.generatorId), difficulties: getDifficulties(request.difficulties), hasAgreedToMusicUpload: getBoolean(request.hasAgreedToMusicUpload) };
+}
+
+function getVaultChoiceAnswer(value: unknown): VaultChoiceAnswer {
+  const answer = getRecord(value);
+  if (typeof answer.choice !== 'string' || !VAULT_SONG_CHOICES.includes(answer.choice)) throw new InvalidBridgeArgumentError('Expected the vault song or the generated one.');
+  return { jobKey: getText(answer.jobKey), choice: answer.choice as VaultSongChoice };
 }
 
 function getText(value: unknown): string {

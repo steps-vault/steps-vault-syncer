@@ -1,5 +1,4 @@
-import { loadSavedAddon, type FolderLayout, type InstalledAddon } from '@stepsvault/sync-core';
-import type { ActivityEvent } from '@stepsvault/sync-core';
+import { isOnThisComputer, loadSavedAddon, loadSavedGenerator, type ActivityLogEvent, type FolderLayout, type InstalledAddon, type InstalledGenerator } from '@stepsvault/sync-core';
 
 export const DEFAULT_SITE_URL = 'https://stepsvault.com';
 const MAX_ACTIVITY_EVENTS = 300;
@@ -16,11 +15,17 @@ export interface DesktopSettings {
   /** Files the player chose with "Choose audio…", by vault song id. */
   pickedFilePathsBySongId: Record<string, string>;
   addons: InstalledAddon[];
+  /** Community generators, each with the time the player agreed to send it their music (when it isn't on this computer). */
+  generators: InstalledGenerator[];
+  /** When the player agreed that their music goes to StepsVault's own generator; null until then. */
+  stepsVaultMusicUploadConsentedAt: string | null;
+  /** The start command the player typed and confirmed for an addon or generator on this computer, by its address. */
+  startCommandsByBaseUrl: Record<string, string>;
   replaceEditedSongIds: string[];
   removeFromGameSongIds: string[];
   updateSongIds: string[];
   /** Newest last, at most MAX_ACTIVITY_EVENTS. */
-  activity: ActivityEvent[];
+  activity: ActivityLogEvent[];
   lastSyncAt: string | null;
 }
 
@@ -34,6 +39,9 @@ export function buildDefaultSettings(): DesktopSettings {
     isBackgroundSyncOn: true,
     pickedFilePathsBySongId: {},
     addons: [],
+    generators: [],
+    stepsVaultMusicUploadConsentedAt: null,
+    startCommandsByBaseUrl: {},
     replaceEditedSongIds: [],
     removeFromGameSongIds: [],
     updateSongIds: [],
@@ -56,15 +64,19 @@ export function parseSettings(value: unknown): DesktopSettings {
     isBackgroundSyncOn: saved.isBackgroundSyncOn !== false,
     pickedFilePathsBySongId: getStringsByKey(saved.pickedFilePathsBySongId),
     addons: Array.isArray(saved.addons) ? saved.addons.flatMap((addon) => loadSavedAddon(addon) ?? []) : [],
+    generators: Array.isArray(saved.generators) ? saved.generators.flatMap((generator) => loadSavedGenerator(generator) ?? []) : [],
+    stepsVaultMusicUploadConsentedAt: typeof saved.stepsVaultMusicUploadConsentedAt === 'string' ? saved.stepsVaultMusicUploadConsentedAt : null,
+    // A start command runs a program, so only one for an address on this computer is ever kept.
+    startCommandsByBaseUrl: Object.fromEntries(Object.entries(getStringsByKey(saved.startCommandsByBaseUrl)).filter(([baseUrl]) => isOnThisComputer(baseUrl))),
     replaceEditedSongIds: getStrings(saved.replaceEditedSongIds),
     removeFromGameSongIds: getStrings(saved.removeFromGameSongIds),
     updateSongIds: getStrings(saved.updateSongIds),
-    activity: Array.isArray(saved.activity) ? (saved.activity as ActivityEvent[]).slice(-MAX_ACTIVITY_EVENTS) : [],
+    activity: Array.isArray(saved.activity) ? (saved.activity as ActivityLogEvent[]).slice(-MAX_ACTIVITY_EVENTS) : [],
     lastSyncAt: typeof saved.lastSyncAt === 'string' ? saved.lastSyncAt : null,
   };
 }
 
-export function withActivity({ settings, events }: { settings: DesktopSettings; events: readonly ActivityEvent[] }): DesktopSettings {
+export function withActivity({ settings, events }: { settings: DesktopSettings; events: readonly ActivityLogEvent[] }): DesktopSettings {
   return { ...settings, activity: [...settings.activity, ...events].slice(-MAX_ACTIVITY_EVENTS) };
 }
 

@@ -1,7 +1,8 @@
 # StepsVault Sync — plan
 
 StepsVault Sync puts the songs in a player's StepsVault vault into their own StepMania `Songs` folder, using **the
-player's own copy of each song's music**, and lines the steps up with that copy. StepsVault never sends anyone music.
+player's own copy of each song's music**, and lines the steps up with that copy. Sync sends a player's music only to a generator the player chose, after telling
+them where it goes.
 
 The screens are designed on the StepsVault design canvas (page "v2", boards "Sync 1" to "Sync 7" and "Sync — states").
 The written spec lives with the website and is summarised here.
@@ -40,11 +41,13 @@ The website (a private repo) installs `sync-core` and `sync-ui` from npm under t
    It knows them from two things that must agree: its own record of installed songs, and a marker file
    `.stepsvault.json` inside each song folder it writes. If the player changed a chart file, the song becomes
    "You edited this", and Sync never overwrites it unless the player chooses "Replace".
-2. **We never send music.** Sync downloads steps (`.ssc`, images) and the song's fingerprint (its onset envelope:
-   how strongly new sounds start, 100 times a second). The player's music is read on their computer only. It is
-   copied into the song folder, and never uploaded anywhere.
-3. **Addons see song facts only**: title, artist, album, genre, length and the YouTube link. They never see the
-   player's account, files or anything else. The player agrees once per addon. StepsVault lists no addons and
+2. **We never send music unasked.** Sync downloads steps (`.ssc`, images) and the song's fingerprint (its onset
+   envelope: how strongly new sounds start, 100 times a second). The player's music is read on their computer and
+   copied into the song folder. The only time it leaves the computer is when the player makes a song with a generator
+   that isn't on their computer (StepsVault's included): Sync first says "Your music file will be sent to <address>"
+   and goes on only when the player agrees.
+3. **Addons see song facts only**: title, artist, album, genre, length and the YouTube link, plus what the player
+   types into a song source's fields. They never see the player's account, files or anything else. The player agrees once per addon. StepsVault lists no addons and
    promotes none.
 4. **One clear status per song** (icon + word, never colour alone): Synced, Syncing…, Needs audio, Different edit,
    Update available, You edited this, Removed from vault.

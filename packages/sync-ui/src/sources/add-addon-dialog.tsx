@@ -2,24 +2,29 @@ import { useState, type FormEvent, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
 import { Icon } from '../icons/icon';
 import { Note } from '../shared/small-parts';
-import type { AddonInstallPreview, AddonLookupResult, AddonOptionView } from '../sync-ui-types';
+import type { AddonInstallPreview, AddonLookupResult, AddonOptionView, ServiceLookupRequest } from '../sync-ui-types';
 import { getAddonInitials } from './addon-card';
 import { AddonOptionFields } from './addon-option-fields';
+import { AddressError, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote } from './start-command-field';
 
 /** The only song facts an addon ever receives (plan.md, "Addons see song facts only"). */
 export const ADDON_VISIBLE_SONG_FACTS = 'title, artist, album, genre, length, and the song’s YouTube link.';
 export const ADDON_NEVER_SEES = 'your account, or anything else on your computer.';
+/** What a song source also sees (addons.md, "Song sources"). */
+export const SONG_SOURCE_SEES = 'what you type in its tab on the Make a song page, such as a link or a search.';
 const TRUST_NOTE = 'Addons are made by other people, not StepsVault. Only install ones you trust.';
-const ADDON_ADDRESS_PATTERN = /^https:\/\/\S+\.\S+/;
 const LOOKUP_FAILED_MESSAGE = 'We couldn’t reach that addon. Check the address with whoever made it, then try again.';
 
+/** https, or http://127.0.0.1 and http://localhost for an addon on this computer. */
 export function isAddonAddress(address: string): boolean {
-  return ADDON_ADDRESS_PATTERN.test(address.trim());
+  return isServiceAddress(address);
 }
 
 export interface AddAddonDialogProps {
   /** Reads the addon's own description from its address. The dialog only shows the answer. */
-  onLookUpAddon: (address: string) => Promise<AddonLookupResult>;
+  onLookUpAddon: (request: ServiceLookupRequest) => Promise<AddonLookupResult>;
+  /** Desktop only: offer a start command for an addon on this computer. */
+  canUseStartCommand?: boolean;
   /** Gets the preview with the options the player picked on the consent step. */
   onInstall: (addon: AddonInstallPreview) => void;
   onClose: () => void;
@@ -28,34 +33,38 @@ export interface AddAddonDialogProps {
 type DialogStep = { kind: 'address' } | { kind: 'consent'; addon: AddonInstallPreview };
 
 /** Step 1: the address. Step 2: exactly what the addon will see, before anything is installed. */
-export function AddAddonDialog({ onLookUpAddon, onInstall, onClose }: AddAddonDialogProps): ReactElement {
+export function AddAddonDialog({ onLookUpAddon, canUseStartCommand = false, onInstall, onClose }: AddAddonDialogProps): ReactElement {
   const [step, setStep] = useState<DialogStep>({ kind: 'address' });
   return (
     <SyncDialog titleId="sv-sync-add-addon-title" onClose={onClose} focusKey={step.kind}>
       {step.kind === 'address'
-        ? <AddressStep onLookUpAddon={onLookUpAddon} onFound={(addon) => { setStep({ kind: 'consent', addon }); }} onCancel={onClose} />
+        ? <AddressStep onLookUpAddon={onLookUpAddon} canUseStartCommand={canUseStartCommand} onFound={(addon) => { setStep({ kind: 'consent', addon }); }} onCancel={onClose} />
         : <ConsentStep addon={step.addon} onInstall={onInstall} onCancel={onClose} />}
     </SyncDialog>
   );
 }
 
 interface AddressStepProps {
-  onLookUpAddon: (address: string) => Promise<AddonLookupResult>;
+  onLookUpAddon: (request: ServiceLookupRequest) => Promise<AddonLookupResult>;
+  canUseStartCommand: boolean;
   onFound: (addon: AddonInstallPreview) => void;
   onCancel: () => void;
 }
 
-function AddressStep({ onLookUpAddon, onFound, onCancel }: AddressStepProps): ReactElement {
+function AddressStep({ onLookUpAddon, canUseStartCommand, onFound, onCancel }: AddressStepProps): ReactElement {
   const [address, setAddress] = useState('https://');
+  const [startCommandText, setStartCommandText] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
+  const isOnThisComputer = canUseStartCommand && isThisComputerAddress(address);
   const lookUp = async (): Promise<void> => {
     if (!isAddonAddress(address)) {
       setErrorMessage('That doesn’t look like a web address. It should start with https://');
       return;
     }
     setIsLookingUp(true);
-    const result = await onLookUpAddon(address.trim()).catch((): AddonLookupResult => ({ kind: 'failed', message: LOOKUP_FAILED_MESSAGE }));
+    const request = { address: address.trim(), startCommand: isOnThisComputer ? getStartCommandOrNull(startCommandText) : null };
+    const result = await onLookUpAddon(request).catch((): AddonLookupResult => ({ kind: 'failed', message: LOOKUP_FAILED_MESSAGE }));
     setIsLookingUp(false);
     if (result.kind === 'failed') setErrorMessage(result.message);
     else onFound(result.addon);
@@ -73,7 +82,8 @@ function AddressStep({ onLookUpAddon, onFound, onCancel }: AddressStepProps): Re
         Addon address (URL)
         <input className="sv-sync-field sv-sync-mono" type="url" value={address} placeholder="https://" data-autofocus aria-invalid={errorMessage !== null} aria-describedby={errorMessage === null ? undefined : 'sv-sync-addon-address-error'} onChange={(event) => { setAddress(event.target.value); setErrorMessage(null); }} />
       </label>
-      {errorMessage !== null && <div id="sv-sync-addon-address-error" className="sv-sync-small sv-sync-error-text sv-sync-row" role="alert"><Icon name="warning" size={14} />{errorMessage}</div>}
+      {errorMessage !== null && <AddressError id="sv-sync-addon-address-error" message={errorMessage} />}
+      {isOnThisComputer && <StartCommandField serviceName="addon" value={startCommandText} onChange={setStartCommandText} />}
       <Note className="sv-sync-small">{TRUST_NOTE}</Note>
       <div className="sv-sync-dialog-buttons">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel}>Cancel</button>
@@ -101,7 +111,10 @@ function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPrevie
       </div>
       <div className="sv-sync-consent" role="group" aria-label="What this addon will see">
         <b>This addon will see, for the songs you sync:</b>
-        <ul><li className="sv-sync-consent-yes"><Icon name="check" strokeWidth={2.8} /><span>{ADDON_VISIBLE_SONG_FACTS}</span></li></ul>
+        <ul>
+          <li className="sv-sync-consent-yes"><Icon name="check" strokeWidth={2.8} /><span>{ADDON_VISIBLE_SONG_FACTS}</span></li>
+          {addon.seesWhatYouType === true && <li className="sv-sync-consent-yes"><Icon name="check" strokeWidth={2.8} /><span>{SONG_SOURCE_SEES}</span></li>}
+        </ul>
         <b>It never sees:</b>
         <ul><li className="sv-sync-consent-no"><Icon name="close" strokeWidth={2.8} /><span>{ADDON_NEVER_SEES}</span></li></ul>
       </div>
@@ -112,6 +125,7 @@ function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPrevie
           <AddonOptionFields addonName={addon.name} options={options} onChange={handleOptionChange} />
         </div>
       )}
+      {addon.startCommand && <StartCommandNote startCommand={addon.startCommand} />}
       <Note className="sv-sync-small">{TRUST_NOTE}</Note>
       <div className="sv-sync-dialog-buttons">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>

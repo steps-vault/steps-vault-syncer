@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_MUSIC_FOLDERS, FAKE_PICKED_FILES } from '../fake-data/fake-sync-data';
 import type { AddonLookupResult } from '../sync-ui-types';
-import { ADDON_NEVER_SEES, ADDON_VISIBLE_SONG_FACTS, AddAddonDialog, isAddonAddress } from './add-addon-dialog';
+import { ADDON_NEVER_SEES, ADDON_VISIBLE_SONG_FACTS, AddAddonDialog, isAddonAddress, SONG_SOURCE_SEES } from './add-addon-dialog';
 import { AudioSourcesScreen, type AudioSourcesScreenProps } from './audio-sources-screen';
 
 function renderAudioSources(overrides: Partial<AudioSourcesScreenProps> = {}): AudioSourcesScreenProps {
@@ -131,11 +131,41 @@ describe('AudioSourcesScreen', () => {
   });
 });
 
+describe('song-source addons and programs on this computer', () => {
+  it('labels an addon that only brings new songs, since it is never asked for audio', () => {
+    renderAudioSources();
+    expect(screen.getByRole('article', { name: 'Tube Songs' }).textContent).toContain('Not an audio source');
+  });
+
+  it('says a song source also sees what the player types', async () => {
+    render(<AddAddonDialog onLookUpAddon={() => Promise.resolve({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, seesWhatYouType: true } })} onInstall={vi.fn()} onClose={vi.fn()} />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Addon address (URL)' }), { target: { value: FAKE_ADDON_PREVIEW.address } });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Continue' })); await Promise.resolve(); });
+    const seenItems = within(screen.getByLabelText('What this addon will see')).getAllByRole('listitem').map((item) => item.textContent);
+    expect(seenItems).toEqual([ADDON_VISIBLE_SONG_FACTS, SONG_SOURCE_SEES, ADDON_NEVER_SEES]);
+  });
+
+  it('offers a start command only in the desktop app, for an addon on this computer', async () => {
+    const onLookUpAddon = vi.fn(() => Promise.resolve<AddonLookupResult>({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, startCommand: 'C:/addons/tube/start.cmd' } }));
+    render(<AddAddonDialog onLookUpAddon={onLookUpAddon} canUseStartCommand onInstall={vi.fn()} onClose={vi.fn()} />);
+    const addressField = screen.getByRole('textbox', { name: 'Addon address (URL)' });
+    expect(screen.queryByRole('textbox', { name: 'Start command (optional)' })).toBeNull();
+    fireEvent.change(addressField, { target: { value: 'http://127.0.0.1:7801' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Start command (optional)' }), { target: { value: 'C:/addons/tube/start.cmd' } });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Continue' })); await Promise.resolve(); });
+    expect(onLookUpAddon).toHaveBeenCalledWith({ address: 'http://127.0.0.1:7801', startCommand: 'C:/addons/tube/start.cmd' });
+    expect(screen.getByRole('dialog').textContent).toContain('Sync starts it when needed with C:/addons/tube/start.cmd');
+  });
+});
+
 describe('isAddonAddress', () => {
   it.each([
     ['https://bridge.example/stepsvault', true],
     ['  https://bridge.example  ', true],
     ['http://bridge.example', false],
+    ['http://localhost:7801', true],
+    ['http://127.0.0.1:7801/addon', true],
+    ['http://localhost.example.org', false],
     ['https://', false],
     ['bridge.example', false],
   ])('%j → %j', (address, isValid) => {

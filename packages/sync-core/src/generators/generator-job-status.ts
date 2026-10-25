@@ -2,7 +2,7 @@ import type { HttpResponse } from '../network/http-client';
 import { getRetryAfterSeconds } from '../network/retry-after';
 import { isAllowedServiceLinkUrl, isOnThisComputer } from '../network/service-address';
 import { GeneratorError } from './generator-error';
-import { getGeneratorErrorSentence, MAX_GENERATOR_MUSIC_BYTES, MAX_GENERATOR_VIDEO_BYTES, type GeneratorReference } from './generator-protocol';
+import { getGeneratorErrorSentence, getVaultSongIdOrNull, MAX_GENERATOR_MUSIC_BYTES, MAX_GENERATOR_VIDEO_BYTES, type GeneratorReference } from './generator-protocol';
 
 const MAX_STAGE_LENGTH = 60;
 const MAX_FILE_LINKS = 20;
@@ -32,17 +32,20 @@ export type GeneratorJobStatus =
   | { state: 'queued' | 'working'; progress: number | null; stage: string | null; retryAfterSeconds: number }
   /** The message is a full sentence for the player, with the generator's own reason when it gave one. */
   | { state: 'failed'; message: string }
-  /** Always has exactly one chart; at most one file of each other kind. */
-  | { state: 'done'; files: GeneratorFileLink[] };
+  /**
+   * At most one file of each kind, always with a chart unless vaultSongId is set. vaultSongId: the vault song StepsVault's
+   * own generator made (null from any other generator, which can't plant a vault song).
+   */
+  | { state: 'done'; files: GeneratorFileLink[]; vaultSongId: string | null };
 
-export function parseJobStatusAnswer({ answer, generator }: { answer: HttpResponse<unknown>; generator: GeneratorReference }): GeneratorJobStatus {
+export function parseJobStatusAnswer({ answer, generator, isFromStepsVault = false }: { answer: HttpResponse<unknown>; generator: GeneratorReference; isFromStepsVault?: boolean }): GeneratorJobStatus {
   const { status, body } = answer;
   if (status === 404) throw new GeneratorError({ reason: 'job-lost', message: `${generator.name} no longer knows this song, maybe because it restarted. Make the song again.` });
   if (status !== 200) throw new GeneratorError({ reason: 'not-answering', message: `${generator.name} isn’t answering (${status}). Check that it is running, then make the song again.` });
   if (!isRecord(body)) throw buildInvalidAnswerError(generator);
   if (body.state === 'queued' || body.state === 'working') return parseWaitingStatus({ state: body.state, body });
   if (body.state === 'failed') return { state: 'failed', message: describeFailedJob({ body, generator }) };
-  if (body.state === 'done') return { state: 'done', files: parseFileLinks({ value: body.files, generator }) };
+  if (body.state === 'done') return parseDoneStatus({ body, generator, isFromStepsVault });
   throw buildInvalidAnswerError(generator);
 }
 
@@ -73,15 +76,22 @@ function describeFailedJob({ body, generator }: { body: unknown; generator: Gene
   return `${generator.name} couldn’t make this song. Try again, or ask its maker why.`;
 }
 
+/** A song StepsVault's generator put in the vault installs from the vault, so its files aren't needed. */
+function parseDoneStatus({ body, generator, isFromStepsVault }: { body: Record<string, unknown>; generator: GeneratorReference; isFromStepsVault: boolean }): GeneratorJobStatus {
+  const vaultSongId = isFromStepsVault ? getVaultSongIdOrNull(body) : null;
+  if (vaultSongId !== null && !Array.isArray(body.files)) return { state: 'done', files: [], vaultSongId };
+  return { state: 'done', files: parseFileLinks({ value: body.files, generator, isChartNeeded: vaultSongId === null }), vaultSongId };
+}
+
 /** Unknown kinds are ignored, so a newer generator still works; a broken link or size refuses the whole song. */
-function parseFileLinks({ value, generator }: { value: unknown; generator: GeneratorReference }): GeneratorFileLink[] {
+function parseFileLinks({ value, generator, isChartNeeded }: { value: unknown; generator: GeneratorReference; isChartNeeded: boolean }): GeneratorFileLink[] {
   if (!Array.isArray(value)) throw buildInvalidAnswerError(generator);
   const files: GeneratorFileLink[] = [];
   for (const candidate of value.slice(0, MAX_FILE_LINKS)) {
     const file = parseFileLinkOrNull({ value: candidate, generator });
     if (file && !files.some((existing) => existing.kind === file.kind)) files.push(file);
   }
-  if (!files.some((file) => file.kind === 'chart')) throw buildMissingChartError(generator);
+  if (isChartNeeded && !files.some((file) => file.kind === 'chart')) throw buildMissingChartError(generator);
   return files;
 }
 

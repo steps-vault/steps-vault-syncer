@@ -33,6 +33,10 @@ const ACTIVITY_KIND_DISPLAYS: Readonly<Record<ActivityKind, ActivityKindDisplay>
   'moved': { iconName: 'folder', toneClassName: 'sv-sync-tone--update-available', filter: 'everything' },
   'connected': { iconName: 'check', toneClassName: 'sv-sync-tone--syncing', filter: 'everything' },
   'write-failed': { iconName: 'warning', toneClassName: 'sv-sync-tone--different-edit', filter: 'skipped' },
+  'generating': { iconName: 'spin', toneClassName: 'sv-sync-tone--syncing', filter: 'everything' },
+  'generated': { iconName: 'plus', toneClassName: 'sv-sync-tone--synced', filter: 'added' },
+  'generate-failed': { iconName: 'warning', toneClassName: 'sv-sync-tone--different-edit', filter: 'skipped' },
+  'generate-cancelled': { iconName: 'none', toneClassName: 'sv-sync-tone--removed-from-vault', filter: 'skipped' },
 };
 
 export function getVisibleActivityEntries({ entries, filter }: { entries: readonly ActivityEntryView[]; filter: ActivityFilter }): ActivityEntryView[] {

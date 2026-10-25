@@ -28,7 +28,8 @@ Never the player's account, name, other songs or anything else on their computer
 **Where the music goes.** A generator on the player's own computer (`http://127.0.0.1:<port>` or
 `http://localhost:<port>`) keeps the music on that computer. A generator at any other address receives the music file
 over the internet: before its first job, Sync tells the player exactly that ("Your music file will be sent to
-<address>") and goes on only when the player agrees.
+<address>") and goes on only when the player agrees. StepsVault's own generator is on the internet too, so it asks the
+same question before the first song.
 
 Sizes in this document: 1 MB is 1,048,576 bytes.
 
@@ -59,7 +60,7 @@ their jobs apart. A generator that needs its own accounts must handle them on it
   "author": "you",
   "description": "Steps on the music's onsets, arrows by simple rules.",
   "difficulties": ["Beginner", "Easy", "Medium", "Hard", "Challenge"],
-  "musicTypes": ["audio/ogg", "audio/mpeg", "audio/wav", "audio/flac"],
+  "musicTypes": ["audio/wav", "audio/ogg", "audio/mpeg", "audio/flac"],
   "usesVideo": false,
   "maxMusicBytes": 31457280,
   "options": []
@@ -69,8 +70,9 @@ their jobs apart. A generator that needs its own accounts must handle them on it
 - `kind`: always `generator` (an addon says `addon`).
 - `id`, `name`, `version`, `author`, `description`, `options`: the same rules as for addons (see `addons.md`).
 - `difficulties`: the ones it can make, at least one. Sync asks only for these.
-- `musicTypes`: the music file types it accepts; must include `audio/ogg`, because Sync converts the player's file to
-  Ogg Vorbis when it is a type the generator doesn't list.
+- `musicTypes`: the music file types it accepts; must include `audio/wav`. Sync sends the player's file as it is when
+  its type is listed, and otherwise decodes it to WAV (Sync has no encoder for other formats). A WAV is about 10 MB a
+  minute, so a generator that lists only WAV should allow a large `maxMusicBytes`.
 - `usesVideo`: `true` if it wants the video (to make its own background video). Sync sends it only then.
 - `maxMusicBytes` (optional): the largest music file it takes, at most 100 MB (the default). Sync refuses a bigger file
   before uploading anything.
@@ -96,7 +98,8 @@ Answers:
 
 - `202 { "jobId": "a1b2c3", "retryAfterSeconds": 10 }`. `jobId`: letters, digits, `-` and `_`, up to 64.
 - `409 { "error": "One short sentence", "vaultSongId": "…" }`: the song already exists, or someone is making it right
-  now. Only StepsVault's generator sends `vaultSongId`; Sync then adds that vault song instead, and no token is spent.
+  now. Only StepsVault's generator sends `vaultSongId`; Sync then adds that song to the player's vault
+  (`POST /api/sync/vault/<vaultSongId>`, free) and syncs, so it installs like any vault song, and no token is spent.
   Sync ignores a `vaultSongId` from any other generator.
 - Anything else means the generator couldn't take the job. An answer may carry `{ "error": "One short sentence" }`,
   which Sync shows the player.
@@ -128,6 +131,11 @@ a query (signed download links need one). A generator that isn't on the player's
 generator links only to its own address, with the same sign-in. A missing chart, a file over its size limit or a link
 that breaks these rules refuses the whole song.
 
+StepsVault's own generator also puts `"vaultSongId": "song_…"` in its `done` answer: the vault song it made, the same id
+as in Sync's vault list. Sync then adds that song to the player's vault and syncs, so it installs with the player's music
+like any vault song; it doesn't download the files, so this answer may leave out `files`. Sync ignores `vaultSongId` from
+any other generator, and finds the song by its title and artist when StepsVault's answer has none.
+
 ## `DELETE <address>/jobs/<jobId>`
 
 Sync calls it when the player cancels. Answer `200 { "cancelled": true }` when the job stopped, or
@@ -149,8 +157,8 @@ can't stop a song already being made: it still costs the token and still lands i
 
 ## Where generated songs go
 
-Songs from **StepsVault's generator** are vault songs: Sync adds them to the player's vault and installs them like
-any other vault song. The vault never makes the same song twice.
+Songs from **StepsVault's generator** are vault songs: StepsVault's `done` answer names the song (`vaultSongId`), and Sync
+adds it to the player's vault and installs it like any other vault song. The vault never makes the same song twice.
 
 Songs from a **community generator** go into the player's game, in the group **My generated songs**, one folder per
 song named in English letters (StepMania on Windows can't open other scripts). The folder is named from the song file's

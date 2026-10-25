@@ -11,6 +11,7 @@ interface NavigationItem {
 const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { screen: 'songs', label: 'Songs', iconName: 'note' },
   { screen: 'audio-sources', label: 'Audio sources', iconName: 'bars' },
+  { screen: 'generators', label: 'Generators', iconName: 'sparkle' },
   { screen: 'folder-layout', label: 'Folder layout', iconName: 'layout' },
   { screen: 'activity', label: 'Activity', iconName: 'clock' },
   { screen: 'account', label: 'Account', iconName: 'person' },
@@ -24,9 +25,12 @@ export interface SyncNavigationProps {
   hrefsByScreen?: Partial<Record<SyncScreen, string>>;
 }
 
-/** The website keeps the account in its own settings, so only the desktop app shows "Account" here. */
+// The website keeps the account in its own settings, and has no way yet to send music to a generator.
+const DESKTOP_ONLY_SCREENS: readonly SyncScreen[] = ['account', 'generators'];
+
+/** Only the desktop app shows "Account" and "Generators" here. */
 export function getNavigationItems(platform: SyncPlatform): readonly NavigationItem[] {
-  return platform === 'desktop' ? NAVIGATION_ITEMS : NAVIGATION_ITEMS.filter((item) => item.screen !== 'account');
+  return platform === 'desktop' ? NAVIGATION_ITEMS : NAVIGATION_ITEMS.filter((item) => !DESKTOP_ONLY_SCREENS.includes(item.screen));
 }
 
 export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScreen }: SyncNavigationProps): ReactElement {
