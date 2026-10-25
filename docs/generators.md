@@ -30,6 +30,8 @@ Never the player's account, name, other songs or anything else on their computer
 over the internet: before its first job, Sync tells the player exactly that ("Your music file will be sent to
 <address>") and goes on only when the player agrees.
 
+Sizes in this document: 1 MB is 1,048,576 bytes.
+
 ## Address
 
 `https://…`, or `http://127.0.0.1:<port>` / `http://localhost:<port>` on the player's own computer. No user name,
@@ -64,7 +66,8 @@ their jobs apart. A generator that needs its own accounts must handle them on it
 - `kind`: always `generator` (an addon has none).
 - `id`, `name`, `version`, `author`, `description`, `options`: the same rules as for addons (see `addons.md`).
 - `difficulties`: the ones it can make, at least one. Sync asks only for these.
-- `musicTypes`: the music file types it accepts. Sync converts to Ogg Vorbis when the player's file is another type.
+- `musicTypes`: the music file types it accepts; must include `audio/ogg`, because Sync converts the player's file to
+  Ogg Vorbis when it is a type the generator doesn't list.
 - `usesVideo`: `true` if it wants the video (to make its own background video). Sync sends it only then.
 - `maxMusicBytes` (optional): the largest music file it takes, at most 100 MB (the default). Sync refuses a bigger file
   before uploading anything.
@@ -91,6 +94,7 @@ Answers:
 - `202 { "jobId": "a1b2c3", "retryAfterSeconds": 10 }`. `jobId`: letters, digits, `-` and `_`, up to 64.
 - `409 { "error": "One short sentence", "vaultSongId": "…" }`: the song already exists, or someone is making it right
   now. Only StepsVault's generator sends `vaultSongId`; Sync then adds that vault song instead, and no token is spent.
+  Sync ignores a `vaultSongId` from any other generator.
 - Anything else means the generator couldn't take the job. An answer may carry `{ "error": "One short sentence" }`,
   which Sync shows the player.
 
@@ -104,6 +108,8 @@ Answers:
 - `progress` (optional): 0 to 1. `stage` (optional): up to 60 characters, shown as is.
 - `retryAfterSeconds`: when to ask again, 1 to 600; needed only while `queued` or `working`.
 - When `failed`: `error`, one short sentence for the player.
+- Sync waits up to 2 hours for a job. Three missed answers in a row (no answer, an error status, or a page that isn't
+  this JSON) end the wait; a `404` means the generator lost the job.
 - When `done`: `files`, a list of `{ "kind", "url", "bytes" }`:
 
 | `kind` | File | Needed |
@@ -114,8 +120,10 @@ Answers:
 | `music` | the music the chart was timed on, Ogg Vorbis | no: Sync uses the player's own file |
 | `report` | how the song was made, Markdown, at most 256 KB | no: shown under "How it was made" |
 
-File `url`s are absolute, follow the address rules (on the generator's own address for StepsVault's generator, which
-needs the same sign-in), and stay valid for at least an hour.
+File `url`s are absolute and stay valid for at least an hour. They follow the address rules, except that they may carry
+a query (signed download links need one). A generator that isn't on the player's computer may not link to it. StepsVault's
+generator links only to its own address, with the same sign-in. A missing chart, a file over its size limit or a link
+that breaks these rules refuses the whole song.
 
 ## `DELETE <address>/jobs/<jobId>`
 
