@@ -1,5 +1,5 @@
 import { fetchAudioLinks, isAddonSetToMusicOnly, type InstalledAddon } from '../addons/addon-client';
-import type { AddonSongFacts, AudioLink } from '../addons/addon-protocol';
+import { isAddonProviding, type AddonSongFacts, type AudioLink } from '../addons/addon-protocol';
 import type { HttpClient } from '../network/http-client';
 import type { AudioMatch } from '../planner/sync-plan-types';
 import { findMusicCandidates, type MusicIndex } from './music-library';
@@ -69,7 +69,7 @@ async function searchAddons(options: AudioSearchOptions): Promise<AudioSearchRes
   const pageLinks: AudioSearchResult['pageLinks'] = [];
   let isWaitingForAddon = false;
   let firstDifferentEdit: AudioMatch | null = null;
-  for (const addon of options.addons.filter((candidate) => candidate.isEnabled)) {
+  for (const addon of options.addons.filter((candidate) => candidate.isEnabled && isAddonProviding({ manifest: candidate.manifest, ability: 'audio-links' }))) {
     const answer = await fetchAudioLinks({ httpClient: options.httpClient, addon, song: options.song });
     if (answer.kind !== 'links') {
       isWaitingForAddon = true;

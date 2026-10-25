@@ -3,21 +3,29 @@ import { isAllowedPageUrl } from '../network/service-address';
 import { isAllowedAddonLinkUrl } from './addon-address';
 import type { AddonOptionValues } from './addon-options';
 import { parseManifestIdentity, type ManifestIdentity } from './manifest-identity';
+import { parseSongSourceInputs, type SongSourceInput } from './song-source-inputs';
 
 export const ADDON_PROTOCOL_VERSION = 1;
 const MAX_ADDON_ERROR_LENGTH = 300;
 const MAX_LINKS = 10;
 const MAX_LABEL_LENGTH = 80;
-const KNOWN_PROVIDES = ['audio-links', 'video-links'] as const;
+const KNOWN_PROVIDES = ['audio-links', 'video-links', 'song-source'] as const;
+// video-links only adds to audio-links, so on its own it gives Sync nothing to use.
+const USABLE_PROVIDES: readonly AddonProvides[] = ['audio-links', 'song-source'];
 
 export type AddonProvides = (typeof KNOWN_PROVIDES)[number];
 
 /** GET <address>/manifest.json */
 export interface AddonManifest extends ManifestIdentity {
   protocol: typeof ADDON_PROTOCOL_VERSION;
-  /** Always 'audio-links'; 'video-links' too when the addon can also give the song's video. */
   kind: 'addon';
+  /**
+   * 'audio-links' (music for a song in the vault, with 'video-links' its video too) and/or 'song-source' (a new song
+   * to make with a generator). Names Sync doesn't know are dropped.
+   */
   provides: readonly AddonProvides[];
+  /** The fields of the addon's "Make a song" tab: 1 to 3 when it provides 'song-source', otherwise none. */
+  inputs: readonly SongSourceInput[];
 }
 
 /**
@@ -79,17 +87,39 @@ export function parseAddonManifest(value: unknown): AddonManifest {
   if (value.kind !== 'addon') throw new InvalidAddonAnswerError('This address isn’t an addon (its manifest has no "kind": "addon"). Check the address with whoever made it.');
   const identityResult = parseManifestIdentity({ manifest: value, serviceName: 'addon' });
   if (identityResult.kind === 'invalid') throw new InvalidAddonAnswerError(identityResult.problem);
-  const provides = Array.isArray(value.provides) ? (value.provides as unknown[]) : [];
-  if (!provides.includes('audio-links')) throw new InvalidAddonAnswerError('This addon doesn’t provide audio links, so Sync can’t use it.');
-  return { protocol: ADDON_PROTOCOL_VERSION, kind: 'addon', ...identityResult.identity, provides: KNOWN_PROVIDES.filter((provided) => provides.includes(provided)) };
+  const provides = getKnownProvides(value.provides);
+  const inputs = provides.includes('song-source') ? parseSongSourceInputs(value.inputs) : [];
+  if (provides.includes('song-source') && inputs.length === 0) throw new InvalidAddonAnswerError('This addon brings new songs but has no valid field for you to fill in. Ask its maker to fix its inputs.');
+  return { protocol: ADDON_PROTOCOL_VERSION, kind: 'addon', ...identityResult.identity, provides, inputs };
+}
+
+/** True when the addon can do this, for example 'audio-links' before asking it for a song's music. */
+export function isAddonProviding({ manifest, ability }: { manifest: AddonManifest; ability: AddonProvides }): boolean {
+  return manifest.provides.includes(ability);
+}
+
+function getKnownProvides(value: unknown): AddonProvides[] {
+  const provides = Array.isArray(value) ? (value as unknown[]) : [];
+  const knownProvides = KNOWN_PROVIDES.filter((provided) => provides.includes(provided));
+  if (!knownProvides.some((provided) => USABLE_PROVIDES.includes(provided))) throw new InvalidAddonAnswerError('This addon doesn’t provide anything this version of Sync can use. Check for a Sync update, or ask the addon’s maker.');
+  return knownProvides;
 }
 
 export function parseAudioLinksAnswer({ status, body }: { status: number; body: unknown }): AudioLinksAnswer {
   if (status === 202) return { kind: 'working', retryAfterSeconds: getRetryAfterSeconds(body) };
   if (status !== 200 || !isRecord(body) || !Array.isArray(body.links)) throw new InvalidAddonAnswerError(`The addon answered with an error (${String(status)}).`);
-  const links = body.links.slice(0, MAX_LINKS).flatMap((link) => parseAudioLinkOrNothing(link));
-  const addonError = typeof body.error === 'string' ? body.error.slice(0, MAX_ADDON_ERROR_LENGTH) : null;
-  return { kind: 'links', links, addonError };
+  return { kind: 'links', links: parseAudioLinks(body.links), addonError: getAddonErrorOrNull(body.error) };
+}
+
+/** Links from an addon's answer: at most 10, keeping only those that follow the rules. */
+export function parseAudioLinks(value: readonly unknown[]): AudioLink[] {
+  return value.slice(0, MAX_LINKS).flatMap((link) => parseAudioLinkOrNothing(link));
+}
+
+/** The addon's own short sentence for the player, cut to 300 characters, or null when it sent none. */
+export function getAddonErrorOrNull(value: unknown): string | null {
+  const addonError = typeof value === 'string' ? value.trim() : '';
+  return addonError === '' ? null : addonError.slice(0, MAX_ADDON_ERROR_LENGTH);
 }
 
 /** A link that breaks the rules (http to another computer, a bad label) is dropped, not trusted. */

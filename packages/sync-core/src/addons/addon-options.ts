@@ -2,7 +2,8 @@ const MAX_OPTIONS = 8;
 const MIN_CHOICES = 2;
 const MAX_CHOICES = 6;
 const MAX_OPTION_LABEL_LENGTH = 40;
-const OPTION_ID_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
+/** Option ids, and song-source input ids, which follow the same rule. */
+export const ADDON_OPTION_ID_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
 const CHOICE_VALUE_PATTERN = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
 /** The one option Sync itself understands: with 'audio' ("Music only") it never downloads the addon's video. */
@@ -64,8 +65,8 @@ export function withAddonOptionValue({ options, values, optionId, value }: { opt
 
 function parseAddonOptionOrNull(value: unknown): AddonOption | null {
   if (!isRecord(value) || value.kind !== 'choice') return null;
-  if (typeof value.id !== 'string' || !OPTION_ID_PATTERN.test(value.id)) return null;
-  const label = getLabelOrNull(value.label);
+  if (typeof value.id !== 'string' || !ADDON_OPTION_ID_PATTERN.test(value.id)) return null;
+  const label = getAddonLabelOrNull(value.label);
   const choices = parseChoicesOrNull(value.choices);
   if (label === null || choices === null) return null;
   if (typeof value.default !== 'string' || !choices.some((choice) => choice.value === value.default)) return null;
@@ -83,11 +84,12 @@ function parseChoicesOrNull(value: unknown): AddonOptionChoice[] | null {
 
 function parseChoiceOrNull(value: unknown): AddonOptionChoice | null {
   if (!isRecord(value) || typeof value.value !== 'string' || !CHOICE_VALUE_PATTERN.test(value.value)) return null;
-  const label = getLabelOrNull(value.label);
+  const label = getAddonLabelOrNull(value.label);
   return label === null ? null : { value: value.value, label };
 }
 
-function getLabelOrNull(value: unknown): string | null {
+/** A label for an option, a choice or a song-source input: trimmed and cut to 40 characters; an empty one is broken. */
+export function getAddonLabelOrNull(value: unknown): string | null {
   const label = typeof value === 'string' ? value.trim() : '';
   return label === '' ? null : label.slice(0, MAX_OPTION_LABEL_LENGTH);
 }
