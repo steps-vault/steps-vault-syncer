@@ -98,7 +98,8 @@ Answers:
 
 - `202 { "jobId": "a1b2c3", "retryAfterSeconds": 10 }`. `jobId`: letters, digits, `-` and `_`, up to 64.
 - `409 { "error": "One short sentence", "vaultSongId": "…" }`: the song already exists, or someone is making it right
-  now. Only StepsVault's generator sends `vaultSongId`; Sync then adds that vault song instead, and no token is spent.
+  now. Only StepsVault's generator sends `vaultSongId`; Sync then adds that song to the player's vault
+  (`POST /api/sync/vault/<vaultSongId>`, free) and syncs, so it installs like any vault song, and no token is spent.
   Sync ignores a `vaultSongId` from any other generator.
 - Anything else means the generator couldn't take the job. An answer may carry `{ "error": "One short sentence" }`,
   which Sync shows the player.
@@ -130,6 +131,11 @@ a query (signed download links need one). A generator that isn't on the player's
 generator links only to its own address, with the same sign-in. A missing chart, a file over its size limit or a link
 that breaks these rules refuses the whole song.
 
+StepsVault's own generator also puts `"vaultSongId": "song_…"` in its `done` answer: the vault song it made, the same id
+as in Sync's vault list. Sync then adds that song to the player's vault and syncs, so it installs with the player's music
+like any vault song; it doesn't download the files, so this answer may leave out `files`. Sync ignores `vaultSongId` from
+any other generator, and finds the song by its title and artist when StepsVault's answer has none.
+
 ## `DELETE <address>/jobs/<jobId>`
 
 Sync calls it when the player cancels. Answer `200 { "cancelled": true }` when the job stopped, or
@@ -151,8 +157,8 @@ can't stop a song already being made: it still costs the token and still lands i
 
 ## Where generated songs go
 
-Songs from **StepsVault's generator** are vault songs: Sync adds them to the player's vault and installs them like
-any other vault song. The vault never makes the same song twice.
+Songs from **StepsVault's generator** are vault songs: StepsVault's `done` answer names the song (`vaultSongId`), and Sync
+adds it to the player's vault and installs it like any other vault song. The vault never makes the same song twice.
 
 Songs from a **community generator** go into the player's game, in the group **My generated songs**, one folder per
 song named in English letters (StepMania on Windows can't open other scripts). The folder is named from the song file's

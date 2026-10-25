@@ -127,6 +127,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
   private recordTurn: Promise<unknown> = Promise.resolve();
   private deviceToken: string | null = null;
+  /** The player's StepsVault tokens; null until read, or when StepsVault can't be reached. */
+  private tokenBalance: number | null = null;
   private signIn: DesktopSignIn = { kind: 'signed-out' };
   private foundGames: FoundGame[] = [];
   private musicIndex: MusicIndex | null = null;
@@ -157,7 +159,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       measureLength: (bytes) => options.audioBridge.measureLength(bytes), convertToWav: (bytes) => options.audioBridge.convertToWav(bytes), downloadFile: (download) => this.jobFiles.downloadFile(download),
     });
     this.generatorSettings = new GeneratorSettings({
-      httpClient: this.serviceClient, starter: this.starter, siteUrl: options.siteUrl, getDeviceToken: () => this.deviceToken, getSettings: () => this.settings, saveSettings: (settings) => this.saveSettings(settings),
+      httpClient: this.serviceClient, starter: this.starter, siteUrl: options.siteUrl, getDeviceToken: () => this.deviceToken, getTokenBalance: () => this.tokenBalance, getSettings: () => this.settings, saveSettings: (settings) => this.saveSettings(settings),
       confirmStartCommand: (confirmation) => options.services.confirmStartCommand(confirmation), getNow: () => new Date().toISOString(),
     });
     this.jobRunner = this.createJobRunner();
@@ -173,6 +175,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     setInterval(() => void this.starter.stopIdlePrograms(), IDLE_PROGRAM_CHECK_MILLISECONDS);
     await this.jobRunner.initialize();
     void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
+    void this.refreshTokenBalance();
     this.publish();
     await this.scanMusic();
   }
@@ -430,7 +433,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       registerPlayerFile: (location) => this.musicSources.register(location),
       writeSong: (options) => this.takeRecordTurn(() => this.writeGeneratedSongIntoGame(options)),
       saveReport: (report) => this.saveReport(report),
-      addVaultSongToGame: (job) => this.addVaultSongToGame(job),
+      addSongToVault: (vaultSongId) => this.buildClient().addToVault(vaultSongId),
+      addVaultSongToGame: (options) => this.addVaultSongToGame(options),
       logActivity: (event) => this.saveSettings(withActivity({ settings: this.settings, events: [event] })),
       waitMilliseconds: delay,
       getNow: () => new Date().toISOString(),
@@ -468,14 +472,24 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.reportSongKeys.add(getReportFileName(songKey));
   }
 
+  /** Spending a token happens on StepsVault, so the balance is read again after each StepsVault song. */
+  private async refreshTokenBalance(): Promise<void> {
+    if (this.deviceToken === null) return;
+    this.tokenBalance = await this.buildClient().fetchAccount().then((account) => account.tokenBalance, () => this.tokenBalance);
+    this.publish();
+  }
+
   /**
-   * StepsVault's generator put the song in the vault, so a sync installs it like any vault song. The generator gives no
-   * vault song id, so Sync finds it by its facts, and uses the music the player gave when the song still needs audio.
+   * StepsVault's generator put the song in the vault, so a sync installs it like any vault song, with the music the
+   * player gave when the song still needs audio. The song is the one StepsVault named; an older StepsVault that names
+   * none is matched by the song's facts.
    */
-  private async addVaultSongToGame(job: SavedGeneratorJob): Promise<void> {
+  private async addVaultSongToGame({ job, vaultSongId }: { job: SavedGeneratorJob; vaultSongId: string | null }): Promise<void> {
+    void this.refreshTokenBalance();
     while (this.syncRun) await delay(1000);
     await this.syncNow();
-    const vaultSong = findSameVaultSong({ song: job.song, vaultSongs: this.lastOutcome?.vaultSongs ?? [] });
+    const vaultSongs = this.lastOutcome?.vaultSongs ?? [];
+    const vaultSong = vaultSongs.find((song) => song.vaultSongId === vaultSongId) ?? findSameVaultSong({ song: job.song, vaultSongs });
     const songPlan = this.lastOutcome?.finalPlan.songPlans.find((plan) => plan.vaultSongId === vaultSong?.vaultSongId);
     if (!vaultSong || songPlan?.status !== 'needs-audio') return;
     this.musicSources.register(job.playerMusicLocation);
@@ -533,6 +547,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
         await this.options.tokenStore.save(poll.deviceToken);
         this.signIn = { kind: 'signed-in', computerName: poll.deviceName };
         void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
+        void this.refreshTokenBalance();
       }
       this.publish();
     }

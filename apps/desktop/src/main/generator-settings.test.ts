@@ -25,12 +25,12 @@ function buildManifestClient(manifestsByBaseUrl: Record<string, unknown>): { htt
   return { httpClient, requests };
 }
 
-function buildGeneratorSettings({ manifestsByBaseUrl = {}, isCommandAllowed = true, deviceToken = 'device-token-1' }: { manifestsByBaseUrl?: Record<string, unknown>; isCommandAllowed?: boolean; deviceToken?: string | null } = {}) {
+function buildGeneratorSettings({ manifestsByBaseUrl = {}, isCommandAllowed = true, deviceToken = 'device-token-1', tokenBalance = 37 }: { manifestsByBaseUrl?: Record<string, unknown>; isCommandAllowed?: boolean; deviceToken?: string | null; tokenBalance?: number | null } = {}) {
   const state: { settings: DesktopSettings; confirmations: StartCommandConfirmation[] } = { settings: buildDefaultSettings(), confirmations: [] };
   const { httpClient, requests } = buildManifestClient(manifestsByBaseUrl);
   const starter = new LocalProgramStarter({ ports: { startProgram: () => ({ stop: () => Promise.resolve(), hasExited: () => false }), isAnswering: () => Promise.resolve(true), getNowMilliseconds: () => 0, waitMilliseconds: () => Promise.resolve() } });
   const generatorSettings = new GeneratorSettings({
-    httpClient, starter, siteUrl: SITE_URL, getDeviceToken: () => deviceToken, getSettings: () => state.settings, saveSettings: (settings) => { state.settings = settings; return Promise.resolve(); },
+    httpClient, starter, siteUrl: SITE_URL, getDeviceToken: () => deviceToken, getTokenBalance: () => tokenBalance, getSettings: () => state.settings, saveSettings: (settings) => { state.settings = settings; return Promise.resolve(); },
     confirmStartCommand: (confirmation) => { state.confirmations.push(confirmation); return Promise.resolve(isCommandAllowed); }, getNow: () => '2026-10-25T10:00:00.000Z',
   });
   return { state, requests, generatorSettings };
@@ -51,7 +51,7 @@ describe('GeneratorSettings', () => {
     expect(requests.map((request) => [request.url, request.headers?.Authorization ?? null])).toEqual([[`${STEPSVAULT_ADDRESS}/manifest.json`, 'Bearer device-token-1'], ['https://gen.example.org/manifest.json', null]]);
     expect(generatorSettings.findJobGenerator(STEPSVAULT_ADDRESS)).toMatchObject({ isStepsVault: true, signIn: { siteUrl: SITE_URL, deviceToken: 'device-token-1' }, generator: { manifest: { name: 'StepsVault generator' } } });
     expect(generatorSettings.findJobGenerator('https://gen.example.org')).toMatchObject({ isStepsVault: false, signIn: null });
-    expect(generatorSettings.buildStepsVaultGeneratorView()).toMatchObject({ difficulties: ['Easy', 'Medium'], musicUploadWarning: `Your music file will be sent to StepsVault (${STEPSVAULT_ADDRESS}).` });
+    expect(generatorSettings.buildStepsVaultGeneratorView()).toMatchObject({ tokenCount: 37, difficulties: ['Easy', 'Medium'], musicUploadWarning: `Your music file will be sent to StepsVault (${STEPSVAULT_ADDRESS}).` });
   });
 
   it('asks before the first StepsVault song and keeps the player’s agreement', async () => {
@@ -61,6 +61,12 @@ describe('GeneratorSettings', () => {
     expect(state.settings.stepsVaultMusicUploadConsentedAt).toBe('2026-10-25T10:00:00.000Z');
     expect(jobGenerator.generator.musicUploadConsentedAt).toBe('2026-10-25T10:00:00.000Z');
     expect(generatorSettings.buildStepsVaultGeneratorView().musicUploadWarning).toBeNull();
+  });
+
+  it('refuses a StepsVault song with no tokens left', async () => {
+    const { generatorSettings } = buildGeneratorSettings({ tokenBalance: 0, manifestsByBaseUrl: { [STEPSVAULT_ADDRESS]: MANIFEST_ANSWER } });
+    expect(generatorSettings.buildStepsVaultGeneratorView().tokenCount).toBe(0);
+    await expect(generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('You have no tokens left. Buy tokens on StepsVault, or pick a community generator.');
   });
 
   it('says StepsVault can’t be reached, or that the player must sign in, before making a StepsVault song', async () => {

@@ -69,7 +69,8 @@ class FakeApp {
   readonly songsFolder = new MemorySongsFolder();
   readonly activity: GeneratedSongActivityEvent[] = [];
   readonly removedJobKeys: string[] = [];
-  readonly vaultSongsAddedForJobs: string[] = [];
+  readonly vaultSongsAddedForJobs: [string, string | null][] = [];
+  readonly songsAddedToVault: string[] = [];
   readonly reportsBySongKey = new Map<string, string>();
   readonly collectedFilesByLocation = new Map<string, GeneratedSongFiles>();
   savedJobs: SavedGeneratorJob[] = [];
@@ -104,7 +105,12 @@ class FakeApp {
         return result;
       },
       saveReport: ({ songKey, reportText }) => { this.reportsBySongKey.set(songKey, reportText); return Promise.resolve(); },
-      addVaultSongToGame: (job) => { this.vaultSongsAddedForJobs.push(job.jobKey); return Promise.resolve(); },
+      addSongToVault: (vaultSongId) => {
+        if (vaultSongId === 'song_unknown') return Promise.reject(new Error('This song isn’t in StepsVault.'));
+        this.songsAddedToVault.push(vaultSongId);
+        return Promise.resolve();
+      },
+      addVaultSongToGame: ({ job, vaultSongId }) => { this.vaultSongsAddedForJobs.push([job.jobKey, vaultSongId]); return Promise.resolve(); },
       logActivity: (event) => { this.activity.push(event); return Promise.resolve(); },
       // A real turn of the event loop, so a job that keeps waiting never starves the test's own timers.
       waitMilliseconds: () => new Promise((resolve) => setTimeout(resolve, 0)),
@@ -152,12 +158,14 @@ describe('GeneratorJobRunner', () => {
   it('sends StepsVault’s generator the device token, and lets the vault install its song instead of writing it', async () => {
     const app = new FakeApp();
     app.routeFinishedJob({ address: STEPSVAULT_ADDRESS });
+    app.generators.route({ method: 'GET', url: `${STEPSVAULT_ADDRESS}/jobs/job-a1`, answer: { status: 200, body: { state: 'done', vaultSongId: 'song_9' } } });
     const runner = app.buildRunner();
     await runner.initialize();
     await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
     expect(runner.jobs[0]).toMatchObject({ isStepsVault: true, generatorName: 'StepsVault generator', result: 'added-to-vault' });
-    expect(app.vaultSongsAddedForJobs).toEqual(['job-1']);
+    expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_9']]);
+    expect(app.songsAddedToVault).toEqual(['song_9']);
     expect(getGeneratedSongs(app.record)).toEqual([]);
     expect(app.generators.requests.map((request) => request.url)).not.toContain(`${STEPSVAULT_ADDRESS}/files/chart.ssc`);
     expect(app.generators.requests.every((request) => request.headers.Authorization === 'Bearer device-token-1')).toBe(true);
@@ -173,6 +181,25 @@ describe('GeneratorJobRunner', () => {
     expect(app.generators.requests.some((request) => 'Authorization' in request.headers)).toBe(false);
   });
 
+  it('finds the vault song by its facts when StepsVault’s done answer doesn’t name it', async () => {
+    const app = new FakeApp();
+    app.routeFinishedJob({ address: STEPSVAULT_ADDRESS });
+    const runner = app.buildRunner();
+    await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
+    await waitUntil(() => runner.jobs[0]?.state === 'done');
+    expect(app.vaultSongsAddedForJobs).toEqual([['job-1', null]]);
+  });
+
+  it('fails with the site’s sentence when the song StepsVault named can’t be added to the vault', async () => {
+    const app = new FakeApp();
+    app.generators.route({ method: 'POST', url: `${STEPSVAULT_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_unknown' } } });
+    const runner = app.buildRunner();
+    await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
+    await waitUntil(() => runner.jobs[0]?.state === 'failed');
+    expect(runner.jobs[0]?.message).toBe('This song isn’t in StepsVault.');
+    expect(app.vaultSongsAddedForJobs).toEqual([]);
+  });
+
   it('adds the vault song when StepsVault already has the song, so no token is spent', async () => {
     const app = new FakeApp();
     app.generators.route({ method: 'POST', url: `${STEPSVAULT_ADDRESS}/jobs`, answer: { status: 409, body: { error: 'This song is already in the vault.', vaultSongId: 'song_7' } } });
@@ -180,7 +207,8 @@ describe('GeneratorJobRunner', () => {
     await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
     expect(runner.jobs[0]).toMatchObject({ result: 'already-in-vault', message: 'This song is already in the vault.' });
-    expect(app.vaultSongsAddedForJobs).toEqual(['job-1']);
+    expect(app.songsAddedToVault).toEqual(['song_7']);
+    expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_7']]);
   });
 
   it('asks which song to keep when the vault has the same song, then writes the player’s choice', async () => {

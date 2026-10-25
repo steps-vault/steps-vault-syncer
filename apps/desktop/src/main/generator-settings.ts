@@ -35,6 +35,8 @@ export interface GeneratorSettingsOptions {
   starter: LocalProgramStarter;
   siteUrl: string;
   getDeviceToken(): string | null;
+  /** The player's StepsVault tokens; null when not known. */
+  getTokenBalance(): number | null;
   getSettings(): DesktopSettings;
   saveSettings(settings: DesktopSettings): Promise<void>;
   confirmStartCommand(confirmation: StartCommandConfirmation): Promise<boolean>;
@@ -67,7 +69,7 @@ export class GeneratorSettings {
 
   buildStepsVaultGeneratorView(): StepsVaultGeneratorView {
     const hasConsent = this.options.getSettings().stepsVaultMusicUploadConsentedAt !== null;
-    return { tokenCount: null, tokensHref: `${this.options.siteUrl}/tokens`, difficulties: this.stepsVaultManifest?.difficulties ?? null, musicUploadWarning: hasConsent ? null : `Your music file will be sent to StepsVault (${this.stepsVaultBaseUrl}).` };
+    return { tokenCount: this.options.getTokenBalance(), tokensHref: `${this.options.siteUrl}/tokens`, difficulties: this.stepsVaultManifest?.difficulties ?? null, musicUploadWarning: hasConsent ? null : `Your music file will be sent to StepsVault (${this.stepsVaultBaseUrl}).` };
   }
 
   /** The generator a job was started with. The sign-in goes to StepsVault's own generator only. */
@@ -158,6 +160,7 @@ export class GeneratorSettings {
   private async getStepsVaultGeneratorForNewSong(hasAgreedToMusicUpload: boolean): Promise<JobGenerator> {
     const signIn = this.getStepsVaultSignIn();
     if (!signIn) throw new Error('Sign in to StepsVault first, so the song can go to your vault.');
+    if (this.options.getTokenBalance() === 0) throw new Error('You have no tokens left. Buy tokens on StepsVault, or pick a community generator.');
     if (!this.stepsVaultManifest) await this.loadStepsVaultGenerator();
     if (!this.stepsVaultManifest) throw new Error('StepsVault can’t be reached right now. Check your internet connection, then try again.');
     const settings = this.options.getSettings();

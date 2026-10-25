@@ -51,8 +51,13 @@ export interface GeneratorJobRunnerDependencies {
   writeSong(options: { request: GeneratedSongRequest; vaultSongChoice: VaultSongChoice | null }): Promise<GeneratedSongWriteResult>;
   /** Keeps "How it was made" for the song. */
   saveReport(options: { songKey: string; reportText: string }): Promise<void>;
-  /** StepsVault's generator made the song: it is in the vault, so a sync installs it, with the player's music. */
-  addVaultSongToGame(job: SavedGeneratorJob): Promise<void>;
+  /** Adds a song StepsVault already has to the player's vault (free); throws with the site's sentence when it can't. */
+  addSongToVault(vaultSongId: string): Promise<void>;
+  /**
+   * StepsVault's generator made the song: it is in the vault, so a sync installs it, with the player's music.
+   * vaultSongId is the song StepsVault said it is; null when it didn't say, and Sync finds the song by its facts.
+   */
+  addVaultSongToGame(options: { job: SavedGeneratorJob; vaultSongId: string | null }): Promise<void>;
   logActivity(event: GeneratedSongActivityEvent): Promise<void>;
   waitMilliseconds(milliseconds: number): Promise<void>;
   getNow(): string;
@@ -153,15 +158,16 @@ export class GeneratorJobRunner {
     await this.waitAndFinish(job.jobKey);
   }
 
-  /** Only StepsVault's generator may answer with a vault song: the song is already there, and no token is spent. */
+  /** Only StepsVault's generator may answer with a vault song: Sync adds it to the vault, and no token is spent. */
   private async handleExistingSong({ job, message, vaultSongId }: { job: SavedGeneratorJob; message: string; vaultSongId: string | null }): Promise<void> {
     if (!job.isStepsVault || vaultSongId === null) {
       await this.finishJob({ job, changes: { state: 'failed', message }, step: 'failed' });
       await this.dependencies.jobFiles.removeJobFiles(job.jobKey);
       return;
     }
+    await this.dependencies.addSongToVault(vaultSongId);
     await this.finishJob({ job, changes: { state: 'done', result: 'already-in-vault', message }, step: 'added-to-vault' });
-    await this.dependencies.addVaultSongToGame(this.getJob(job.jobKey));
+    await this.dependencies.addVaultSongToGame({ job: this.getJob(job.jobKey), vaultSongId });
     await this.dependencies.jobFiles.removeJobFiles(job.jobKey);
   }
 
@@ -180,7 +186,7 @@ export class GeneratorJobRunner {
         shouldStop: () => this.cancelRequestedJobKeys.has(jobKey),
         onProgress: (status) => void this.saveJob({ ...this.getJob(jobKey), progress: status.progress, stage: status.stage, retryAfterSeconds: status.retryAfterSeconds, updatedAt: this.dependencies.getNow() }),
       });
-      if (outcome.kind === 'done') return this.handleFinishedJob({ jobKey, jobGenerator, files: outcome.files });
+      if (outcome.kind === 'done') return this.handleFinishedJob({ jobKey, jobGenerator, files: outcome.files, vaultSongId: outcome.vaultSongId });
       if (await this.handleCancelResult({ jobKey, cancelResult: outcome.cancelResult })) return;
     }
   }
@@ -200,11 +206,12 @@ export class GeneratorJobRunner {
     return true;
   }
 
-  private async handleFinishedJob({ jobKey, jobGenerator, files }: { jobKey: string; jobGenerator: JobGenerator; files: Parameters<typeof collectGeneratorFiles>[0]['files'] }): Promise<void> {
+  private async handleFinishedJob({ jobKey, jobGenerator, files, vaultSongId }: { jobKey: string; jobGenerator: JobGenerator; files: Parameters<typeof collectGeneratorFiles>[0]['files']; vaultSongId: string | null }): Promise<void> {
     const job = this.getJob(jobKey);
     if (job.isStepsVault) {
+      if (vaultSongId !== null) await this.dependencies.addSongToVault(vaultSongId);
       await this.finishJob({ job, changes: { state: 'done', result: 'added-to-vault' }, step: 'added-to-vault' });
-      await this.dependencies.addVaultSongToGame(this.getJob(jobKey));
+      await this.dependencies.addVaultSongToGame({ job: this.getJob(jobKey), vaultSongId });
       await this.dependencies.jobFiles.removeJobFiles(jobKey);
       return;
     }

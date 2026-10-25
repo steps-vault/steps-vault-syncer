@@ -96,6 +96,18 @@ describe('GeneratorsScreen', () => {
     expect(screen.getByRole('dialog', { name: 'Making the steps' })).toBeDefined();
   });
 
+  it('shows the player’s tokens, and with none left, says so and won’t make a StepsVault song', async () => {
+    const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, tokenCount: 0, musicUploadWarning: null } });
+    const setupDialog = await goToSetupStep();
+    expect(within(setupDialog).getByRole('radio', { name: /StepsVault generator/ }).closest('label')?.textContent).toContain('you have 0 tokens');
+    expect(within(setupDialog).getByRole('alert').textContent).toContain('You have no tokens left. Buy tokens, or pick a community generator.');
+    expect(within(setupDialog).getByRole('link', { name: 'Buy tokens' }).getAttribute('href')).toBe('#tokens');
+    expect(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })).toHaveProperty('disabled', true);
+    fireEvent.click(within(setupDialog).getByRole('radio', { name: /Tap Forge/ }));
+    expect(within(setupDialog).getByRole('button', { name: 'Make the steps' })).toHaveProperty('disabled', false);
+    expect(props.onMakeSong).not.toHaveBeenCalled();
+  });
+
   it('warns before the music goes to a generator on the internet, and keeps only difficulties it makes', async () => {
     const props = renderGenerators();
     const setupDialog = await goToSetupStep();
