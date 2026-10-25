@@ -137,10 +137,14 @@ can't stop a song already being made: it still costs the token and still lands i
 ## What Sync checks before a song reaches the game
 
 - Every file is within its size limit (song file 2 MB, each picture 5 MB, video 500 MB, music 100 MB).
-- The song file opens with Sync's own reader, has `#OFFSET` and `#BPMS`, and has a `dance-single` chart for each
-  difficulty asked; anything it can't read is refused, with the reason shown to the player.
-- Sync writes the files under its own names (`<title>.ssc`, `banner.png`, …), never the names a generator gives, and
-  points `#MUSIC`, `#BANNER`, `#BACKGROUND`, `#JACKET` and `#BGCHANGES` at them.
+- The song file opens with Sync's own reader (every tag must start a line), has `#OFFSET` and `#BPMS`, and has a
+  chart for each difficulty asked; anything it can't read is refused, with the reason shown to the player. A chart
+  counts when its `#STEPSTYPE` is `dance-single` and it has `#NOTES`; `#DIFFICULTY` is matched without case, and only
+  the first chart of each difficulty is kept. Every other chart is dropped.
+- A picture that isn't a PNG counts as missing. Sync doesn't check a picture's size.
+- Sync writes the files under its own names (`<folder name>.ssc`, `music.<extension>`, `video.mp4`, `banner.png`,
+  `background.png`, `jacket.png`), never the names a generator gives, and points `#MUSIC`, `#BANNER`, `#BACKGROUND`,
+  `#JACKET` and `#BGCHANGES` at them. A picture Sync has no file for is left empty in the song file.
 - Sync never runs anything a generator sends.
 
 ## Where generated songs go
@@ -149,8 +153,22 @@ Songs from **StepsVault's generator** are vault songs: Sync adds them to the pla
 any other vault song. The vault never makes the same song twice.
 
 Songs from a **community generator** go into the player's game, in the group **My generated songs**, one folder per
-song named in English letters (StepMania on Windows can't open other scripts). Making a song again replaces the earlier
-version. When the same song is also in the player's vault, Sync asks which one to keep in the game.
+song named in English letters (StepMania on Windows can't open other scripts). The folder is named from the song file's
+`#TITLETRANSLIT`, else its `#TITLE`, with accents taken off ("Beyoncé" becomes "Beyonce"). When that name has no English
+letters, or still has letters from another script, the folder is called `Song <youtubeId>` when the song has a
+`youtubeId`, else `Generated song <YYYY-MM-DD HHMM>`. When a folder of that name is already there, the artist is added,
+then a number.
+
+Making the same song again replaces the earlier version, in the same folder; files the new version doesn't use are
+removed. The same song means the same `youtubeId`, else the same title and artist (ignoring case and extra spaces),
+whichever generator made it.
+
+When the same song is also in the player's vault, Sync asks which one to keep in the game. The one not chosen stays
+out of the game.
+
+When the music came from a song source with a video, and the generator sends no video of its own, that video plays
+behind the generated song. It plays only with the player's music, since it shares that music's timing: when the
+generator sends its own music, the song source's video is left out.
 
 ## On the website
 

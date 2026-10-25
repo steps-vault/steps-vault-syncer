@@ -45,6 +45,7 @@ export * from './generators/song-pictures';
 export * from './generators/generated-song-check';
 export * from './generators/generated-song-ssc';
 export * from './generators/generated-song-identity';
+export * from './generators/generated-song-folder-name';
 export * from './ownership/generated-songs';
 export * from './ownership/generated-song-marker';
 export * from './writing/generated-song-writer';

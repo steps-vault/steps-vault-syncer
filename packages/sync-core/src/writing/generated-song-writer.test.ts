@@ -174,6 +174,27 @@ describe('writeGeneratedSong', () => {
     expect(getGeneratedSongs(game.record)[0]?.songKey).toBe('song:הזוג הזה\nמרגי');
   });
 
+  it('falls back to “Song <youtubeId>” when the title has no English spelling', async () => {
+    const game = new GeneratedSongGame();
+    await game.write({ files: { chartText: buildSongSsc({ header: { TITLE: 'הזוג הזה', ARTIST: 'מרגי' } }) } });
+    expect(await game.songsFolder.listEntries([GROUP])).toEqual([{ name: 'Song pulse123', isFolder: true }]);
+    expect(await game.readSongText('Song pulse123')).toContain('#TITLE:הזוג הזה;');
+  });
+
+  it('falls back to “Generated song <date> <time>” without a youtubeId, and never keeps a title with other scripts left in it', async () => {
+    const game = new GeneratedSongGame();
+    const song = { ...PULSE_GARDEN, youtubeId: null };
+    await game.write({ song, files: { chartText: buildSongSsc({ header: { TITLE: 'Tokyo 東京' } }) } });
+    await game.write({ song: { ...song, title: 'Other' }, files: { chartText: buildSongSsc({ header: { TITLE: 'Другая' } }) } });
+    expect((await game.songsFolder.listEntries([GROUP])).map((entry) => entry.name).sort()).toEqual(['Generated song 2026-10-25 1200', 'Generated song 2026-10-25 1200 (Kairo Lights)']);
+  });
+
+  it('folds accents rather than falling back', async () => {
+    const game = new GeneratedSongGame();
+    await game.write({ files: { chartText: buildSongSsc({ header: { TITLE: 'Café Beyoncé' } }) } });
+    expect(await game.songsFolder.listEntries([GROUP])).toEqual([{ name: 'Cafe Beyonce', isFolder: true }]);
+  });
+
   it('replaces the earlier version of the same song in the same folder, removing the files it no longer uses', async () => {
     const game = new GeneratedSongGame();
     await game.write();

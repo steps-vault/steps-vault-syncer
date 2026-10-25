@@ -1,5 +1,6 @@
 import { checkGeneratedSsc, type CheckedGeneratedSsc } from '../generators/generated-song-check';
 import { findSameVaultSong, getGeneratedSongKey, type VaultSongIdentity } from '../generators/generated-song-identity';
+import { getGeneratedSongFolderNames } from '../generators/generated-song-folder-name';
 import { buildGeneratedSongSsc, type GeneratedSongFileNames } from '../generators/generated-song-ssc';
 import type { GeneratedSongFiles } from '../generators/generator-files';
 import type { GeneratorDifficulty, GeneratorManifest, GeneratorSongFacts } from '../generators/generator-protocol';
@@ -10,7 +11,6 @@ import { buildGeneratedSongMarkerText, getGeneratedSongFolderState } from '../ow
 import { findGeneratedSong, withGeneratedSong, type GeneratedSong } from '../ownership/generated-songs';
 import { withOwnedGroup, type InstalledSongsRecord } from '../ownership/installed-songs';
 import { SONG_FOLDER_MARKER_FILE_NAME } from '../ownership/song-folder-marker';
-import { getSscTagValue } from '../ssc/ssc-reader';
 import type { SongsFolder } from '../songs-folder/songs-folder';
 import { buildSongsPath, getNameKey, type SongsPath } from '../songs-folder/songs-path';
 import { MUSIC_BASE_NAME, removeQuietly, TEMPORARY_FOLDER_PREFIX, VIDEO_BASE_NAME } from './song-writer';
@@ -78,7 +78,7 @@ export async function writeGeneratedSong(options: WriteGeneratedSongOptions): Pr
 async function writeCheckedSong({ options, checkedSsc, inPlaceOfVaultSongId }: { options: WriteGeneratedSongOptions; checkedSsc: CheckedGeneratedSsc; inPlaceOfVaultSongId: string | null }): Promise<GeneratedSongWriteResult> {
   const { dependencies, record, request } = options;
   const replacedSong = await getReplaceableSong({ songsFolder: dependencies.songsFolder, record, songKey: getGeneratedSongKey(request.song) });
-  const folderPath = replacedSong?.folderPath ?? (await chooseNewFolderPath({ songsFolder: dependencies.songsFolder, record, songNames: getSongFolderNames({ checkedSsc, song: request.song }) }));
+  const folderPath = replacedSong?.folderPath ?? (await chooseNewFolderPath({ songsFolder: dependencies.songsFolder, record, songNames: getGeneratedSongFolderNames({ headerText: checkedSsc.headerText, song: request.song, now: dependencies.getNow() }) }));
   const generatedSong = buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfVaultSongId });
   await writeSongFolder({ dependencies, request, checkedSsc, generatedSong, isReplacing: replacedSong !== null });
   const recordWithSong = withGeneratedSong({ record, generatedSong });
@@ -90,12 +90,6 @@ async function getReplaceableSong({ songsFolder, record, songKey }: { songsFolde
   const earlierSong = findGeneratedSong({ record, songKey });
   if (!earlierSong) return null;
   return (await getGeneratedSongFolderState({ songsFolder, generatedSong: earlierSong })) === 'ours' ? earlierSong : null;
-}
-
-/** Named like vault songs, from the song file's English-letter title when it has one. */
-function getSongFolderNames({ checkedSsc, song }: { checkedSsc: CheckedGeneratedSsc; song: GeneratorSongFacts }): SongFolderNames {
-  const getTag = (tagName: string) => getSscTagValue({ text: checkedSsc.headerText, tagName }) || null;
-  return { title: getTag('TITLE') ?? song.title, artist: getTag('ARTIST') ?? song.artist, titleTransliteration: getTag('TITLETRANSLIT'), artistTransliteration: getTag('ARTISTTRANSLIT') };
 }
 
 async function chooseNewFolderPath({ songsFolder, record, songNames }: { songsFolder: SongsFolder; record: InstalledSongsRecord; songNames: SongFolderNames }): Promise<SongsPath> {
