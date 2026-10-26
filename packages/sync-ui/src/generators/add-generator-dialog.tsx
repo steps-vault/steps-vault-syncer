@@ -1,6 +1,8 @@
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
+import { DialogHeading } from '../dialog/dialog-heading';
 import { Icon } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { Note } from '../shared/small-parts';
 import { getAddonInitials } from '../sources/addon-card';
 import { AddonOptionFields } from '../sources/addon-option-fields';
@@ -11,7 +13,7 @@ import { ServiceLocation } from './generator-card';
 /** Everything a generator ever gets, for each song (generators.md, "What a generator gets"). */
 export const GENERATOR_GETS = ['the music file you pick.', 'the song’s facts: title, artist, album, genre, length and YouTube link.', 'the difficulties you pick.'] as const;
 export const GENERATOR_NEVER_GETS = 'your account, your tokens, or anything else on your computer.';
-export const GENERATOR_TRUST_NOTE = 'Generators are made by other people, not StepsVault. Only add ones you trust.';
+export const GENERATOR_TRUST_NOTE = `Made by other people, not ${SITE_NAME}. Only add ones you trust.`;
 const LOOKUP_FAILED_MESSAGE = 'We couldn’t reach that generator. Check the address with whoever made it, then try again.';
 
 /** The sentence the player agrees to before their music goes over the internet. */
@@ -58,7 +60,7 @@ function AddressStep({ onLookUpGenerator, canUseStartCommand, onFound, onCancel 
   const isOnThisComputer = canUseStartCommand && isThisComputerAddress(address);
   const lookUp = async (): Promise<void> => {
     if (!isServiceAddress(address)) {
-      setErrorMessage('That doesn’t look like a generator address. It should start with https:// or http://localhost');
+      setErrorMessage('Enter an address that starts with https:// or http://localhost');
       return;
     }
     setIsLookingUp(true);
@@ -74,9 +76,8 @@ function AddressStep({ onLookUpGenerator, canUseStartCommand, onFound, onCancel 
   };
   return (
     <form className="sv-sync-dialog-form" onSubmit={handleSubmit} noValidate>
-      <div className="sv-sync-eyebrow">Add a generator · step 1 of 2</div>
-      <h2 id="sv-sync-add-generator-title" className="sv-sync-heading-2">Add a generator</h2>
-      <p className="sv-sync-text sv-sync-small">Paste the generator&apos;s address. Whoever made it can give it to you.</p>
+      <DialogHeading titleId="sv-sync-add-generator-title" title="Add a generator" stepText="Step 1 of 2" />
+      <p className="sv-sync-text sv-sync-small">Paste its address. Whoever made it can give it to you.</p>
       <label className="sv-sync-field-label">
         Generator address
         <input className="sv-sync-field sv-sync-mono" type="url" value={address} placeholder="https:// or http://localhost" data-autofocus aria-invalid={errorMessage !== null} aria-describedby={errorMessage === null ? undefined : 'sv-sync-generator-address-error'} onChange={(event) => { setAddress(event.target.value); setErrorMessage(null); }} />
@@ -99,8 +100,7 @@ function ConfirmStep({ generator, onAdd, onCancel }: { generator: GeneratorInsta
   };
   return (
     <>
-      <div className="sv-sync-eyebrow">Add a generator · step 2 of 2</div>
-      <h2 id="sv-sync-add-generator-title" className="sv-sync-heading-2">Add “{generator.name}”?</h2>
+      <DialogHeading titleId="sv-sync-add-generator-title" title={`Add “${generator.name}”?`} stepText="Step 2 of 2" />
       <div className="sv-sync-addon-who">
         <span className="sv-sync-addon-icon" aria-hidden="true">{getAddonInitials(generator.name)}</span>
         <div className="sv-sync-stack-small sv-sync-min-width-0">
@@ -121,11 +121,11 @@ function ConfirmStep({ generator, onAdd, onCancel }: { generator: GeneratorInsta
       {options.length > 0 && (
         <div className="sv-sync-addon-setup">
           <b>Choose how it works</b>
-          <span className="sv-sync-small sv-sync-muted">You can change this any time on the generator&apos;s card.</span>
+          <span className="sv-sync-small sv-sync-muted">Change it any time on the generator&apos;s card.</span>
           <AddonOptionFields addonName={generator.name} options={options} onChange={handleOptionChange} />
         </div>
       )}
-      <Note className="sv-sync-small">Songs it makes stay on this computer and never go to the vault.</Note>
+      <Note className="sv-sync-small">Songs it makes stay on this computer and never go to the library.</Note>
       <div className="sv-sync-dialog-buttons">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onAdd({ ...generator, options }); }}>Add</button>

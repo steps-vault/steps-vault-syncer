@@ -1,6 +1,8 @@
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
+import { DialogHeading } from '../dialog/dialog-heading';
 import { Icon } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { Note } from '../shared/small-parts';
 import type { AddonInstallPreview, AddonLookupResult, AddonOptionView, ServiceLookupRequest } from '../sync-ui-types';
 import { getAddonInitials } from './addon-card';
@@ -12,7 +14,7 @@ export const ADDON_VISIBLE_SONG_FACTS = 'title, artist, album, genre, length, an
 export const ADDON_NEVER_SEES = 'your account, or anything else on your computer.';
 /** What a song source also sees (addons.md, "Song sources"). */
 export const SONG_SOURCE_SEES = 'what you type in its tab on the Make a song page, such as a link or a search.';
-const TRUST_NOTE = 'Addons are made by other people, not StepsVault. Only install ones you trust.';
+export const ADDON_TRUST_NOTE = `Made by other people, not ${SITE_NAME}. Only install ones you trust.`;
 const LOOKUP_FAILED_MESSAGE = 'We couldn’t reach that addon. Check the address with whoever made it, then try again.';
 
 /** https, or http://127.0.0.1 and http://localhost for an addon on this computer. */
@@ -59,7 +61,7 @@ function AddressStep({ onLookUpAddon, canUseStartCommand, onFound, onCancel }: A
   const isOnThisComputer = canUseStartCommand && isThisComputerAddress(address);
   const lookUp = async (): Promise<void> => {
     if (!isAddonAddress(address)) {
-      setErrorMessage('That doesn’t look like a web address. It should start with https://');
+      setErrorMessage('Enter an address that starts with https://');
       return;
     }
     setIsLookingUp(true);
@@ -75,16 +77,15 @@ function AddressStep({ onLookUpAddon, canUseStartCommand, onFound, onCancel }: A
   };
   return (
     <form className="sv-sync-dialog-form" onSubmit={handleSubmit} noValidate>
-      <div className="sv-sync-eyebrow">Add addon · step 1 of 2</div>
-      <h2 id="sv-sync-add-addon-title" className="sv-sync-heading-2">Add an addon</h2>
-      <p className="sv-sync-text sv-sync-small">Paste the addon&apos;s address. Whoever made it can give it to you.</p>
+      <DialogHeading titleId="sv-sync-add-addon-title" title="Add an addon" stepText="Step 1 of 2" />
+      <p className="sv-sync-text sv-sync-small">Paste its address. Whoever made it can give it to you.</p>
       <label className="sv-sync-field-label">
-        Addon address (URL)
+        Addon address
         <input className="sv-sync-field sv-sync-mono" type="url" value={address} placeholder="https://" data-autofocus aria-invalid={errorMessage !== null} aria-describedby={errorMessage === null ? undefined : 'sv-sync-addon-address-error'} onChange={(event) => { setAddress(event.target.value); setErrorMessage(null); }} />
       </label>
       {errorMessage !== null && <AddressError id="sv-sync-addon-address-error" message={errorMessage} />}
       {isOnThisComputer && <StartCommandField serviceName="addon" value={startCommandText} onChange={setStartCommandText} />}
-      <Note className="sv-sync-small">{TRUST_NOTE}</Note>
+      <Note className="sv-sync-small">{ADDON_TRUST_NOTE}</Note>
       <div className="sv-sync-dialog-buttons">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel}>Cancel</button>
         <button className="sv-sync-button" type="submit" disabled={isLookingUp}>{isLookingUp ? 'Checking…' : 'Continue'}</button>
@@ -100,8 +101,7 @@ function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPrevie
   };
   return (
     <>
-      <div className="sv-sync-eyebrow">Add addon · step 2 of 2</div>
-      <h2 id="sv-sync-add-addon-title" className="sv-sync-heading-2">Install “{addon.name}”?</h2>
+      <DialogHeading titleId="sv-sync-add-addon-title" title={`Install “${addon.name}”?`} stepText="Step 2 of 2" />
       <div className="sv-sync-addon-who">
         <span className="sv-sync-addon-icon" aria-hidden="true">{getAddonInitials(addon.name)}</span>
         <div>
@@ -121,12 +121,12 @@ function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPrevie
       {options.length > 0 && (
         <div className="sv-sync-addon-setup">
           <b>Choose how it works</b>
-          <span className="sv-sync-small sv-sync-muted">You can change this any time on the addon&apos;s card.</span>
+          <span className="sv-sync-small sv-sync-muted">Change it any time on the addon&apos;s card.</span>
           <AddonOptionFields addonName={addon.name} options={options} onChange={handleOptionChange} />
         </div>
       )}
       {addon.startCommand && <StartCommandNote startCommand={addon.startCommand} />}
-      <Note className="sv-sync-small">{TRUST_NOTE}</Note>
+      <Note className="sv-sync-small">{ADDON_TRUST_NOTE}</Note>
       <div className="sv-sync-dialog-buttons">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onInstall({ ...addon, options }); }}>Install</button>

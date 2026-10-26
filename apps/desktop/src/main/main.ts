@@ -78,7 +78,7 @@ function createController(tray: { show: (status: DesktopSyncState['trayStatus'])
           cancelId: 1,
           noLink: true,
           title: 'Run a program on this computer?',
-          message: `Let StepsVault Sync run this command when it needs ${address}?`,
+          message: `Let DanceDance Sync run this command when it needs ${address}?`,
           detail: `${command}
 
 It runs in ${folder}, and Sync stops it after 10 minutes without use. Only allow a command you typed yourself and trust.`,
@@ -112,7 +112,7 @@ function registerBridge(controller: SyncController): void {
   const handlers = buildBridgeHandlers(controller);
   for (const methodName of BRIDGE_METHOD_NAMES) {
     ipcMain.handle(`${BRIDGE_CHANNEL_PREFIX}${methodName}`, (event, argument: unknown) => {
-      if (!mainWindow || event.sender !== mainWindow.webContents) throw new Error('Only the StepsVault Sync window may do this.');
+      if (!mainWindow || event.sender !== mainWindow.webContents) throw new Error('Only the DanceDance Sync window may do this.');
       return handlers[methodName](argument);
     });
   }

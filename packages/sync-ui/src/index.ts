@@ -5,6 +5,8 @@ export * from './icons/icon';
 export * from './icons/arrow-receptor';
 export * from './dialog/sync-dialog';
 export * from './dialog/focus-trap';
+export * from './dialog/dialog-heading';
+export * from './shared/brand-names';
 export * from './shell/sync-shell';
 export * from './shell/sync-navigation';
 export * from './shell/sync-top-bar';

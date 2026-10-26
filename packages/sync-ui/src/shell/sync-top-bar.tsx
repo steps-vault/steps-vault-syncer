@@ -70,7 +70,7 @@ function BackgroundSyncRow({ backgroundSync }: { backgroundSync: BackgroundSyncV
     <div className="sv-sync-top-bar-block sv-sync-background-sync">
       <ToggleSwitch isOn={backgroundSync.isOn} onToggle={backgroundSync.onToggle} labelledById="sv-sync-background-sync-label" />
       <b id="sv-sync-background-sync-label">Background sync: {backgroundSync.isOn ? 'On' : 'Off'}</b>
-      <span>New songs from your vault sync by themselves, even when this window is closed. Look for the StepsVault icon in your tray.</span>
+      <span>Keeps syncing from the tray when this window is closed.</span>
     </div>
   );
 }

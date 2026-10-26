@@ -15,7 +15,7 @@ export function GeneratedSongList({ songs, onFetchSongReport }: GeneratedSongLis
     <section className="sv-sync-stack" aria-labelledby="sv-sync-generated-songs-heading">
       <div className="sv-sync-stack-tiny">
         <h2 id="sv-sync-generated-songs-heading" className="sv-sync-heading-2">My generated songs</h2>
-        <span className="sv-sync-text sv-sync-small">Songs you made with community generators. They are yours alone and stay on this computer.</span>
+        <span className="sv-sync-text sv-sync-small">Made with community generators. Yours alone, on this computer.</span>
       </div>
       <ul className="sv-sync-generator-jobs">
         {songs.map((song) => <GeneratedSongRow key={song.songKey} song={song} onFetchSongReport={onFetchSongReport} />)}

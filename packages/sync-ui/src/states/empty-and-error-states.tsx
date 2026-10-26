@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { ArrowReceptor } from '../icons/arrow-receptor';
 import { Icon, type IconName } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
+import { SITE_NAME } from '../shared/brand-names';
 
 type StateTone = 'calm' | 'warning' | 'error';
 
@@ -42,8 +43,8 @@ export function EmptyVaultState({ vaultHref }: { vaultHref: string }): ReactElem
     </div>
   );
   return (
-    <StateCard label="No songs in the vault yet" tone="calm" picture={picture} title="Your vault is empty" isCentered action={<a className="sv-sync-button" href={vaultHref}><Icon name="search" />Go to StepsVault</a>}>
-      Make or add songs on StepsVault. They show up here and sync to your game.
+    <StateCard label="Empty library" tone="calm" picture={picture} title="Your library is empty" isCentered action={<a className="sv-sync-button" href={vaultHref}><Icon name="external" />Browse the library</a>}>
+      Songs you add on {SITE_NAME} show up here and sync to your game.
     </StateCard>
   );
 }
@@ -51,16 +52,16 @@ export function EmptyVaultState({ vaultHref }: { vaultHref: string }): ReactElem
 /** Website only: browsers forget folder permission when they close. */
 export function PermissionLostState({ onReconnect }: { onReconnect: () => void }): ReactElement {
   return (
-    <StateCard label="Permission lost" tone="warning" picture={<ArrowReceptor size={48} className="sv-sync-receptor--warning" />} title="Your browser needs permission again" action={<StateButton iconName="folder" label="Reconnect" onClick={onReconnect} />}>
-      Browsers forget the folder when you close them. Reconnect, then click <b>Allow</b>.
+    <StateCard label="Permission lost" tone="warning" picture={<ArrowReceptor size={48} className="sv-sync-receptor--warning" />} title="Permission needed" action={<StateButton iconName="spin" label="Reconnect" onClick={onReconnect} />}>
+      Browsers forget the folder when they close. Reconnect, then click <b>Allow</b>.
     </StateCard>
   );
 }
 
 export function SongsFolderMissingState({ previousSongsFolderPath, onChooseFolder }: { previousSongsFolderPath: string; onChooseFolder: () => void }): ReactElement {
   return (
-    <StateCard label="Game folder moved or missing" tone="error" picture={<Icon name="folder" size={40} className="sv-sync-error-icon" />} title="We can't find your Songs folder" action={<StateButton iconName="folder" label="Choose folder" onClick={onChooseFolder} />}>
-      It used to be <span className="sv-sync-mono sv-sync-strong">{previousSongsFolderPath}</span>. Maybe it moved or a drive is unplugged.
+    <StateCard label="Game folder moved or missing" tone="error" picture={<Icon name="folder" size={40} className="sv-sync-error-icon" />} title="Songs folder not found" action={<StateButton iconName="folder" label="Choose folder" onClick={onChooseFolder} />}>
+      <span className="sv-sync-mono sv-sync-strong">{previousSongsFolderPath}</span> moved, or its drive is unplugged.
     </StateCard>
   );
 }
@@ -75,15 +76,15 @@ export interface DiskFullStateProps {
 export function DiskFullState({ neededSpaceText, songCount, driveName, onTryAgain }: DiskFullStateProps): ReactElement {
   return (
     <StateCard label="Disk full" tone="error" picture={<Icon name="disk" size={40} className="sv-sync-error-icon" />} title="Your disk is full" action={<StateButton iconName="spin" label="Try again" isGhost onClick={onTryAgain} />}>
-      We need about <b>{neededSpaceText}</b> for {songCount === 1 ? '1 song' : `${String(songCount)} songs`}. Free up some space on {driveName}, then try again. Nothing was half-written.
+      Free up <b>{neededSpaceText}</b> on {driveName} for {songCount === 1 ? '1 song' : `${String(songCount)} songs`}. Nothing was half-written.
     </StateCard>
   );
 }
 
 export function SongFolderLockedState({ songTitle, onTryAgain }: { songTitle: string; onTryAgain: () => void }): ReactElement {
   return (
-    <StateCard label="Song folder locked by the game" tone="warning" picture={<ArrowReceptor direction="up" size={44} />} title="StepMania is using these songs" action={<StateButton iconName="spin" label="Try again" isGhost onClick={onTryAgain} />}>
-      We couldn&apos;t update <b>{songTitle}</b> while the game is open. <b>Close StepMania and try again.</b>
+    <StateCard label="Song folder locked by the game" tone="warning" picture={<ArrowReceptor direction="up" size={44} />} title="StepMania is open" action={<StateButton iconName="spin" label="Try again" isGhost onClick={onTryAgain} />}>
+      Close it to update <b>{songTitle}</b>, then try again.
     </StateCard>
   );
 }
@@ -98,10 +99,10 @@ export interface NeedsAudioBannerProps {
 export function NeedsAudioBanner({ songCount, onAddMusicFolder, onDismiss }: NeedsAudioBannerProps): ReactElement {
   return (
     <section className="sv-sync-needs-audio-banner" role="status">
-      <span className="sv-sync-needs-audio-count sv-sync-tabular" aria-hidden="true">{songCount}</span>
+      <span className="sv-sync-needs-audio-count sv-sync-tabular">{songCount}</span>
       <div className="sv-sync-grow">
-        <b>{songCount} songs need audio — add your music folder</b>
-        <div className="sv-sync-small sv-sync-warning-text">Sync will check it and line them up. Your music stays on your computer.</div>
+        <b>songs need audio</b>
+        <div className="sv-sync-small sv-sync-warning-text">Add your music folder. Your music stays on your computer.</div>
       </div>
       <button className="sv-sync-button" type="button" onClick={onAddMusicFolder}><Icon name="folder" />Add music folder</button>
       <button className="sv-sync-link-button" type="button" onClick={onDismiss}>Not now</button>

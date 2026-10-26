@@ -35,7 +35,7 @@ describe('ActivityScreen', () => {
   it('copies the details for support and says so', () => {
     const onCopyDetails = vi.fn();
     const { rerender } = render(<ActivityScreen entries={FAKE_ACTIVITY_ENTRIES} wasCopied={false} onCopyDetails={onCopyDetails} hasOlderEntries={false} onShowOlder={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Copy details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy log for support' }));
     expect(onCopyDetails).toHaveBeenCalledOnce();
     rerender(<ActivityScreen entries={FAKE_ACTIVITY_ENTRIES} wasCopied onCopyDetails={onCopyDetails} hasOlderEntries={false} onShowOlder={vi.fn()} />);
     expect(screen.getByRole('status').textContent).toContain('Copied');

@@ -33,7 +33,7 @@ function lookUpGenerator(address: string): HTMLElement {
 }
 
 async function goToSetupStep(): Promise<HTMLElement> {
-  fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
   await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Choose a file…' })); });
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   return screen.getByRole('dialog', { name: 'Pick the generator and difficulties' });
@@ -42,7 +42,7 @@ async function goToSetupStep(): Promise<HTMLElement> {
 describe('GeneratorsScreen', () => {
   it('shows StepsVault’s generator first, then community generators with where they run and their options', () => {
     const props = renderGenerators();
-    expect(screen.getByRole('region', { name: 'StepsVault generator' }).textContent).toContain('Songs go to the vault for everyone. Each song uses 1 token.');
+    expect(screen.getByRole('region', { name: 'dancedance.studio generator' }).textContent).toContain('Songs go to the library for everyone. Each song uses 1 token.');
     expect(screen.getByLabelText('You have 37 tokens')).toBeDefined();
     expect(screen.getByRole('article', { name: 'Tap Forge' }).textContent).toContain('On this computer');
     expect(screen.getByRole('article', { name: 'Groove Lab' }).textContent).toContain('On the internet:https://gen.grooveworks.example');
@@ -88,7 +88,7 @@ describe('GeneratorsScreen', () => {
   it('makes a song with StepsVault’s generator by default, for a token, asking only for difficulties it makes', async () => {
     const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
-    expect(within(setupDialog).getByRole('radio', { name: /StepsVault generator/ })).toHaveProperty('checked', true);
+    expect(within(setupDialog).getByRole('radio', { name: /dancedance.studio generator/ })).toHaveProperty('checked', true);
     expect(within(setupDialog).getAllByRole('checkbox').map((checkbox) => checkbox.parentElement?.textContent)).toEqual(['BBeginner', 'EEasy', 'MMedium', 'HHard', 'CChallenge']);
     fireEvent.click(within(setupDialog).getByRole('checkbox', { name: /Medium/ }));
     await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })); });
@@ -99,7 +99,7 @@ describe('GeneratorsScreen', () => {
   it('shows the player’s tokens, and with none left, says so and won’t make a StepsVault song', async () => {
     const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, tokenCount: 0, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
-    expect(within(setupDialog).getByRole('radio', { name: /StepsVault generator/ }).closest('label')?.textContent).toContain('you have 0 tokens');
+    expect(within(setupDialog).getByRole('radio', { name: /dancedance.studio generator/ }).closest('label')?.textContent).toContain('you have 0 tokens');
     expect(within(setupDialog).getByRole('alert').textContent).toContain('You have no tokens left. Buy tokens, or pick a community generator.');
     expect(within(setupDialog).getByRole('link', { name: 'Buy tokens' }).getAttribute('href')).toBe('#tokens');
     expect(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })).toHaveProperty('disabled', true);
@@ -135,7 +135,7 @@ describe('GeneratorsScreen', () => {
 
   it('picks music from the music folders by searching them', async () => {
     const props = renderGenerators();
-    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
     fireEvent.click(screen.getByRole('tab', { name: 'My music folders' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search your music folders' }), { target: { value: 'night' } });
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Search' })); });
@@ -147,7 +147,7 @@ describe('GeneratorsScreen', () => {
 
   it('draws a song source’s tab from its inputs, checks what the player types, and shows the found song to check', async () => {
     const props = renderGenerators();
-    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
     const linkField = screen.getByRole('textbox', { name: 'YouTube link' });
     fireEvent.change(linkField, { target: { value: 'https://evil-youtube.com/watch' } });
@@ -164,7 +164,7 @@ describe('GeneratorsScreen', () => {
 
   it('shows the song source’s own sentence when it finds nothing, under the field it names when the input is refused', async () => {
     renderGenerators({ onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'invalid-input', inputId: 'search', message: 'Make it shorter: at most 200 characters.' })) });
-    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     expect(screen.getByRole('alert').textContent).toBe('Paste a link from youtube.com or youtu.be.');
@@ -200,10 +200,10 @@ describe('GeneratorsScreen', () => {
   });
 
   it('says where a finished StepsVault song went', async () => {
-    const doneJob: GeneratorJobView = { jobKey: 'job-1', songTitle: 'my new song', songArtist: 'Unknown artist', generatorName: 'StepsVault generator', isStepsVault: true, state: 'done', stageText: 'Done', progressPercent: null, message: null, vaultChoiceQuestion: null, doneText: 'Added to the vault. Sync puts it in your game with your music.' };
+    const doneJob: GeneratorJobView = { jobKey: 'job-1', songTitle: 'my new song', songArtist: 'Unknown artist', generatorName: 'StepsVault generator', isStepsVault: true, state: 'done', stageText: 'Done', progressPercent: null, message: null, vaultChoiceQuestion: null, doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' };
     renderGenerators({ jobs: [doneJob], stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
     await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })); });
-    expect(screen.getByRole('dialog', { name: 'Your song is ready' }).textContent).toContain('Added to the vault.');
+    expect(screen.getByRole('dialog', { name: 'Your song is ready' }).textContent).toContain('Added to the library.');
   });
 });

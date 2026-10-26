@@ -21,7 +21,7 @@ describe('DesktopSignInScreen', () => {
     render(<DesktopSignInScreen signIn={{ kind: 'waiting-for-code', code: 'K7Q4ZP', expiresInText: '9:12', computerName: 'LIVING-ROOM-PC', systemName: 'Windows 11' }} onOpenLinkPage={vi.fn()} onGetNewCode={vi.fn()} onConnectGame={vi.fn()} />);
     expect(formatLinkCode('K7Q4ZP')).toBe('K7Q·4ZP');
     expect(screen.getByLabelText('Code K 7 Q 4 Z P').textContent).toBe('K7Q·4ZP');
-    expect(screen.getByRole('status').textContent).toContain('Waiting for you to type the code');
+    expect(screen.getByRole('status').textContent).toContain('Waiting for the code');
   });
 
   it('says GREAT once signed in and leads on to connecting the game', () => {
@@ -54,7 +54,7 @@ describe('LinkCodeForm', () => {
 
   it('asks before linking the computer', () => {
     const props = renderLinkCodeForm({ state: 'great' });
-    const question = screen.getByRole('region', { name: 'Link this computer to your vault?' });
+    const question = screen.getByRole('region', { name: 'Link this computer to your library?' });
     fireEvent.click(within(question).getByRole('button', { name: 'Link this computer' }));
     expect(props.onLinkComputer).toHaveBeenCalledOnce();
   });
@@ -80,7 +80,7 @@ describe('UpdateBanner', () => {
     const onRestart = vi.fn();
     const onLater = vi.fn();
     render(<UpdateBanner version="1.3" onRestart={onRestart} onLater={onLater} />);
-    expect(screen.getByRole('status').textContent).toContain('StepsVault Sync 1.3 is ready.');
+    expect(screen.getByRole('status').textContent).toContain('DanceDance Sync 1.3 is ready.');
     fireEvent.click(screen.getByRole('button', { name: 'Restart to update' }));
     fireEvent.click(screen.getByRole('button', { name: 'Later' }));
     expect(onRestart).toHaveBeenCalledOnce();

@@ -22,13 +22,13 @@ describe('FolderLayoutScreen', () => {
     const options = within(screen.getByRole('radiogroup', { name: 'Folder layout' })).getAllByRole('radio');
     expect(options.map((option) => option.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
     expect(options[1]?.textContent).toContain('Current');
-    expect(screen.getByText(/StepsVault uses/).textContent).toContain('StepsVault - Pop');
+    expect(screen.getByText(/Ours becomes/).textContent).toContain('StepsVault - Pop');
   });
 
   it('asks first, with the number of songs whose scores start fresh', () => {
     const props = renderFolderLayout();
     fireEvent.click(screen.getByRole('radio', { name: /By artist/ }));
-    const dialog = screen.getByRole('alertdialog', { name: 'Move 11 StepsVault songs into the new layout?' });
+    const dialog = screen.getByRole('alertdialog', { name: 'Switch to “By artist” and move 11 songs?' });
     expect(within(dialog).getByText(/scores will start fresh/)).toBeDefined();
     expect(props.onChangeLayout).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Keep current layout' }));
@@ -40,7 +40,7 @@ describe('FolderLayoutScreen', () => {
   it('keeps the layout when the player says no or presses Escape', () => {
     const props = renderFolderLayout();
     fireEvent.click(screen.getByRole('radio', { name: /One group/ }));
-    expect(screen.getByRole('alertdialog').textContent).toContain('Move 12 StepsVault songs');
+    expect(screen.getByRole('alertdialog').textContent).toContain('move 12 songs');
     fireEvent.click(screen.getByRole('button', { name: 'Keep current layout' }));
     fireEvent.click(screen.getByRole('radio', { name: /One group/ }));
     fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' });
@@ -59,11 +59,11 @@ describe('FolderLayoutScreen', () => {
   it('moves the choice with the arrow keys', () => {
     renderFolderLayout();
     fireEvent.keyDown(screen.getByRole('radio', { name: /By genre/ }), { key: 'ArrowRight' });
-    expect(screen.getByRole('alertdialog').textContent).toContain('Change layout to “By artist”');
+    expect(screen.getByRole('alertdialog').textContent).toContain('Switch to “By artist”');
   });
 
   it('says GREAT after a move', () => {
     renderFolderLayout({ lastMove: { layout: 'by-artist', movedSongCount: 11 } });
-    expect(screen.getByRole('status').textContent).toContain('Moved 11 StepsVault songs into “By artist”.');
+    expect(screen.getByRole('status').textContent).toContain('Moved 11 dancedance.studio songs into “By artist”.');
   });
 });

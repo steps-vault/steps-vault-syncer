@@ -24,7 +24,7 @@ function renderHomeScreen(overrides: Partial<SyncHomeScreenProps> = {}): SyncHom
 }
 
 function getVisibleTitles(): string[] {
-  const list = screen.getByRole('list', { name: 'Your StepsVault songs' });
+  const list = screen.getByRole('list', { name: 'Your dancedance.studio songs' });
   return within(list).getAllByRole('button', { name: /— details$/ }).map((button) => button.textContent);
 }
 
@@ -94,7 +94,7 @@ describe('SyncHomeScreen', () => {
 
   it('passes the status choices of a row to the caller', () => {
     const props = renderHomeScreen();
-    fireEvent.click(screen.getByRole('button', { name: 'Replace with StepsVault’s' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use library version' }));
     expect(props.onSongAction).toHaveBeenCalledWith({ vaultSongId: 'neon-overdrive', action: 'replace-with-stepsvault' });
   });
 
@@ -113,7 +113,7 @@ describe('SyncHomeScreen', () => {
   it('flashes FLAWLESS!! when every song synced and PERFECT! when some need the player', () => {
     renderHomeScreen({ finishedSync: { syncedCount: 23, needsYouCount: 0 } });
     expect(screen.getByText('FLAWLESS!!')).toBeDefined();
-    expect(screen.getByText('All 23 songs synced.')).toBeDefined();
+    expect(screen.getByText('All 23 songs synced')).toBeDefined();
   });
 
   it('opens the details drawer, closes it on Escape and gives focus back to the song', () => {

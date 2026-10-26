@@ -201,7 +201,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     const device = { deviceName: this.options.computerName, operatingSystem: this.options.systemName, appVersion: this.options.appVersion };
     const deviceCode = await startDeviceSignIn({ httpClient: this.httpClient, siteUrl: this.options.siteUrl, device }).catch(() => null);
     if (!deviceCode) {
-      this.problem = 'StepsVault can’t be reached right now. Check your internet connection, then choose "Get a new code".';
+      this.problem = 'dancedance.studio can’t be reached right now. Check your internet connection, then choose "Get a new code".';
       this.publish();
       return;
     }
@@ -251,7 +251,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       this.publish();
       return;
     }
-    this.syncRun = { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your vault…' };
+    this.syncRun = { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your library…' };
     this.problem = null;
     this.publish();
     try {
@@ -400,7 +400,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   copyActivityDetails(): Promise<void> {
     const lines = this.settings.activity.slice(-MAX_ACTIVITY_IN_COPY).map((event) => `${event.at} ${describeActivityKind(event)} ${event.folderPath.join('/')}${event.message ? ` — ${event.message}` : ''}`);
-    this.options.services.writeClipboard([`StepsVault Sync ${this.options.appVersion}`, ...lines].join('\n'));
+    this.options.services.writeClipboard([`DanceDance Sync ${this.options.appVersion}`, ...lines].join('\n'));
     return Promise.resolve();
   }
 
@@ -504,7 +504,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private async runOneSync(): Promise<void> {
     const outcome = await runSync({ ports: this.buildPorts(), settings: this.buildSyncSettings(), onPhase: (phase) => {
       this.syncRun = phase.kind === 'reading-vault'
-        ? { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your vault…' }
+        ? { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your library…' }
         : phase.kind === 'finding-audio'
           ? { currentSongNumber: phase.doneSongCount + 1, totalSongCount: phase.totalSongCount, currentStepText: 'Finding audio and checking it’s the same edit' }
           : { currentSongNumber: phase.progress.doneSongCount, totalSongCount: phase.progress.totalSongCount, currentStepText: 'Writing to your game' };
@@ -541,7 +541,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       if (poll.status === 'waiting') continue;
       if (poll.status === 'expired') {
         this.signIn = { kind: 'signed-out' };
-        this.problem = 'The code expired. Choose "Get a new code" and type it on stepsvault.com/link.';
+        this.problem = 'The code expired. Choose "Get a new code" and type it on dancedance.studio/link.';
       } else {
         this.deviceToken = poll.deviceToken;
         await this.options.tokenStore.save(poll.deviceToken);

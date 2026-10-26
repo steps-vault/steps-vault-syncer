@@ -1,7 +1,9 @@
 import type { GeneratorDifficulty } from '@stepsvault/sync-core';
 import { useState, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
+import { DialogHeading } from '../dialog/dialog-heading';
 import { Icon } from '../icons/icon';
+import { LIBRARY_GENERATOR_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import type { GeneratorJobView, GeneratorView, MakeSongRequest, MakeSongResult, MusicChoiceView, StepsVaultGeneratorView } from '../sync-ui-types';
 import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
@@ -31,8 +33,7 @@ export function MakeSongDialog(props: MakeSongDialogProps): ReactElement {
     <SyncDialog titleId="sv-sync-make-song-title" onClose={props.onClose} focusKey={step.kind}>
       {step.kind === 'music' && (
         <>
-          <div className="sv-sync-eyebrow">Make a song · step 1 of 2</div>
-          <h2 id="sv-sync-make-song-title" className="sv-sync-heading-2">Pick the music</h2>
+          <DialogHeading titleId="sv-sync-make-song-title" title="Pick the music" stepText="Step 1 of 2" />
           <MusicTabs {...props} pickedMusic={pickedMusic} onPickMusic={setPickedMusic} />
           <div className="sv-sync-dialog-buttons">
             <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onClose} data-autofocus>Cancel</button>
@@ -59,7 +60,7 @@ interface GeneratorChoice {
 
 function getGeneratorChoices({ stepsVaultGenerator, generators }: { stepsVaultGenerator: StepsVaultGeneratorView; generators: readonly GeneratorView[] }): GeneratorChoice[] {
   const tokenText = stepsVaultGenerator.tokenCount === null ? '' : ` · you have ${String(stepsVaultGenerator.tokenCount)} ${stepsVaultGenerator.tokenCount === 1 ? 'token' : 'tokens'}`;
-  const stepsVaultChoice: GeneratorChoice = { generatorId: STEPSVAULT_GENERATOR_ID, name: 'StepsVault generator', subtitle: `Goes to the vault for everyone · uses 1 token${tokenText}`, tag: 'Default', difficulties: stepsVaultGenerator.difficulties ?? [], uploadAddress: null, uploadWarning: stepsVaultGenerator.musicUploadWarning };
+  const stepsVaultChoice: GeneratorChoice = { generatorId: STEPSVAULT_GENERATOR_ID, name: LIBRARY_GENERATOR_NAME, subtitle: `Goes to the library for everyone · 1 token${tokenText}`, tag: 'Default', difficulties: stepsVaultGenerator.difficulties ?? [], uploadAddress: null, uploadWarning: stepsVaultGenerator.musicUploadWarning };
   const communityChoices = generators.map((generator): GeneratorChoice => {
     const isOnInternet = generator.location.kind === 'internet';
     const whereText = generator.location.kind === 'internet' ? `On the internet: ${generator.location.address}` : 'On this computer';
@@ -98,8 +99,7 @@ function SetupStep(props: SetupStepProps): ReactElement {
   const isOutOfTokens = isStepsVault && props.stepsVaultGenerator.tokenCount === 0;
   return (
     <>
-      <div className="sv-sync-eyebrow">Make a song · step 2 of 2</div>
-      <h2 id="sv-sync-make-song-title" className="sv-sync-heading-2">Pick the generator and difficulties</h2>
+      <DialogHeading titleId="sv-sync-make-song-title" title="Pick the generator and difficulties" stepText="Step 2 of 2" />
       <div className="sv-sync-addon-who"><Icon name="note" size={18} className="sv-sync-link-colour" /><span>Music: <b className="sv-sync-strong" dir="auto">{props.music.title} — {props.music.artist}</b></span></div>
       <span className="sv-sync-label sv-sync-label--plain" id="sv-sync-generator-choice-label">Generator</span>
       <div className="sv-sync-pick-list" role="radiogroup" aria-labelledby="sv-sync-generator-choice-label">
@@ -159,18 +159,17 @@ function JobStep(props: MakeSongDialogProps & { music: MusicChoiceView; jobKey: 
       <>
         <span className="sv-sync-done-icon" aria-hidden="true"><Icon name="check" size={28} strokeWidth={2.8} /></span>
         <h2 id="sv-sync-make-song-title" className="sv-sync-heading-2">Your song is ready</h2>
-        <p className="sv-sync-text sv-sync-text--large"><b className="sv-sync-strong" dir="auto">{job.songTitle}</b> — {job.doneText}</p>
+        <p className="sv-sync-text sv-sync-text--medium"><b className="sv-sync-strong" dir="auto">{job.songTitle}</b><br />{job.doneText}</p>
         <div className="sv-sync-dialog-buttons"><button className="sv-sync-button" type="button" onClick={props.onClose} data-autofocus>Done</button></div>
       </>
     );
   }
   return (
     <>
-      <div className="sv-sync-eyebrow">Make a song</div>
-      <h2 id="sv-sync-make-song-title" className="sv-sync-heading-2">Making the steps</h2>
+      <DialogHeading titleId="sv-sync-make-song-title" title="Making the steps" />
       <span className="sv-sync-text"><b className="sv-sync-strong" dir="auto">{props.music.title} — {props.music.artist}</b>{job ? ` · with ${job.generatorName}` : ''}</span>
       {job ? <GeneratorJobProgress job={job} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} /> : <span className="sv-sync-small sv-sync-muted">Starting…</span>}
-      {job?.state === 'working' && <span className="sv-sync-small sv-sync-muted">You can close this window. Sync keeps going and tells you when it&apos;s done.</span>}
+      {job?.state === 'working' && <span className="sv-sync-small sv-sync-muted">You can close this. Sync tells you when it&apos;s done.</span>}
       {job && job.state !== 'working' && job.state !== 'needs-vault-choice' && <div className="sv-sync-dialog-buttons"><button className="sv-sync-button" type="button" onClick={props.onClose}>Close</button></div>}
     </>
   );

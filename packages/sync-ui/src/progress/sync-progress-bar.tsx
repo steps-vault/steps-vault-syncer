@@ -24,7 +24,7 @@ export function SyncProgressBar({ platform, currentSongNumber, totalSongCount, c
       {platform === 'website' && (
         <div className="sv-sync-small sv-sync-keep-tab-open">
           <Icon name="info" size={14} />
-          Keep this tab open until it finishes. You can use other tabs.
+          Keep this tab open until it finishes. Other tabs are fine.
         </div>
       )}
     </section>

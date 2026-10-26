@@ -37,7 +37,7 @@ export function StartCommandField({ serviceName, value, onChange }: StartCommand
         <input className="sv-sync-field sv-sync-mono" type="text" value={value} placeholder="C:/addons/my-program/start.cmd" spellCheck={false} onChange={(event) => { onChange(event.target.value); }} />
       </label>
       <span className="sv-sync-small sv-sync-muted">
-        If the {serviceName} is a program on this computer, Sync can start it when needed and stop it after 10 minutes without use. Sync only ever runs exactly what you type here.
+        For a program on this computer: Sync starts the {serviceName} when needed and stops it after 10 idle minutes. It runs exactly what you type.
       </span>
     </div>
   );

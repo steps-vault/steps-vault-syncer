@@ -49,14 +49,14 @@ describe('GeneratorSettings', () => {
     await generatorSettings.loadStepsVaultGenerator();
     await addGenerator({ generatorSettings, address: 'https://gen.example.org' });
     expect(requests.map((request) => [request.url, request.headers?.Authorization ?? null])).toEqual([[`${STEPSVAULT_ADDRESS}/manifest.json`, 'Bearer device-token-1'], ['https://gen.example.org/manifest.json', null]]);
-    expect(generatorSettings.findJobGenerator(STEPSVAULT_ADDRESS)).toMatchObject({ isStepsVault: true, signIn: { siteUrl: SITE_URL, deviceToken: 'device-token-1' }, generator: { manifest: { name: 'StepsVault generator' } } });
+    expect(generatorSettings.findJobGenerator(STEPSVAULT_ADDRESS)).toMatchObject({ isStepsVault: true, signIn: { siteUrl: SITE_URL, deviceToken: 'device-token-1' }, generator: { manifest: { name: 'dancedance.studio generator' } } });
     expect(generatorSettings.findJobGenerator('https://gen.example.org')).toMatchObject({ isStepsVault: false, signIn: null });
-    expect(generatorSettings.buildStepsVaultGeneratorView()).toMatchObject({ tokenCount: 37, difficulties: ['Easy', 'Medium'], musicUploadWarning: `Your music file will be sent to StepsVault (${STEPSVAULT_ADDRESS}).` });
+    expect(generatorSettings.buildStepsVaultGeneratorView()).toMatchObject({ tokenCount: 37, difficulties: ['Easy', 'Medium'], musicUploadWarning: `Your music file will be sent to dancedance.studio (${STEPSVAULT_ADDRESS}).` });
   });
 
   it('asks before the first StepsVault song and keeps the player’s agreement', async () => {
     const { generatorSettings, state } = buildGeneratorSettings({ manifestsByBaseUrl: { [STEPSVAULT_ADDRESS]: MANIFEST_ANSWER } });
-    await expect(generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: false })).rejects.toThrow('Agree to send your music to StepsVault first');
+    await expect(generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: false })).rejects.toThrow('Agree to send your music to dancedance.studio first');
     const jobGenerator = await generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true });
     expect(state.settings.stepsVaultMusicUploadConsentedAt).toBe('2026-10-25T10:00:00.000Z');
     expect(jobGenerator.generator.musicUploadConsentedAt).toBe('2026-10-25T10:00:00.000Z');
@@ -66,12 +66,12 @@ describe('GeneratorSettings', () => {
   it('refuses a StepsVault song with no tokens left', async () => {
     const { generatorSettings } = buildGeneratorSettings({ tokenBalance: 0, manifestsByBaseUrl: { [STEPSVAULT_ADDRESS]: MANIFEST_ANSWER } });
     expect(generatorSettings.buildStepsVaultGeneratorView().tokenCount).toBe(0);
-    await expect(generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('You have no tokens left. Buy tokens on StepsVault, or pick a community generator.');
+    await expect(generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('You have no tokens left. Buy tokens on dancedance.studio, or pick a community generator.');
   });
 
   it('says StepsVault can’t be reached, or that the player must sign in, before making a StepsVault song', async () => {
-    await expect(buildGeneratorSettings().generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('StepsVault can’t be reached right now.');
-    await expect(buildGeneratorSettings({ deviceToken: null }).generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('Sign in to StepsVault first');
+    await expect(buildGeneratorSettings().generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('dancedance.studio can’t be reached right now.');
+    await expect(buildGeneratorSettings({ deviceToken: null }).generatorSettings.getGeneratorForNewSong({ generatorId: STEPSVAULT_GENERATOR_ID, hasAgreedToMusicUpload: true })).rejects.toThrow('Sign in to dancedance.studio first');
   });
 
   it('keeps the music upload consent of an internet generator from the moment it was added', async () => {

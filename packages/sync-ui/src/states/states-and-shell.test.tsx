@@ -17,11 +17,11 @@ describe('empty and error states', () => {
         <SongFolderLockedState songTitle="Watch Me Glow" onTryAgain={onAction} />
       </>,
     );
-    expect(screen.getByRole('link', { name: 'Go to StepsVault' }).getAttribute('href')).toBe('https://stepsvault.example/vault');
-    expect(screen.getByRole('heading', { name: 'Your browser needs permission again' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Browse the library' }).getAttribute('href')).toBe('https://stepsvault.example/vault');
+    expect(screen.getByRole('heading', { name: 'Permission needed' })).toBeDefined();
     expect(screen.getByText(FAKE_GAME.songsFolderPath)).toBeDefined();
     expect(screen.getByText(/Nothing was half-written/).textContent).toContain('3 songs');
-    expect(screen.getByText('Close StepMania and try again.')).toBeDefined();
+    expect(screen.getByText(/Close it to update/)).toBeDefined();
     for (const button of screen.getAllByRole('button')) fireEvent.click(button);
     expect(onAction).toHaveBeenCalledTimes(4);
   });
@@ -29,7 +29,7 @@ describe('empty and error states', () => {
   it('gathers many songs without audio into one banner', () => {
     const onAddMusicFolder = vi.fn();
     render(<NeedsAudioBanner songCount={17} onAddMusicFolder={onAddMusicFolder} onDismiss={vi.fn()} />);
-    expect(screen.getByText('17 songs need audio — add your music folder')).toBeDefined();
+    expect(screen.getByRole('status').textContent).toContain('17songs need audio');
     fireEvent.click(screen.getByRole('button', { name: 'Add music folder' }));
     expect(onAddMusicFolder).toHaveBeenCalledOnce();
   });
@@ -38,7 +38,7 @@ describe('empty and error states', () => {
 describe('PhoneStatusView', () => {
   it('shows status and counters but no Sync button', () => {
     render(<PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={14} needsAudioCount={3} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 3)} />);
-    expect(screen.getByText('Syncing needs a computer.', { exact: false })).toBeDefined();
+    expect(screen.getByText('Sync from a computer', { exact: false })).toBeDefined();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(screen.queryByRole('button')).toBeNull();
   });

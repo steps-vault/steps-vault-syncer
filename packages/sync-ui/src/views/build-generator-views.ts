@@ -3,14 +3,14 @@ import { getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type
 import type { GeneratedSongView, GeneratorInstallPreview, GeneratorJobStateView, GeneratorJobView, GeneratorView, ServiceLocationView } from '../sync-ui-types';
 import { buildAddonOptionViews } from './build-addon-views';
 
-/** The id Sync gives StepsVault's own generator; a manifest id can't contain ':', so no generator can take it. */
+/** The id Sync gives the site's own generator; a manifest id can't contain ':', so no generator can take it. */
 export const STEPSVAULT_GENERATOR_ID = 'stepsvault:default';
 
 const DONE_TEXTS_BY_RESULT: Readonly<Record<NonNullable<SavedGeneratorJob['result']>, string>> = {
   'written': 'Added to My generated songs in your game.',
-  'added-to-vault': 'Added to the vault. Sync puts it in your game with your music.',
-  'kept-vault-song': 'You kept the vault song, so your game didn’t change.',
-  'already-in-vault': 'This song is already in the vault, so no token was spent.',
+  'added-to-vault': 'Added to the library. It comes to your game, with your music, on your next sync.',
+  'kept-vault-song': 'You kept the library song, so your game didn’t change.',
+  'already-in-vault': 'This song is already in the library, so no token was spent.',
 };
 const MADE_AT_FORMAT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const LIST_FORMAT = new Intl.ListFormat('en', { type: 'conjunction' });

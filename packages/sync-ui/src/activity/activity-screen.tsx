@@ -71,15 +71,14 @@ export function ActivityScreen(props: ActivityScreenProps): ReactElement {
       <div className="sv-sync-row sv-sync-wrap sv-sync-space-between sv-sync-align-end">
         <div className="sv-sync-stack-small">
           <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Activity</h2>
-          <p className="sv-sync-text">Everything Sync did, newest first. Open an entry to see the details.</p>
+          <p className="sv-sync-text sv-sync-text--medium">Newest first. Open an entry for details.</p>
         </div>
         <div className="sv-sync-row sv-sync-wrap">
-          {props.wasCopied && <span className="sv-sync-copied" role="status"><Icon name="check" size={14} strokeWidth={3} />Copied — paste it into your message to support</span>}
-          <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onCopyDetails}><Icon name="copy" />Copy details</button>
+          {props.wasCopied && <span className="sv-sync-copied" role="status"><Icon name="check" size={14} strokeWidth={3} />Copied. Paste it into your message to support.</span>}
+          <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onCopyDetails}><Icon name="copy" />Copy log for support</button>
         </div>
       </div>
       <div className="sv-sync-row sv-sync-wrap">
-        <span className="sv-sync-label sv-sync-label--plain">Show</span>
         <SegmentedControl label="Show" options={ACTIVITY_FILTER_OPTIONS} selectedValue={filter} onSelect={setFilter} />
       </div>
       <ol className="sv-sync-timeline" aria-label="Sync activity">

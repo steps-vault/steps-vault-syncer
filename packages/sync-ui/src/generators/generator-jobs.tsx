@@ -9,7 +9,7 @@ export interface GeneratorJobActions {
   onAnswerVaultChoice: (answer: VaultChoiceAnswer) => void;
 }
 
-/** Where one song stands: the generator's stage, the question about the vault song, or how it ended. */
+/** Where one song stands: the generator's stage, the question about the library song, or how it ended. */
 export function GeneratorJobProgress({ job, onCancelJob, onAnswerVaultChoice }: { job: GeneratorJobView } & GeneratorJobActions): ReactElement {
   if (job.state === 'working') return <WorkingJob job={job} onCancelJob={onCancelJob} />;
   if (job.state === 'needs-vault-choice') return <VaultChoice job={job} onAnswerVaultChoice={onAnswerVaultChoice} />;
@@ -36,11 +36,11 @@ function WorkingJob({ job, onCancelJob }: { job: GeneratorJobView; onCancelJob: 
 
 function VaultChoice({ job, onAnswerVaultChoice }: { job: GeneratorJobView; onAnswerVaultChoice: (answer: VaultChoiceAnswer) => void }): ReactElement {
   return (
-    <div className="sv-sync-stack-small" role="group" aria-label="Keep the vault song, or the generated one?">
-      <span className="sv-sync-strong">Keep the vault song, or the generated one?</span>
+    <div className="sv-sync-stack-small" role="group" aria-label="Keep the library song, or the one you made?">
+      <span className="sv-sync-strong">Keep the library song, or the one you made?</span>
       {job.vaultChoiceQuestion !== null && <span className="sv-sync-small sv-sync-muted">{job.vaultChoiceQuestion}</span>}
       <div className="sv-sync-row sv-sync-wrap">
-        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-vault-song' }); }}>Keep the vault song</button>
+        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-vault-song' }); }}>Keep the library song</button>
         <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-generated-song' }); }}>Keep the one I made</button>
       </div>
     </div>

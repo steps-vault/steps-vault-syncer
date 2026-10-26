@@ -42,7 +42,7 @@ export function PreviewApp(): ReactElement {
   return (
     <>
       <div className="preview-controls">
-        <b>StepsVault Sync preview</b>
+        <b>DanceDance Sync preview</b>
         <label>Screen <select value={screen} onChange={(event) => { setScreen(event.target.value as PreviewScreen); }}>{PREVIEW_SCREENS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         <label>Frame <select value={platform} onChange={(event) => { setPlatform(event.target.value as SyncPlatform); }}><option value="website">Website</option><option value="desktop">Desktop app</option></select></label>
         <label>Sync <select value={syncPhase} onChange={(event) => { setSyncPhase(event.target.value as SyncPhase); }}><option value="idle">Idle</option><option value="syncing">Syncing</option><option value="finished">Finished</option></select></label>
@@ -59,7 +59,7 @@ function PreviewFrame({ platform, screen, children }: { platform: SyncPlatform; 
   if (platform === 'website') return <>{children}</>;
   return (
     <div className="preview-window">
-      <div className="preview-window-bar">StepsVault Sync</div>
+      <div className="preview-window-bar">DanceDance Sync</div>
       {children}
     </div>
   );

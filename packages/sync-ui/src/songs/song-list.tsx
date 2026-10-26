@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { Icon } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import { SegmentedControl, type SegmentedOption } from '../shared/small-parts';
 import type { SongRowView } from '../sync-ui-types';
@@ -43,7 +44,7 @@ export function SongList(props: SongListProps): ReactElement {
       <div className={joinClassNames('sv-sync-home-grid', hasDrawer && 'sv-sync-home-grid--with-drawer')}>
         <div className="sv-sync-song-table">
           <SongListHead />
-          <ul className="sv-sync-song-list" aria-label="Your StepsVault songs">
+          <ul className="sv-sync-song-list" aria-label={`Your ${SITE_NAME} songs`}>
             {shownRows.map((row) => (
               <SongRow key={row.vaultSongId} row={row} isSelected={row.vaultSongId === props.selectedSongId} isSyncing={props.isSyncing} onOpenDetails={props.onOpenSongDetails} onSongAction={props.onSongAction} />
             ))}
@@ -85,7 +86,7 @@ function SongFilterBar({ rows, filters, onChange, onClear }: SongFilterBarProps)
   return (
     <div className="sv-sync-filters">
       <label className="sv-sync-field-label">
-        Search
+        <span className="sv-sync-visually-hidden">Search songs</span>
         <span className="sv-sync-search-box">
           <Icon name="search" />
           <input className="sv-sync-field" type="search" placeholder="Title or artist" value={filters.searchText} onChange={(event) => { onChange({ searchText: event.target.value }); }} />
@@ -94,7 +95,6 @@ function SongFilterBar({ rows, filters, onChange, onClear }: SongFilterBarProps)
       <NameFilter label="Genre" anyLabel="All genres" names={getGenreNames(rows)} selectedName={filters.genre} onSelect={(genre) => { onChange({ genre }); }} />
       <NameFilter label="Artist" anyLabel="All artists" names={getArtistNames(rows)} selectedName={filters.artist} onSelect={(artist) => { onChange({ artist }); }} />
       <div className="sv-sync-field-label">
-        Sort
         <SegmentedControl label="Sort" options={SORT_OPTIONS} selectedValue={filters.sortOrder} onSelect={(sortOrder) => { onChange({ sortOrder }); }} />
       </div>
       {hasActiveFilters(filters) && <button className="sv-sync-link-button sv-sync-clear-filters" type="button" onClick={onClear}>Clear filters</button>}

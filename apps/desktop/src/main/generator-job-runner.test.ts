@@ -163,7 +163,7 @@ describe('GeneratorJobRunner', () => {
     await runner.initialize();
     await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
-    expect(runner.jobs[0]).toMatchObject({ isStepsVault: true, generatorName: 'StepsVault generator', result: 'added-to-vault' });
+    expect(runner.jobs[0]).toMatchObject({ isStepsVault: true, generatorName: 'dancedance.studio generator', result: 'added-to-vault' });
     expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_9']]);
     expect(app.songsAddedToVault).toEqual(['song_9']);
     expect(getGeneratedSongs(app.record)).toEqual([]);

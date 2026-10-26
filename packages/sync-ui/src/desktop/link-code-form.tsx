@@ -1,5 +1,6 @@
 import { useRef, type ClipboardEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
+import { DialogHeading } from '../dialog/dialog-heading';
 import { JudgmentText } from '../progress/judgment-flash';
 import { joinClassNames } from '../shared/class-names';
 import type { LinkCodeState } from '../sync-ui-types';
@@ -10,7 +11,7 @@ export interface LinkCodeFormProps {
   /** Six characters, '' where nothing is typed yet. */
   characters: readonly string[];
   state: LinkCodeState;
-  /** For example "LIVING-ROOM-PC · Windows 11 · StepsVault Sync 1.2". */
+  /** For example "LIVING-ROOM-PC · Windows 11 · DanceDance Sync 1.2". */
   computerText: string | null;
   linkedComputerName: string | null;
   onChangeCharacters: (characters: string[]) => void;
@@ -43,8 +44,7 @@ export function LinkCodeForm(props: LinkCodeFormProps): ReactElement {
   };
   return (
     <div className="sv-sync-link-code">
-      <div className="sv-sync-eyebrow">Link a computer</div>
-      <h2 className="sv-sync-heading-2" id="sv-sync-link-code-heading">Type the code from the app</h2>
+      <DialogHeading titleId="sv-sync-link-code-heading" title="Type the code from the app" stepText="Link a computer" />
       <div ref={boxesRef} className={joinClassNames('sv-sync-code-boxes', props.state === 'miss' && 'sv-sync-code-boxes--miss', (props.state === 'great' || props.state === 'linked') && 'sv-sync-code-boxes--great')} role="group" aria-labelledby="sv-sync-link-code-heading">
         {Array.from({ length: LINK_CODE_LENGTH }, (_, index) => (
           <span key={index} className="sv-sync-code-box-wrap">
@@ -53,7 +53,7 @@ export function LinkCodeForm(props: LinkCodeFormProps): ReactElement {
           </span>
         ))}
       </div>
-      <p className="sv-sync-small sv-sync-muted">Codes work for 10 minutes. Only link computers you own.</p>
+      <p className="sv-sync-small sv-sync-muted">Only link computers you own. Codes work for 10 minutes.</p>
       <LinkCodeResult {...props} />
     </div>
   );
@@ -65,7 +65,7 @@ function LinkCodeResult(props: LinkCodeFormProps): ReactElement | null {
       <div className="sv-sync-link-result sv-sync-link-result--miss" role="alert">
         <JudgmentText word="MISS" size="medium" />
         <b className="sv-sync-strong">That code doesn&apos;t match.</b>
-        <span className="sv-sync-small">Check the code in the app and type it again. If it has expired, choose “Get a new code” in the app.</span>
+        <span className="sv-sync-small">Check the code in the app. Expired? Choose “Get a new code” there.</span>
         <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small sv-sync-align-start" type="button" onClick={props.onTryAgain}>Try again</button>
       </div>
     );
@@ -74,9 +74,9 @@ function LinkCodeResult(props: LinkCodeFormProps): ReactElement | null {
     return (
       <div className="sv-sync-link-result sv-sync-link-result--great" role="region" aria-labelledby="sv-sync-link-question">
         <JudgmentText word="GREAT" size="medium" />
-        <h3 id="sv-sync-link-question" className="sv-sync-heading-3">Link this computer to your vault?</h3>
+        <h3 id="sv-sync-link-question" className="sv-sync-heading-3">Link this computer to your library?</h3>
         {props.computerText !== null && <div className="sv-sync-computer-box"><Icon name="computer" /> {props.computerText}</div>}
-        <span className="sv-sync-small sv-sync-text">It will sync the songs in your vault into its game. You can remove it any time in your account settings.</span>
+        <span className="sv-sync-small sv-sync-text">It syncs your library into its game. Remove it any time in Account settings.</span>
         <div className="sv-sync-row">
           <button className="sv-sync-button sv-sync-button--go" type="button" onClick={props.onLinkComputer}>Link this computer</button>
           <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onTryAgain}>Cancel</button>

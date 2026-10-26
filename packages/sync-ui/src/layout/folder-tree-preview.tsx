@@ -9,14 +9,14 @@ export interface FolderTreePreviewProps {
   preview: LayoutPreview;
 }
 
-/** A small folder tree: the player's groups locked, then where StepsVault songs would go. It repeats nearby text, so screen readers skip it. */
+/** A small folder tree: the player's groups locked, then where our songs would go. It repeats nearby text, so screen readers skip it. */
 export function FolderTreePreview({ playerGroupNames, morePlayerGroupCount, preview }: FolderTreePreviewProps): ReactElement {
   return (
     <ul className="sv-sync-mini-tree" aria-hidden="true">
       {playerGroupNames.map((groupName) => (
         <li key={`player-${groupName}`} className="sv-sync-mini-tree-group sv-sync-mini-tree--theirs">
           <Icon name="folder" size={14} /><span>{groupName}</span>
-          <span className="sv-sync-mini-tree-lock"><Icon name="lock" size={11} strokeWidth={2.6} />Yours — never touched</span>
+          <span className="sv-sync-mini-tree-lock"><Icon name="lock" size={11} strokeWidth={2.6} />Yours</span>
         </li>
       ))}
       {morePlayerGroupCount > 0 && <li className="sv-sync-mini-tree-group sv-sync-mini-tree-more">+ {morePlayerGroupCount} more of yours</li>}

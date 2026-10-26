@@ -1,5 +1,7 @@
+import { CLASH_PREFIX } from '@stepsvault/sync-core';
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { LockedBadge, Note, SetupSteps } from '../shared/small-parts';
 import type { PlayerGroupView } from '../sync-ui-types';
 
@@ -41,21 +43,21 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
         ))}
         <li className="sv-sync-folder-tree-ours">
           <Icon name="plus" size={18} strokeWidth={2.6} />
-          <span>StepsVault songs go here, as their own groups next to yours</span>
+          <span>New {SITE_NAME} groups go here, next to yours</span>
           <span className="sv-sync-folder-count">{props.layoutText}</span>
           <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onChangeLayout}>Change layout</button>
         </li>
       </ul>
-      <Note iconName="lock">StepsVault only adds, updates, moves or removes the songs it added itself. If you already have a group with the same name — like your <b className="sv-sync-strong">Pop</b> — ours is called <b className="sv-sync-strong">StepsVault - Pop</b>, so the two never mix.</Note>
+      <Note iconName="lock">Already have a group like <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-strong">{CLASH_PREFIX}Pop</b>, so the two never mix.</Note>
       <div className="sv-sync-row sv-sync-space-between sv-sync-wrap">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onChooseAnotherFolder}>Choose another folder</button>
-        <button className="sv-sync-button sv-sync-button--go sv-sync-button--large" type="button" onClick={props.onContinue}>Looks good — continue<Icon name="chevron" strokeWidth={2.6} /></button>
+        <button className="sv-sync-button sv-sync-button--go sv-sync-button--large" type="button" onClick={props.onContinue}>Continue<Icon name="chevron" strokeWidth={2.6} /></button>
       </div>
     </div>
   );
 }
 
 function getFolderSummary({ songCount, groupCount }: { songCount: number; groupCount: number }): string {
-  if (groupCount === 0) return 'No songs here yet. StepsVault songs will be the first.';
-  return `${NUMBER_FORMAT.format(songCount)} ${songCount === 1 ? 'song' : 'songs'} in ${String(groupCount)} ${groupCount === 1 ? 'group' : 'groups'} — all yours. We'll never touch them.`;
+  if (groupCount === 0) return `No songs here yet. ${SITE_NAME} songs will be the first.`;
+  return `${NUMBER_FORMAT.format(songCount)} ${songCount === 1 ? 'song' : 'songs'} in ${String(groupCount)} ${groupCount === 1 ? 'group' : 'groups'}. We never touch them.`;
 }

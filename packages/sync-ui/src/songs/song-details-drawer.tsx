@@ -3,6 +3,7 @@ import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { CoverArt } from '../shared/cover-art';
 import { DifficultyPanels } from '../shared/difficulty-levels';
+import { InfoToggleButton } from '../shared/small-parts';
 import { StatusChip } from '../status/status-chip';
 import type { AudioMatchView, SongAction, SongDetailsView } from '../sync-ui-types';
 import { SongAudioSourceLabel } from './song-audio-source';
@@ -55,26 +56,36 @@ export function SongDetailsDrawer({ details, onClose, onSongAction }: SongDetail
           <DifficultyPanels levels={song.levels} />
         </section>
         <AudioMatchSection details={details} onAction={handleAction} />
-        <InYourGameSection details={details} onAction={handleAction} />
-        <DangerZoneSection details={details} onAction={handleAction} />
+        <UpdateSection details={details} onAction={handleAction} />
+        <RemoveSection details={details} onAction={handleAction} />
       </div>
     </aside>
   );
 }
 
 function AudioMatchSection({ details, onAction }: { details: SongDetailsView; onAction: (action: SongAction) => void }): ReactElement {
+  const [isShowingMore, setIsShowingMore] = useState(false);
   const match = details.audioMatch;
   const hasAudio = details.song.audioSource.kind !== 'none';
   return (
     <section className="sv-sync-drawer-section" aria-labelledby="sv-sync-drawer-audio">
-      <h3 id="sv-sync-drawer-audio">Audio match</h3>
+      <div className="sv-sync-row sv-sync-space-between">
+        <h3 id="sv-sync-drawer-audio">Audio match</h3>
+        <InfoToggleButton label="File, timing and folder" isOpen={isShowingMore} onToggle={() => { setIsShowingMore(!isShowingMore); }} controlsId="sv-sync-drawer-audio-more" />
+      </div>
       <dl className="sv-sync-facts">
         <dt>Audio from</dt><dd><SongAudioSourceLabel audioSource={details.song.audioSource} /></dd>
-        <dt>File</dt><dd className="sv-sync-mono sv-sync-break-all">{match.fileName ?? '—'}</dd>
         <dt>Version</dt><dd className={getEditClassName(match)}>{getEditText(match)}</dd>
-        <dt>Timing</dt><dd>{match.timingText}</dd>
         <dt>How sure</dt><dd className="sv-sync-row"><ConfidenceMeter confidence={match.confidence} /><span className="sv-sync-small">{getConfidenceText(match.confidence)}</span></dd>
       </dl>
+      {isShowingMore && (
+        <dl id="sv-sync-drawer-audio-more" className="sv-sync-facts sv-sync-facts--boxed">
+          <dt>File</dt><dd className="sv-sync-mono sv-sync-break-all sv-sync-strong">{match.fileName ?? '—'}</dd>
+          <dt>Timing</dt><dd>{match.timingText}</dd>
+          <dt>Folder</dt><dd className="sv-sync-mono sv-sync-strong" dir="auto">{details.gameFolderPath ?? 'Not in your game yet'}</dd>
+          <dt>Chart</dt><dd className="sv-sync-tabular">{details.chartVersionText}</dd>
+        </dl>
+      )}
       <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small sv-sync-align-start" type="button" onClick={() => { onAction(hasAudio ? 'use-different-file' : 'choose-audio'); }}>
         <Icon name="file" size={14} />
         {hasAudio ? 'Use a different file…' : 'Choose audio…'}
@@ -83,47 +94,39 @@ function AudioMatchSection({ details, onAction }: { details: SongDetailsView; on
   );
 }
 
-function InYourGameSection({ details, onAction }: { details: SongDetailsView; onAction: (action: SongAction) => void }): ReactElement {
+function UpdateSection({ details, onAction }: { details: SongDetailsView; onAction: (action: SongAction) => void }): ReactElement | null {
+  if (details.song.status !== 'update-available') return null;
   return (
-    <section className="sv-sync-drawer-section" aria-labelledby="sv-sync-drawer-game">
-      <h3 id="sv-sync-drawer-game">In your game</h3>
-      <dl className="sv-sync-facts">
-        <dt>Folder</dt><dd className="sv-sync-row"><Icon name="folder" size={15} /><span className="sv-sync-mono" dir="auto">{details.gameFolderPath ?? 'Not in your game yet'}</span></dd>
-        <dt>Chart</dt><dd className="sv-sync-tabular">{details.chartVersionText}</dd>
-      </dl>
-      {details.song.status === 'update-available' && (
-        <>
-          <div className="sv-sync-update-note">
-            <Icon name="up" strokeWidth={2.6} />
-            <span><b>Update available.</b> {details.updateNote}</span>
-          </div>
-          <button className="sv-sync-button sv-sync-button--small sv-sync-align-start" type="button" onClick={() => { onAction('update'); }}>Update this song</button>
-        </>
-      )}
+    <section className="sv-sync-drawer-section" aria-label="Update">
+      <div className="sv-sync-update-note">
+        <Icon name="up" strokeWidth={2.6} />
+        <span><b>Update available.</b> {details.updateNote}</span>
+      </div>
+      <button className="sv-sync-button sv-sync-button--small sv-sync-align-start" type="button" onClick={() => { onAction('update'); }}>Update this song</button>
     </section>
   );
 }
 
-function DangerZoneSection({ details, onAction }: { details: SongDetailsView; onAction: (action: SongAction) => void }): ReactElement {
+function RemoveSection({ details, onAction }: { details: SongDetailsView; onAction: (action: SongAction) => void }): ReactElement {
   const [isConfirming, setIsConfirming] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (isConfirming) confirmRef.current?.querySelector('button')?.focus(); }, [isConfirming]);
   useEffect(() => { setIsConfirming(false); }, [details.song.vaultSongId]);
   return (
     <section className="sv-sync-drawer-section sv-sync-danger-zone" aria-labelledby="sv-sync-drawer-danger">
-      <h3 id="sv-sync-drawer-danger">Danger zone</h3>
+      <h3 id="sv-sync-drawer-danger" className="sv-sync-visually-hidden">Remove song</h3>
       {!isConfirming && (
         <>
-          <span className="sv-sync-small">Removes only this song&apos;s folder from your game. Your audio file stays where it is.</span>
           <button className="sv-sync-button sv-sync-button--danger sv-sync-button--small sv-sync-align-start" type="button" disabled={details.gameFolderPath === null} onClick={() => { setIsConfirming(true); }}>
             <Icon name="trash" size={14} />Remove from my game
           </button>
+          <span className="sv-sync-small sv-sync-muted">Removes only this song&apos;s folder. Your audio stays.</span>
         </>
       )}
       {isConfirming && (
         <div ref={confirmRef} className="sv-sync-confirm" role="alertdialog" aria-labelledby="sv-sync-remove-question" aria-describedby="sv-sync-remove-explanation">
           <b id="sv-sync-remove-question">Remove {details.song.title} from your game?</b>
-          <span id="sv-sync-remove-explanation">We delete only <span className="sv-sync-mono">{details.gameFolderPath}</span>. Your audio file and your other songs are not touched.</span>
+          <span id="sv-sync-remove-explanation">Deletes only <span className="sv-sync-mono">{details.gameFolderPath}</span>. Your audio and other songs stay.</span>
           <div className="sv-sync-row">
             <button className="sv-sync-button sv-sync-button--danger sv-sync-button--small" type="button" onClick={() => { setIsConfirming(false); onAction('remove-from-game'); }}>Remove</button>
             <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { setIsConfirming(false); }}>Cancel</button>

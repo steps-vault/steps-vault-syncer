@@ -42,7 +42,7 @@ export function LinkedComputersTable({ computers, onRemoveComputer }: LinkedComp
           </tbody>
         </table>
       </div>
-      <span className="sv-sync-small sv-sync-muted">Removing a computer signs it out. Songs already in its game stay there.</span>
+      <span className="sv-sync-small sv-sync-muted">Removing a computer signs it out. Songs in its game stay.</span>
     </div>
   );
 }
@@ -50,7 +50,7 @@ export function LinkedComputersTable({ computers, onRemoveComputer }: LinkedComp
 function RemoveConfirm({ computerName, onRemove, onCancel }: { computerName: string; onRemove: () => void; onCancel: () => void }): ReactElement {
   return (
     <span className="sv-sync-inline-confirm" role="group" aria-label={`Sign ${computerName} out?`}>
-      <span className="sv-sync-small sv-sync-danger-text">Sign {computerName} out?</span>
+      <span className="sv-sync-small sv-sync-danger-text">Sign {computerName} out? Songs in its game stay.</span>
       <button className="sv-sync-button sv-sync-button--danger sv-sync-button--small" type="button" ref={(element) => { element?.focus(); }} onClick={onRemove}>Remove</button>
       <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onCancel}>Cancel</button>
     </span>

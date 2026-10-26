@@ -27,8 +27,8 @@ const GENERATED_SONG_TEXTS_BY_STEP: Readonly<Record<GeneratedSongActivityStep, {
   'resumed': { kind: 'generating', textBefore: 'Went on making ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'not-cancelled': { kind: 'generating', textBefore: 'Couldn’t cancel ', getTextAfter: () => '' },
   'written': { kind: 'generated', textBefore: 'Made ', getTextAfter: (event) => ` in ${event.folderPath[0] ?? 'your game'}` },
-  'added-to-vault': { kind: 'generated', textBefore: 'Made ', getTextAfter: () => ' for the vault' },
-  'kept-vault-song': { kind: 'generated', textBefore: 'Kept the vault song of ', getTextAfter: () => '' },
+  'added-to-vault': { kind: 'generated', textBefore: 'Made ', getTextAfter: () => ' for the library' },
+  'kept-vault-song': { kind: 'generated', textBefore: 'Kept the library song of ', getTextAfter: () => '' },
   'failed': { kind: 'generate-failed', textBefore: 'Couldn’t make ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'cancelled': { kind: 'generate-cancelled', textBefore: 'Cancelled ', getTextAfter: () => '' },
 };
@@ -87,7 +87,7 @@ function buildSongDetails({ input, song, row }: { input: SongViewInput; song: Va
     },
     gameFolderPath: installedSong ? ['Songs', ...installedSong.folderPath].join('/') : null,
     chartVersionText: installedSong ? `Version ${installedSong.chartVersion}` : `Version ${song.chartVersion}`,
-    updateNote: row.status === 'update-available' ? 'StepsVault has newer steps for this song.' : null,
+    updateNote: row.status === 'update-available' ? 'The library has newer steps for this song.' : null,
   };
 }
 
@@ -115,7 +115,7 @@ function getDifficultyLevels(levels: readonly (number | null)[]): DifficultyLeve
 
 /** "Moved the steps 0.18 s later to fit your copy." */
 export function describeShift(shiftSeconds: number): string {
-  if (Math.abs(shiftSeconds) < 0.005) return 'Your copy starts exactly like StepsVault’s; nothing to move.';
+  if (Math.abs(shiftSeconds) < 0.005) return 'Your copy starts exactly like ours; nothing to move.';
   return `Moved the steps ${Math.abs(shiftSeconds).toFixed(2)} s ${shiftSeconds > 0 ? 'later' : 'earlier'} to fit your copy.`;
 }
 

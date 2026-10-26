@@ -38,7 +38,7 @@ describe('generator views', () => {
     [{ stage: null, progress: null }, { state: 'working', stageText: 'Waiting for Tap Forge', progressPercent: null }],
     [{ state: 'needs-vault-choice', vaultChoice: { vaultSongId: 'v1', question: 'Which one?' } }, { state: 'needs-vault-choice', vaultChoiceQuestion: 'Which one?' }],
     [{ state: 'done', result: 'written' }, { state: 'done', doneText: 'Added to My generated songs in your game.' }],
-    [{ state: 'done', result: 'added-to-vault', isStepsVault: true }, { state: 'done', doneText: 'Added to the vault. Sync puts it in your game with your music.' }],
+    [{ state: 'done', result: 'added-to-vault', isStepsVault: true }, { state: 'done', doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' }],
     [{ state: 'failed', message: 'Tap Forge couldn’t make this song.' }, { state: 'failed', stageText: 'Not made', message: 'Tap Forge couldn’t make this song.' }],
   ] as [Partial<SavedGeneratorJob>, object][])('shows a job %j as %j', (overrides, expected) => {
     expect(buildGeneratorJobView({ ...JOB, ...overrides })).toMatchObject(expected);

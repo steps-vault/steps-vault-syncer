@@ -35,7 +35,7 @@ export function createMainWindow(): BrowserWindow {
     height: 860,
     minWidth: 960,
     minHeight: 640,
-    title: 'StepsVault Sync',
+    title: 'DanceDance Sync',
     backgroundColor: '#0b0b12',
     show: false,
     webPreferences: getLockedDownPreferences('app-preload.cjs'),
