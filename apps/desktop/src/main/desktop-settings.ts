@@ -1,6 +1,6 @@
 import { isOnThisComputer, loadSavedAddon, loadSavedGenerator, type ActivityLogEvent, type FolderLayout, type InstalledAddon, type InstalledGenerator } from '@stepsvault/sync-core';
 
-export const DEFAULT_SITE_URL = 'https://stepsvault.com';
+export const DEFAULT_SITE_URL = 'https://dancedance.studio';
 const MAX_ACTIVITY_EVENTS = 300;
 const LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist'];
 

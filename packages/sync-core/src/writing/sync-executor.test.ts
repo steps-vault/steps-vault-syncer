@@ -64,21 +64,21 @@ describe('carryOutSyncPlan', () => {
   it('adds a whole song folder: song file lined up with the music, music, images and marker', async () => {
     const game = new SyncedGame();
     const result = await game.sync({ vaultSongs: [CHEAP_THRILLS] });
-    const folder = ['StepsVault', 'Cheap Thrills'];
+    const folder = ['dancedance.studio', 'Cheap Thrills'];
     expect(await game.songsFolder.readText([...folder, 'Cheap Thrills.ssc'])).toContain('#OFFSET:-0.350000;');
     expect(await game.songsFolder.readText([...folder, 'Cheap Thrills.ssc'])).toContain('#MUSIC:music.ogg;');
     expect(game.songsFolder.readBytes([...folder, 'music.ogg'])).toEqual(MUSIC_BYTES);
     expect(game.songsFolder.readBytes([...folder, 'banner.png'])).toEqual(BANNER_BYTES);
     expect(await game.songsFolder.readText([...folder, SONG_FOLDER_MARKER_FILE_NAME])).toContain('"vaultSongId": "a"');
     expect(result.events).toMatchObject([{ vaultSongId: 'a', kind: 'added', folderPath: folder }]);
-    expect(game.record.ownedGroupNames).toEqual(['StepsVault']);
+    expect(game.record.ownedGroupNames).toEqual(['dancedance.studio']);
   });
 
   it('leaves nothing behind when the disk fills up halfway, and carries on with the next song', async () => {
     const game = new SyncedGame();
     game.songsFolder.failWritesAfter({ count: 1, failure: 'disk-full' });
     const result = await game.sync({ vaultSongs: [CHEAP_THRILLS, WATCH_ME] });
-    expect(await game.songsFolder.listEntries(['StepsVault'])).toEqual([]);
+    expect(await game.songsFolder.listEntries(['dancedance.studio'])).toEqual([]);
     expect(result.events.map((event) => [event.vaultSongId, event.kind, event.failure])).toEqual([['a', 'failed', 'disk-full'], ['b', 'failed', 'disk-full']]);
     expect(result.events[0]?.message).toContain('Free up some space');
     expect(game.record.installedSongs).toEqual([]);
@@ -88,10 +88,10 @@ describe('carryOutSyncPlan', () => {
     const game = new SyncedGame();
     await game.sync({ vaultSongs: [CHEAP_THRILLS] });
     const result = await game.sync({ vaultSongs: [{ ...CHEAP_THRILLS, chartVersion: 'v2' }] });
-    const sscText = await game.songsFolder.readText(['StepsVault', 'Cheap Thrills', 'Cheap Thrills.ssc']);
+    const sscText = await game.songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc']);
     expect(sscText).toContain('#VERSIONTAG:v2;');
     expect(sscText).toContain('#OFFSET:-0.350000;');
-    expect(await game.songsFolder.readText(['StepsVault', 'Cheap Thrills', 'Cheap Thrills.ssc.stepsvault-new'])).toBeNull();
+    expect(await game.songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc.stepsvault-new'])).toBeNull();
     expect(result.events).toMatchObject([{ kind: 'updated' }]);
     expect(findInstalledSong({ record: game.record, vaultSongId: 'a' })?.chartVersion).toBe('v2');
   });
@@ -99,7 +99,7 @@ describe('carryOutSyncPlan', () => {
   it('says to close StepMania when the game holds the folder, and keeps the old steps', async () => {
     const game = new SyncedGame();
     await game.sync({ vaultSongs: [CHEAP_THRILLS] });
-    game.songsFolder.lock(['StepsVault', 'Cheap Thrills', 'Cheap Thrills.ssc']);
+    game.songsFolder.lock(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc']);
     const result = await game.sync({ vaultSongs: [{ ...CHEAP_THRILLS, chartVersion: 'v2' }] });
     expect(result.events).toMatchObject([{ kind: 'failed', failure: 'locked' }]);
     expect(result.events[0]?.message).toContain('Close StepMania');
@@ -110,11 +110,11 @@ describe('carryOutSyncPlan', () => {
     const game = new SyncedGame();
     await game.sync({ vaultSongs: [CHEAP_THRILLS] });
     const plan = await game.plan({ vaultSongs: [], choices: { ...NO_CHOICES, removeFromGameSongIds: new Set(['a']) } });
-    await game.songsFolder.removeFolder(['StepsVault', 'Cheap Thrills']);
-    await game.songsFolder.writeText({ path: ['StepsVault', 'Cheap Thrills', 'mine.ssc'], text: 'the player own steps' });
+    await game.songsFolder.removeFolder(['dancedance.studio', 'Cheap Thrills']);
+    await game.songsFolder.writeText({ path: ['dancedance.studio', 'Cheap Thrills', 'mine.ssc'], text: 'the player own steps' });
     const result = await carryOutSyncPlan({ plan, record: game.record, dependencies: game.dependencies });
     expect(result.events).toMatchObject([{ kind: 'failed', failure: 'not-ours' }]);
-    expect(await game.songsFolder.readText(['StepsVault', 'Cheap Thrills', 'mine.ssc'])).toBe('the player own steps');
+    expect(await game.songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'mine.ssc'])).toBe('the player own steps');
   });
 
   it('moves songs for a new layout and removes the group it emptied', async () => {
@@ -123,7 +123,7 @@ describe('carryOutSyncPlan', () => {
     const result = await game.sync({ vaultSongs: [CHEAP_THRILLS, WATCH_ME], layout: 'by-genre' });
     expect(result.events.map((event) => event.kind)).toEqual(['moved', 'moved']);
     expect((await game.songsFolder.listEntries([])).map((entry) => entry.name).sort()).toEqual(['Hip-Hop', 'Pop']);
-    expect(game.record.ownedGroupNames).not.toContain('StepsVault');
+    expect(game.record.ownedGroupNames).not.toContain('dancedance.studio');
   });
 
   it('saves the record after every song, and a second sync has nothing to do', async () => {
@@ -143,7 +143,7 @@ describe('a song with its video', () => {
     const plan = await game.plan({ vaultSongs: [CHEAP_THRILLS] });
     const planWithVideo = { ...plan, songPlans: plan.songPlans.map((songPlan) => ({ ...songPlan, actions: songPlan.actions.map((action) => (action.kind === 'add' ? { ...action, audio: { ...action.audio, videoSourceId: 'video:a' } } : action)) })) };
     game.record = (await carryOutSyncPlan({ plan: planWithVideo, record: game.record, dependencies: game.dependencies })).record;
-    const folder = ['StepsVault', 'Cheap Thrills'];
+    const folder = ['dancedance.studio', 'Cheap Thrills'];
     expect(game.songsFolder.readBytes([...folder, 'video.mp4'])).toEqual(videoBytes);
     expect(await game.songsFolder.readText([...folder, 'Cheap Thrills.ssc'])).toContain('#BGCHANGES:');
     expect(findInstalledSong({ record: game.record, vaultSongId: 'a' })?.music.videoFileName).toBe('video.mp4');

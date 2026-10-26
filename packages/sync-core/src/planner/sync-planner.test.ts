@@ -87,7 +87,7 @@ async function buildSyncedGame(vaultSongs: VaultSong[]): Promise<TestGame> {
 describe('a song not in the game yet', () => {
   it('is added when its audio matched', async () => {
     const plan = await new TestGame().plan({ vaultSongs: [CHEAP_THRILLS] });
-    expect(getSongPlan({ plan, vaultSongId: 'a' })).toMatchObject({ status: 'syncing', actions: [{ kind: 'add', to: ['StepsVault', 'Cheap Thrills'], audio: { shiftSeconds: 0.18 } }] });
+    expect(getSongPlan({ plan, vaultSongId: 'a' })).toMatchObject({ status: 'syncing', actions: [{ kind: 'add', to: ['dancedance.studio', 'Cheap Thrills'], audio: { shiftSeconds: 0.18 } }] });
   });
 
   it('needs audio when none was found, and says when it waits for an addon', async () => {
@@ -129,13 +129,13 @@ describe('an installed song', () => {
     const game = await buildSyncedGame([CHEAP_THRILLS]);
     expect(getSongPlan({ plan: await game.plan({ vaultSongs: [] }), vaultSongId: 'a' })).toMatchObject({ status: 'removed-from-vault', actions: [] });
     const removing = await game.plan({ vaultSongs: [], choices: { ...NO_CHOICES, removeFromGameSongIds: new Set(['a']) } });
-    expect(getSongPlan({ plan: removing, vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'remove', at: ['StepsVault', 'Cheap Thrills'] }]);
+    expect(getSongPlan({ plan: removing, vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'remove', at: ['dancedance.studio', 'Cheap Thrills'] }]);
   });
 
   it('is added again when the player deleted its folder', async () => {
     const game = await buildSyncedGame([CHEAP_THRILLS]);
     await game.songsFolder.removeFolder(game.getFolderPath('a'));
-    expect(getSongPlan({ plan: await game.plan({ vaultSongs: [CHEAP_THRILLS] }), vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'forget' }, { kind: 'add', to: ['StepsVault', 'Cheap Thrills'] }]);
+    expect(getSongPlan({ plan: await game.plan({ vaultSongs: [CHEAP_THRILLS] }), vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'forget' }, { kind: 'add', to: ['dancedance.studio', 'Cheap Thrills'] }]);
   });
 
   it('never touches a folder the player replaced, and installs again next to it', async () => {
@@ -144,7 +144,7 @@ describe('an installed song', () => {
     await game.songsFolder.removeFolder(folderPath);
     await game.songsFolder.writeText({ path: [...folderPath, 'their.ssc'], text: 'the player own song' });
     const plan = await game.plan({ vaultSongs: [CHEAP_THRILLS] });
-    expect(getSongPlan({ plan, vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'forget' }, { kind: 'add', to: ['StepsVault', 'Cheap Thrills (Sia)'] }]);
+    expect(getSongPlan({ plan, vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'forget' }, { kind: 'add', to: ['dancedance.studio', 'Cheap Thrills (Sia)'] }]);
     await game.carryOut(plan);
     expect(await game.songsFolder.readText([...folderPath, 'their.ssc'])).toBe('the player own song');
   });

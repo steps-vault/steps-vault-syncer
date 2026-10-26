@@ -135,7 +135,7 @@ describe('SyncHomeScreen', () => {
     renderHomeScreen({ selectedSongDetails: getFakeSongDetails('paper-thrills'), onSongAction });
     fireEvent.click(screen.getByRole('button', { name: 'Remove from my game' }));
     const confirm = screen.getByRole('alertdialog', { name: 'Remove Paper Thrills from your game?' });
-    expect(within(confirm).getByText('Songs/StepsVault - Pop/Paper Thrills')).toBeDefined();
+    expect(within(confirm).getByText('Songs/dancedance.studio - Pop/Paper Thrills')).toBeDefined();
     expect(onSongAction).not.toHaveBeenCalled();
     fireEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
     expect(onSongAction).toHaveBeenCalledWith({ vaultSongId: 'paper-thrills', action: 'remove-from-game' });

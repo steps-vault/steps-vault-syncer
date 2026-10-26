@@ -24,19 +24,19 @@ describe('MemorySongsFolder', () => {
 
   it('never renames onto something that exists', async () => {
     const songsFolder = new MemorySongsFolder();
-    await songsFolder.writeText({ path: ['StepsVault', 'Sorry', 'Sorry.ssc'], text: 'ours' });
+    await songsFolder.writeText({ path: ['dancedance.studio', 'Sorry', 'Sorry.ssc'], text: 'ours' });
     await songsFolder.writeText({ path: ['Pop', 'Sorry', 'Sorry.ssc'], text: 'theirs' });
-    await expect(songsFolder.rename({ from: ['StepsVault', 'Sorry'], to: ['pop', 'SORRY'] })).rejects.toThrow('already there');
+    await expect(songsFolder.rename({ from: ['dancedance.studio', 'Sorry'], to: ['pop', 'SORRY'] })).rejects.toThrow('already there');
     expect(await songsFolder.readText(['Pop', 'Sorry', 'Sorry.ssc'])).toBe('theirs');
   });
 
   it('moves a whole folder on rename and removes only inside the given folder', async () => {
     const songsFolder = new MemorySongsFolder();
-    await songsFolder.writeText({ path: ['StepsVault', 'Sorry', 'Sorry.ssc'], text: 'ours' });
-    await songsFolder.writeText({ path: ['StepsVault', 'Sorry Not Sorry', 'a.ssc'], text: 'other' });
-    await songsFolder.rename({ from: ['StepsVault', 'Sorry'], to: ['StepsVault - Pop', 'Sorry'] });
-    await songsFolder.removeFolder(['StepsVault - Pop', 'Sorry']);
-    expect(await songsFolder.readText(['StepsVault - Pop', 'Sorry', 'Sorry.ssc'])).toBeNull();
-    expect(await songsFolder.readText(['StepsVault', 'Sorry Not Sorry', 'a.ssc'])).toBe('other');
+    await songsFolder.writeText({ path: ['dancedance.studio', 'Sorry', 'Sorry.ssc'], text: 'ours' });
+    await songsFolder.writeText({ path: ['dancedance.studio', 'Sorry Not Sorry', 'a.ssc'], text: 'other' });
+    await songsFolder.rename({ from: ['dancedance.studio', 'Sorry'], to: ['dancedance.studio - Pop', 'Sorry'] });
+    await songsFolder.removeFolder(['dancedance.studio - Pop', 'Sorry']);
+    expect(await songsFolder.readText(['dancedance.studio - Pop', 'Sorry', 'Sorry.ssc'])).toBeNull();
+    expect(await songsFolder.readText(['dancedance.studio', 'Sorry Not Sorry', 'a.ssc'])).toBe('other');
   });
 });

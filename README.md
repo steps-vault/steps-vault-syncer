@@ -1,6 +1,6 @@
 # StepsVault Sync
 
-StepsVault Sync puts the songs from your [StepsVault](https://stepsvault.com) vault into your own StepMania game,
+StepsVault Sync puts the songs from your [dancedance.studio](https://dancedance.studio) vault into your own StepMania game,
 lined up with **your own copy of the music**. StepsVault makes dance steps; it never sends anyone music.
 
 - It only adds, updates, moves or removes the songs it added itself. Your own song folders are never touched.

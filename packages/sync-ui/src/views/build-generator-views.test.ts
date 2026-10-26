@@ -57,10 +57,10 @@ describe('generator views', () => {
       { kind: 'generated-song', step: 'started', at: '2026-10-25T10:00:00.000Z', songTitle: 'Night Drive', generatorName: 'Tap Forge', folderPath: [] },
       { kind: 'generated-song', step: 'written', at: '2026-10-25T10:05:00.000Z', songTitle: 'Night Drive', generatorName: 'Tap Forge', folderPath: ['My generated songs', 'Night Drive'] },
       { kind: 'generated-song', step: 'failed', at: '2026-10-25T10:06:00.000Z', songTitle: 'Low Tide', generatorName: 'Tap Forge', folderPath: [], message: 'Tap Forge isn’t answering.' },
-      { vaultSongId: 'v1', kind: 'added', at: '2026-10-25T10:07:00.000Z', folderPath: ['StepsVault', 'Paris'] },
+      { vaultSongId: 'v1', kind: 'added', at: '2026-10-25T10:07:00.000Z', folderPath: ['dancedance.studio', 'Paris'] },
     ] });
     expect(entries.map((entry) => [entry.kind, `${entry.textBefore}${entry.highlightedText}${entry.textAfter}`, entry.summaryText])).toEqual([
-      ['added', 'Added Paris in StepsVault', 'Songs/StepsVault/Paris'],
+      ['added', 'Added Paris in dancedance.studio', 'Songs/dancedance.studio/Paris'],
       ['generate-failed', 'Couldn’t make Low Tide with Tap Forge', 'Tap Forge isn’t answering.'],
       ['generated', 'Made Night Drive in My generated songs', 'Songs/My generated songs/Night Drive'],
       ['generating', 'Started making Night Drive with Tap Forge', 'With Tap Forge'],

@@ -85,7 +85,7 @@ describe('runSync', () => {
     const outcome = await runSync({ ports: buildPorts({ songsFolder, vault: new FakeVault([CHEAP_THRILLS, WATCH_ME, NO_FINGERPRINT]), recordStore, checkedFingerprints }), settings: await buildSettings(), onPhase: (phase) => phases.push(phase.kind) });
 
     expect(outcome.finalPlan.songPlans.map((songPlan) => [songPlan.vaultSongId, songPlan.status])).toEqual([['a', 'synced'], ['b', 'needs-audio'], ['c', 'needs-audio']]);
-    expect(await songsFolder.readText(['StepsVault', 'Cheap Thrills', 'Cheap Thrills.ssc'])).toContain('#OFFSET:-0.300000;');
+    expect(await songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc'])).toContain('#OFFSET:-0.300000;');
     expect(outcome.events.map((event) => [event.vaultSongId, event.kind])).toEqual([['a', 'added']]);
     expect(outcome.audioResultsBySongId.get('c')?.addonMessages[0]).toContain('no sound fingerprint');
     expect(checkedFingerprints).toEqual(['sia-cheap-thrills:97']);
@@ -106,7 +106,7 @@ describe('runSync', () => {
     const outcome = await runSync({ ports, settings });
     expect(checkedFingerprints).toHaveLength(1);
     expect(outcome.events.map((event) => event.kind)).toEqual(['updated']);
-    expect(await songsFolder.readText(['StepsVault', 'Cheap Thrills', 'Cheap Thrills.ssc'])).toContain('#VERSIONTAG:v2;');
+    expect(await songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'Cheap Thrills.ssc'])).toContain('#VERSIONTAG:v2;');
     expect(outcome.finalPlan.songPlans.map((songPlan) => songPlan.status)).toEqual(['synced']);
   });
 
@@ -114,10 +114,10 @@ describe('runSync', () => {
     const songsFolder = new MemorySongsFolder();
     songsFolder.addMusicSource({ sourceId: 'sia-cheap-thrills', bytes: new Uint8Array([79, 103, 103, 83]) });
     const recordStore = new MemoryRecordStore();
-    recordStore.record = { ...recordStore.record, ownedGroupNames: ['StepsVault'] };
-    await songsFolder.writeText({ path: ['StepsVault', 'Cheap Thrills', 'theirs.ssc'], text: 'the player own song' });
+    recordStore.record = { ...recordStore.record, ownedGroupNames: ['dancedance.studio'] };
+    await songsFolder.writeText({ path: ['dancedance.studio', 'Cheap Thrills', 'theirs.ssc'], text: 'the player own song' });
     const outcome = await runSync({ ports: buildPorts({ songsFolder, vault: new FakeVault([CHEAP_THRILLS]), recordStore, checkedFingerprints: [] }), settings: await buildSettings() });
-    expect(outcome.events[0]?.folderPath).toEqual(['StepsVault', 'Cheap Thrills (Sia)']);
-    expect(await songsFolder.readText(['StepsVault', 'Cheap Thrills', 'theirs.ssc'])).toBe('the player own song');
+    expect(outcome.events[0]?.folderPath).toEqual(['dancedance.studio', 'Cheap Thrills (Sia)']);
+    expect(await songsFolder.readText(['dancedance.studio', 'Cheap Thrills', 'theirs.ssc'])).toBe('the player own song');
   });
 });
