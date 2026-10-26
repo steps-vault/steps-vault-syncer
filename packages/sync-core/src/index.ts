@@ -33,6 +33,7 @@ export * from './audio-sources/music-search';
 export * from './audio-sources/audio-search';
 export * from './stepsvault-api/stepsvault-api-types';
 export * from './stepsvault-api/stepsvault-client';
+export * from './stepsvault-api/computer-songs';
 export * from './session/run-sync';
 export * from './network/service-address';
 export * from './network/retry-after';

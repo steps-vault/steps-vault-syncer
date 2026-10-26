@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
+  buildComputerSongReports,
   buildEmptyInstalledSongsRecord,
   buildInstalledAddon,
   fetchAddonManifest,
@@ -455,6 +456,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     if (result.kind === 'needs-vault-choice') return result;
     this.record = result.record;
     await this.recordStore.save(result.record);
+    if (result.kind === 'written') void this.reportComputerSongs();
     const replacedVaultSongId = result.kind === 'written' ? result.generatedSong.inPlaceOfVaultSongId : null;
     // The vault song the player chose to replace leaves the game on the next sync, like a song removed from the vault.
     if (replacedVaultSongId !== null) await this.saveSettings(withSongChoice({ settings: this.settings, vaultSongId: replacedVaultSongId, action: 'remove-from-game' }));
@@ -517,6 +519,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.finishedSync = { syncedCount: songPlans.filter((songPlan) => songPlan.status === 'synced').length, needsYouCount: songPlans.filter((songPlan) => songPlan.status !== 'synced').length };
     await this.saveSettings(withSettledChoices({ settings: withActivity({ settings: { ...this.settings, lastSyncAt: new Date().toISOString() }, events: outcome.events }), outcome }));
     await this.reportSeen(outcome);
+    await this.reportComputerSongs();
   }
 
   private async handleSyncError(error: unknown): Promise<void> {
@@ -532,6 +535,12 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     const songCountsByStatus: Record<string, number> = {};
     for (const songPlan of outcome.finalPlan.songPlans) songCountsByStatus[songPlan.status] = (songCountsByStatus[songPlan.status] ?? 0) + 1;
     await this.buildClient().reportSeen({ songCountsByStatus, gameName: this.settings.game?.gameName ?? null }).catch(() => undefined);
+  }
+
+  /** Keeps My songs on the site ("This PC") in step with the songs generators made here; the site keeps no music. */
+  private async reportComputerSongs(): Promise<void> {
+    if (this.deviceToken === null) return;
+    await this.buildClient().reportComputerSongs(buildComputerSongReports(getGeneratedSongs(this.record))).catch(() => undefined);
   }
 
   private async waitForSignIn({ pollingId, intervalSeconds }: { pollingId: string; intervalSeconds: number }): Promise<void> {
