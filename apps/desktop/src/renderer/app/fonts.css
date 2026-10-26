@@ -1,9 +1,29 @@
 /*
- * The app ships its own fonts, so the renderer loads nothing from the network (font-src 'self'). Rubik and Saira
- * (Latin and Latin Extended) and Noto Sans JP 500 and 700 come from Google Fonts under the SIL Open Font License; each
- * folder in ../fonts holds its OFL.txt. JetBrains Mono is not bundled: mono text falls back to the system mono font.
+ * The app ships its own fonts, so the renderer loads nothing from the network (font-src 'self'). Rubik (Latin, Latin
+ * Extended and Hebrew, for Hebrew song titles), Saira (Latin and Latin Extended) and Noto Sans JP 500 and 700 come
+ * from Google Fonts under the SIL Open Font License; each folder in ../fonts holds its OFL.txt. JetBrains Mono is not
+ * bundled: mono text falls back to the system mono font. Hebrew comes before Latin, as Google orders them, so the two
+ * characters both cover (U+0307-0308) keep the Latin shapes.
  */
 
+/* rubik hebrew */
+@font-face {
+  font-family: 'Rubik';
+  font-style: italic;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(../fonts/rubik/rubik-italic-hebrew-4017458b.woff2) format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+/* rubik hebrew */
+@font-face {
+  font-family: 'Rubik';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url(../fonts/rubik/rubik-normal-hebrew-366f4809.woff2) format('woff2');
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
 /* rubik latin-ext */
 @font-face {
   font-family: 'Rubik';
