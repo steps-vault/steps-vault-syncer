@@ -18,6 +18,8 @@ export interface SyncShellProps {
   currentScreen: SyncScreen;
   onNavigate: (screen: SyncScreen) => void;
   hrefsByScreen?: Partial<Record<SyncScreen, string>>;
+  /** Website only: show the Generators screen in the menu. */
+  hasWebsiteGenerators?: boolean;
   /** Desktop only: the game, tray status and player at the bottom of the side menu. */
   desktopSidebar?: DesktopSidebarView;
   /** Desktop only: shown above every screen, for example the UpdateBanner. */
@@ -40,7 +42,7 @@ export function SyncShell(props: SyncShellProps): ReactElement {
       <div className="sv-sync-shell-body">
         {props.isBare !== true && (
           <div className="sv-sync-sidebar">
-            <SyncNavigation platform={props.platform} currentScreen={props.currentScreen} onNavigate={props.onNavigate} hrefsByScreen={props.hrefsByScreen} />
+            <SyncNavigation platform={props.platform} currentScreen={props.currentScreen} onNavigate={props.onNavigate} hrefsByScreen={props.hrefsByScreen} hasWebsiteGenerators={props.hasWebsiteGenerators} />
             {props.platform === 'desktop' && props.desktopSidebar && <DesktopSidebarFooter sidebar={props.desktopSidebar} />}
           </div>
         )}
@@ -55,7 +57,7 @@ function WebsiteSyncHeader(): ReactElement {
     <div className="sv-sync-website-header">
       <div>
         <h1 className="sv-sync-display-title">Sync to my game</h1>
-        <p className="sv-sync-lede">Your library&apos;s songs in your own StepMania, lined up with your music.</p>
+        <p className="sv-sync-lede">Your library&apos;s songs in your own StepMania, lined up with your own music.</p>
       </div>
       <span className="sv-sync-website-hint">
         <Icon name="info" size={14} />

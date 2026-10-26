@@ -11,9 +11,9 @@ import { FOLDER_LAYOUT_NAMES, LayoutChangeDialog } from './layout-change-dialog'
 
 const FOLDER_LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist'];
 const LAYOUT_DESCRIPTIONS: Readonly<Record<FolderLayout, string>> = {
-  'one-group': `Everything in one ${ONE_GROUP_NAME} group.`,
-  'by-genre': 'A group for each genre.',
-  'by-artist': 'A group for each artist.',
+  'one-group': `Everything in a single ${ONE_GROUP_NAME} group.`,
+  'by-genre': 'Pop, Rock, Electronic… one group per genre.',
+  'by-artist': 'Mergui, Sia… one group per artist.',
 };
 const PREVIEW_PLAYER_GROUP_COUNT = 2;
 const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: `${CLASH_PREFIX}Pop`, tagText: 'ours', songTitles: ['Pop songs from your library'] }] };
@@ -71,7 +71,7 @@ export function FolderLayoutScreen(props: FolderLayoutScreenProps): ReactElement
         ))}
       </div>
       <NameRuleExplainer />
-      <Note>StepMania keeps scores by folder, so moved songs start with fresh scores. Your own songs and scores never change.</Note>
+      <Note>StepMania keeps scores by folder. Moving {SITE_NAME} songs to a new layout means their scores start fresh. Your own songs and their scores are never touched.</Note>
       {pendingLayout !== null && (
         <LayoutChangeDialog nextLayout={pendingLayout} movingSongCount={props.movingSongCountsByLayout[pendingLayout]} onCancel={() => { setPendingLayout(null); }} onConfirm={() => { setPendingLayout(null); props.onChangeLayout(pendingLayout); }} />
       )}
@@ -83,8 +83,8 @@ function NameRuleExplainer(): ReactElement {
   return (
     <section className="sv-sync-name-rule" aria-labelledby="sv-sync-name-rule-heading">
       <div className="sv-sync-stack-small">
-        <h3 id="sv-sync-name-rule-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">Name already yours?</h3>
-        <p className="sv-sync-text sv-sync-text--medium">Like your own <b className="sv-sync-strong">Pop</b>? Ours becomes <b className="sv-sync-light-blue-text">{CLASH_PREFIX}Pop</b>, so the two never mix.</p>
+        <h3 id="sv-sync-name-rule-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">When a name is already yours</h3>
+        <p className="sv-sync-text sv-sync-text--medium">Already have a folder with that name, like your own <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-light-blue-text">{CLASH_PREFIX}Pop</b>. The two never mix.</p>
         <span className="sv-sync-small sv-sync-muted">Same for genres, artists and the single group.</span>
       </div>
       <FolderTreePreview playerGroupNames={['Pop']} morePlayerGroupCount={0} preview={NAME_RULE_PREVIEW} />

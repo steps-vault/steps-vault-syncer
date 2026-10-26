@@ -6,7 +6,7 @@ import { SITE_NAME } from '../shared/brand-names';
 import { Note } from '../shared/small-parts';
 import { getAddonInitials } from '../sources/addon-card';
 import { AddonOptionFields } from '../sources/addon-option-fields';
-import { AddressError, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote } from '../sources/start-command-field';
+import { AddressError, EMPTY_SERVICE_ADDRESS_DRAFT, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote, type ServiceAddressDraft } from '../sources/start-command-field';
 import type { AddonOptionView, GeneratorInstallPreview, GeneratorLookupResult, ServiceLookupRequest } from '../sync-ui-types';
 import { ServiceLocation } from './generator-card';
 
@@ -36,11 +36,12 @@ type DialogStep = { kind: 'address' } | { kind: 'confirm'; generator: GeneratorI
 /** Step 1: the address. Step 2: exactly what the generator gets, and where the music goes, before anything is added. */
 export function AddGeneratorDialog({ onLookUpGenerator, canUseStartCommand, onAdd, onClose }: AddGeneratorDialogProps): ReactElement {
   const [step, setStep] = useState<DialogStep>({ kind: 'address' });
+  const [draft, setDraft] = useState<ServiceAddressDraft>(EMPTY_SERVICE_ADDRESS_DRAFT);
   return (
     <SyncDialog titleId="sv-sync-add-generator-title" onClose={onClose} focusKey={step.kind}>
       {step.kind === 'address'
-        ? <AddressStep onLookUpGenerator={onLookUpGenerator} canUseStartCommand={canUseStartCommand} onFound={(generator) => { setStep({ kind: 'confirm', generator }); }} onCancel={onClose} />
-        : <ConfirmStep generator={step.generator} onAdd={onAdd} onCancel={onClose} />}
+        ? <AddressStep onLookUpGenerator={onLookUpGenerator} canUseStartCommand={canUseStartCommand} draft={draft} onChangeDraft={setDraft} onFound={(generator) => { setStep({ kind: 'confirm', generator }); }} onCancel={onClose} />
+        : <ConfirmStep generator={step.generator} onAdd={onAdd} onBack={() => { setStep({ kind: 'address' }); }} onCancel={onClose} />}
     </SyncDialog>
   );
 }
@@ -49,12 +50,15 @@ interface AddressStepProps {
   onLookUpGenerator: (request: ServiceLookupRequest) => Promise<GeneratorLookupResult>;
   canUseStartCommand: boolean;
   onFound: (generator: GeneratorInstallPreview) => void;
+  draft: ServiceAddressDraft;
+  onChangeDraft: (draft: ServiceAddressDraft) => void;
   onCancel: () => void;
 }
 
-function AddressStep({ onLookUpGenerator, canUseStartCommand, onFound, onCancel }: AddressStepProps): ReactElement {
-  const [address, setAddress] = useState('https://');
-  const [startCommandText, setStartCommandText] = useState('');
+function AddressStep({ onLookUpGenerator, canUseStartCommand, draft, onChangeDraft, onFound, onCancel }: AddressStepProps): ReactElement {
+  const { address, startCommandText } = draft;
+  const setAddress = (nextAddress: string): void => { onChangeDraft({ ...draft, address: nextAddress }); };
+  const setStartCommandText = (nextText: string): void => { onChangeDraft({ ...draft, startCommandText: nextText }); };
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const isOnThisComputer = canUseStartCommand && isThisComputerAddress(address);
@@ -93,7 +97,7 @@ function AddressStep({ onLookUpGenerator, canUseStartCommand, onFound, onCancel 
   );
 }
 
-function ConfirmStep({ generator, onAdd, onCancel }: { generator: GeneratorInstallPreview; onAdd: (generator: GeneratorInstallPreview) => void; onCancel: () => void }): ReactElement {
+function ConfirmStep({ generator, onAdd, onBack, onCancel }: { generator: GeneratorInstallPreview; onAdd: (generator: GeneratorInstallPreview) => void; onBack: () => void; onCancel: () => void }): ReactElement {
   const [options, setOptions] = useState<readonly AddonOptionView[]>(generator.options);
   const handleOptionChange = ({ optionId, value }: { optionId: string; value: string }): void => {
     setOptions((current) => current.map((option) => (option.optionId === optionId ? { ...option, value } : option)));
@@ -116,8 +120,8 @@ function ConfirmStep({ generator, onAdd, onCancel }: { generator: GeneratorInsta
       </div>
       {generator.location.kind === 'internet'
         ? <MusicUploadWarning address={generator.location.address} />
-        : <Note iconName="computer">It runs on this computer. Your music file stays here.</Note>}
-      {generator.startCommand !== null && <StartCommandNote startCommand={generator.startCommand} />}
+        : <Note iconName="computer">It runs on this computer. Your music file stays here.{generator.startCommand !== null && <> Sync starts it with <b className="sv-sync-mono sv-sync-break-all">{generator.startCommand}</b>, and stops it after 10 minutes without use.</>}</Note>}
+      {generator.location.kind === 'internet' && generator.startCommand !== null && <StartCommandNote startCommand={generator.startCommand} />}
       {options.length > 0 && (
         <div className="sv-sync-addon-setup">
           <b>Choose how it works</b>
@@ -127,6 +131,7 @@ function ConfirmStep({ generator, onAdd, onCancel }: { generator: GeneratorInsta
       )}
       <Note className="sv-sync-small">Songs it makes stay on this computer and never go to the library.</Note>
       <div className="sv-sync-dialog-buttons">
+        <button className="sv-sync-button sv-sync-button--ghost sv-sync-dialog-back" type="button" onClick={onBack}>Back</button>
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onAdd({ ...generator, options }); }}>Add</button>
       </div>

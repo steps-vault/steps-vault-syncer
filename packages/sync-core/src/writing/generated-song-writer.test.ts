@@ -19,8 +19,10 @@ const VIDEO_BYTES = new Uint8Array([0, 0, 0, 24]);
 const GROUP = 'My generated songs';
 const PULSE_GARDEN: GeneratorSongFacts = { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: 201, youtubeId: 'pulse123' };
 
+const METERS_BY_DIFFICULTY: Readonly<Record<string, string>> = { Easy: '3', Medium: 'not a level' };
+
 function buildChart({ stepsType = 'dance-single', difficulty }: { stepsType?: string; difficulty: string }): string {
-  return ['#NOTEDATA:;', `#STEPSTYPE:${stepsType};`, `#DIFFICULTY:${difficulty};`, '#NOTES:', '1000', '0100', ';', ''].join('\n');
+  return ['#NOTEDATA:;', `#STEPSTYPE:${stepsType};`, `#DIFFICULTY:${difficulty};`, `#METER:${METERS_BY_DIFFICULTY[difficulty] ?? ''};`, '#NOTES:', '1000', '0100', ';', ''].join('\n');
 }
 
 function buildSongSsc({ header = {}, charts = ['Easy', 'Medium'] }: { header?: Record<string, string | null>; charts?: string[] } = {}): string {
@@ -97,7 +99,7 @@ describe('writeGeneratedSong', () => {
     expect(game.songsFolder.readBytes([...folder, 'video.mp4'])).toEqual(VIDEO_BYTES);
     expect(game.songsFolder.readBytes([...folder, 'banner.png'])).toEqual(PNG_BYTES);
     expect(await game.songsFolder.readText([...folder, SONG_FOLDER_MARKER_FILE_NAME])).toContain('"format": "stepsvault-generated-song"');
-    expect(getGeneratedSongs(game.record)).toMatchObject([{ songKey: 'youtube:pulse123', generatorId: 'example.onset-steps', generatorVersion: '0.1.0', folderPath: folder, difficulties: ['Easy', 'Medium'], inPlaceOfVaultSongId: null }]);
+    expect(getGeneratedSongs(game.record)).toMatchObject([{ songKey: 'youtube:pulse123', generatorId: 'example.onset-steps', generatorVersion: '0.1.0', folderPath: folder, difficulties: ['Easy', 'Medium'], levelsByDifficulty: { Easy: 3 }, inPlaceOfVaultSongId: null }]);
     expect(game.record.ownedGroupNames).toEqual([GROUP]);
     expect((await game.songsFolder.listEntries([GROUP])).map((entry) => entry.name)).toEqual(['Pulse Garden']);
   });
@@ -236,7 +238,7 @@ describe('a generated song that is also in the vault', () => {
   it('asks the player which one to keep, and writes nothing yet', async () => {
     const game = new GeneratedSongGame();
     const result = await game.write({ vaultSongs: VAULT_SONGS });
-    expect(result).toEqual({ kind: 'needs-vault-choice', vaultSongId: 'vault-1', question: '“Another Title” is also in your vault. Which one do you want in your game: the vault song or the one you made?' });
+    expect(result).toEqual({ kind: 'needs-vault-choice', vaultSongId: 'vault-1', question: '“Another Title” is already in the library. Keep the library song, or the one you made?' });
     expect(await game.songsFolder.listEntries([])).toEqual([]);
   });
 

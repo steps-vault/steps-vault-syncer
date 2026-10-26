@@ -14,3 +14,8 @@ body {
   background: #1a0e12;
   font: 400 15px/1.5 Rubik, 'Noto Sans JP', system-ui, sans-serif;
 }
+
+.sv-desktop-loading {
+  min-height: 100vh;
+  padding: 28px;
+}

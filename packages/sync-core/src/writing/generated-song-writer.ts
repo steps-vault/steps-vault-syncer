@@ -70,7 +70,7 @@ export async function writeGeneratedSong(options: WriteGeneratedSongOptions): Pr
   const { request, record, vaultSongChoice } = options;
   const checkedSsc = checkGeneratedSsc({ chartText: request.files.chartText, difficulties: request.difficulties, generatorName: request.generator.name });
   const sameVaultSong = findSameVaultSong({ song: request.song, vaultSongs: options.vaultSongs });
-  if (sameVaultSong && !vaultSongChoice) return { kind: 'needs-vault-choice', vaultSongId: sameVaultSong.vaultSongId, question: `“${sameVaultSong.title}” is also in your vault. Which one do you want in your game: the vault song or the one you made?` };
+  if (sameVaultSong && !vaultSongChoice) return { kind: 'needs-vault-choice', vaultSongId: sameVaultSong.vaultSongId, question: `“${sameVaultSong.title}” is already in the library. Keep the library song, or the one you made?` };
   if (sameVaultSong && vaultSongChoice === 'keep-vault-song') return { kind: 'kept-vault-song', record };
   return writeCheckedSong({ options, checkedSsc, inPlaceOfVaultSongId: sameVaultSong?.vaultSongId ?? null });
 }
@@ -79,10 +79,19 @@ async function writeCheckedSong({ options, checkedSsc, inPlaceOfVaultSongId }: {
   const { dependencies, record, request } = options;
   const replacedSong = await getReplaceableSong({ songsFolder: dependencies.songsFolder, record, songKey: getGeneratedSongKey(request.song) });
   const folderPath = replacedSong?.folderPath ?? (await chooseNewFolderPath({ songsFolder: dependencies.songsFolder, record, songNames: getGeneratedSongFolderNames({ headerText: checkedSsc.headerText, song: request.song, now: dependencies.getNow() }) }));
-  const generatedSong = buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfVaultSongId });
+  const generatedSong = { ...buildGeneratedSong({ dependencies, request, folderPath, inPlaceOfVaultSongId }), levelsByDifficulty: getLevelsByDifficulty({ checkedSsc, difficulties: request.difficulties }) };
   await writeSongFolder({ dependencies, request, checkedSsc, generatedSong, isReplacing: replacedSong !== null });
   const recordWithSong = withGeneratedSong({ record, generatedSong });
   return { kind: 'written', record: withOwnedGroup({ record: recordWithSong, groupName: folderPath[0] ?? GENERATED_SONGS_GROUP_NAME }), generatedSong, wasReplaced: replacedSong !== null };
+}
+
+function getLevelsByDifficulty({ checkedSsc, difficulties }: { checkedSsc: CheckedGeneratedSsc; difficulties: readonly GeneratorDifficulty[] }): Partial<Record<GeneratorDifficulty, number>> {
+  const levelsByDifficulty: Partial<Record<GeneratorDifficulty, number>> = {};
+  for (const difficulty of difficulties) {
+    const meter = checkedSsc.charts.find((chart) => chart.difficulty.toLowerCase() === difficulty.toLowerCase())?.meter ?? null;
+    if (meter !== null) levelsByDifficulty[difficulty] = meter;
+  }
+  return levelsByDifficulty;
 }
 
 /** The earlier version of this song, when its folder is still the one Sync wrote; a folder the player replaced is left alone. */

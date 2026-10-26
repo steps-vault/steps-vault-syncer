@@ -1,4 +1,4 @@
-import { useRef, type ClipboardEvent, type KeyboardEvent, type ReactElement } from 'react';
+import { useRef, type ClipboardEvent, type FormEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { DialogHeading } from '../dialog/dialog-heading';
 import { JudgmentText } from '../progress/judgment-flash';
@@ -42,8 +42,13 @@ export function LinkCodeForm(props: LinkCodeFormProps): ReactElement {
   const handleKeyDown = ({ event, index }: { event: KeyboardEvent<HTMLInputElement>; index: number }): void => {
     if (event.key === 'Backspace' && (props.characters[index] ?? '') === '' && index > 0) focusBox(index - 1);
   };
+  const typedCode = props.characters.join('');
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    if (typedCode.length === LINK_CODE_LENGTH) props.onSubmitCode(typedCode);
+  };
   return (
-    <div className="sv-sync-link-code">
+    <form className="sv-sync-link-code" onSubmit={handleSubmit} noValidate>
       <DialogHeading titleId="sv-sync-link-code-heading" title="Type the code from the app" stepText="Link a computer" />
       <div ref={boxesRef} className={joinClassNames('sv-sync-code-boxes', props.state === 'miss' && 'sv-sync-code-boxes--miss', (props.state === 'great' || props.state === 'linked') && 'sv-sync-code-boxes--great')} role="group" aria-labelledby="sv-sync-link-code-heading">
         {Array.from({ length: LINK_CODE_LENGTH }, (_, index) => (
@@ -53,9 +58,10 @@ export function LinkCodeForm(props: LinkCodeFormProps): ReactElement {
           </span>
         ))}
       </div>
-      <p className="sv-sync-small sv-sync-muted">Only link computers you own. Codes work for 10 minutes.</p>
+      <p className="sv-sync-small sv-sync-muted">Codes work for 10 minutes. Only link computers you own.</p>
       <LinkCodeResult {...props} />
-    </div>
+      {props.state === 'typing' && <button className="sv-sync-button sv-sync-align-start" type="submit" disabled={typedCode.length !== LINK_CODE_LENGTH}>Continue</button>}
+    </form>
   );
 }
 
@@ -76,7 +82,7 @@ function LinkCodeResult(props: LinkCodeFormProps): ReactElement | null {
         <JudgmentText word="GREAT" size="medium" />
         <h3 id="sv-sync-link-question" className="sv-sync-heading-3">Link this computer to your library?</h3>
         {props.computerText !== null && <div className="sv-sync-computer-box"><Icon name="computer" /> {props.computerText}</div>}
-        <span className="sv-sync-small sv-sync-text">It syncs your library into its game. Remove it any time in Account settings.</span>
+        <span className="sv-sync-small sv-sync-text">It syncs your library into its game. You can remove it any time in Account settings.</span>
         <div className="sv-sync-row">
           <button className="sv-sync-button sv-sync-button--go" type="button" onClick={props.onLinkComputer}>Link this computer</button>
           <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onTryAgain}>Cancel</button>

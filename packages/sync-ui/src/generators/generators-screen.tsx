@@ -40,12 +40,12 @@ export function GeneratorsScreen(props: GeneratorsScreenProps): ReactElement {
           </div>
           {isExplaining && <InfoPanel id="sv-sync-generators-explained">A generator listens to your music and makes the steps. You pick one each time you generate a song.</InfoPanel>}
         </div>
-        <button className="sv-sync-button" type="button" onClick={() => { setIsMakingSong(true); }}><Icon name="sparkle" strokeWidth={2.4} />Generate a song</button>
+        <button className="sv-sync-button" type="button" onClick={() => { setIsMakingSong(true); }}><Icon name="sparkle" strokeWidth={2.4} />Make a song</button>
       </div>
       <StepsVaultGeneratorCard generator={props.stepsVaultGenerator} />
       <GeneratorJobList jobs={props.jobs} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} onDismissJob={props.onDismissJob} />
       <CommunityGenerators {...props} onAdd={() => { setIsAddingGenerator(true); }} />
-      <GeneratedSongList songs={props.generatedSongs} onFetchSongReport={props.onFetchSongReport} />
+      <GeneratedSongList songs={props.generatedSongs} onFetchSongReport={props.onFetchSongReport} onMakeSong={() => { setIsMakingSong(true); }} />
       {isAddingGenerator && (
         <AddGeneratorDialog onLookUpGenerator={props.onLookUpGenerator} canUseStartCommand={props.canUseStartCommand} onAdd={(generator) => { setIsAddingGenerator(false); props.onAddGenerator(generator); }} onClose={() => { setIsAddingGenerator(false); }} />
       )}
@@ -68,7 +68,8 @@ function CommunityGenerators(props: GeneratorsScreenProps & { onAdd: () => void 
         {props.generators.map((generator) => <GeneratorCard key={generator.generatorId} generator={generator} onRemove={props.onRemoveGenerator} onSetOption={props.onSetGeneratorOption} />)}
         {props.generators.length === 0 && <Note>No community generators yet. Got an address from someone? Use <b>Add a generator</b>.</Note>}
       </div>
-      <Note iconName="computer">Their songs stay on this computer, never in the library. Find them in <b>My generated songs</b> in your game. Remove a generator any time; songs it made stay.</Note>
+      <span className="sv-sync-text sv-sync-small">You can remove one any time. Songs it already made stay.</span>
+      <Note iconName="computer">Their songs stay on this computer, never in the library. Find them in <b>My generated songs</b> in your game.</Note>
     </section>
   );
 }

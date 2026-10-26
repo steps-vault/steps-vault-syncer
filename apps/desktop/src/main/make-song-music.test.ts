@@ -79,11 +79,25 @@ describe('MakeSongMusic', () => {
     const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE, consentedAt: '' });
     const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
     if (result.kind !== 'found') throw new Error(`Expected a song, got ${result.kind}.`);
-    expect(result.music).toMatchObject({ title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true });
+    expect(result.musics).toMatchObject([{ title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true }]);
     expect(downloads).toEqual([]);
-    const prepared = await makeSongMusic.prepareMusic({ musicId: result.music.musicId, manifest: MANIFEST, jobFolder });
+    const musicId = result.musics[0]?.musicId ?? '';
+    const prepared = await makeSongMusic.prepareMusic({ musicId, manifest: MANIFEST, jobFolder });
     expect(downloads).toEqual(['https://files.example.org/low-tide.ogg', 'https://files.example.org/low-tide.mp4']);
     expect(prepared).toMatchObject({ song: { title: 'Low Tide', lengthSeconds: 242, youtubeId: 'dQw4w9WgXcQ' }, music: { contentType: 'audio/ogg' }, video: { contentType: 'video/mp4' }, playerMusicLocation: path.join(jobFolder, 'source-music.ogg'), playerVideoLocation: path.join(jobFolder, 'source-video.mp4') });
+  });
+
+  it('offers every song a song source found, and downloads only the one the player makes', async () => {
+    const choice = (title: string, url: string): unknown => ({ song: { title, artist: 'Lumen Park' }, links: [{ kind: 'file-url', url, label: 'Music', fileName: null }] });
+    const answer: HttpResponse<unknown> = { status: 200, body: { choices: [choice('Night Drive', 'https://files.example.org/a.ogg'), choice('Night Drive (Live)', 'https://files.example.org/b.ogg')] } };
+    const httpClient: HttpClient = { requestJson: () => Promise.resolve(answer), requestText: () => Promise.reject(new Error('Not used.')), requestBytes: () => Promise.reject(new Error('Not used.')) };
+    const { makeSongMusic, downloads } = buildMakeSongMusic({ httpClient });
+    const addon = buildInstalledAddon({ baseUrl: 'http://127.0.0.1:7801', manifest: SONG_SOURCE, consentedAt: '' });
+    const result = await makeSongMusic.findSong({ addon, valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
+    if (result.kind !== 'found') throw new Error(`Expected songs, got ${result.kind}.`);
+    expect(result.musics.map((music) => music.title)).toEqual(['Night Drive', 'Night Drive (Live)']);
+    await makeSongMusic.prepareMusic({ musicId: result.musics[1]?.musicId ?? '', manifest: MANIFEST, jobFolder });
+    expect(downloads).toEqual(['https://files.example.org/b.ogg']);
   });
 
   it('shows a refused input under its field, without calling the addon', async () => {

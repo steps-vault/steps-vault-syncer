@@ -33,6 +33,7 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
         <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onChooseAnotherFolder}>Change</button>
       </div>
       <ul className="sv-sync-folder-tree" aria-label="Groups in your Songs folder">
+        {props.playerGroups.length === 0 && <li className="sv-sync-folder-tree-none">No songs here yet. Ours go in their own groups.</li>}
         {props.playerGroups.map((group) => (
           <li key={group.groupName}>
             <Icon name="folder" size={18} className="sv-sync-subtle" />
@@ -48,7 +49,7 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
           <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onChangeLayout}>Change layout</button>
         </li>
       </ul>
-      <Note iconName="lock">Already have a group like <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-strong">{CLASH_PREFIX}Pop</b>, so the two never mix.</Note>
+      {props.playerGroups.length > 0 && <Note iconName="lock">Already have a group like <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-strong">{CLASH_PREFIX}Pop</b>, so the two never mix.</Note>}
       <div className="sv-sync-row sv-sync-space-between sv-sync-wrap">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onChooseAnotherFolder}>Choose another folder</button>
         <button className="sv-sync-button sv-sync-button--go sv-sync-button--large" type="button" onClick={props.onContinue}>Continue<Icon name="chevron" strokeWidth={2.6} /></button>
@@ -58,6 +59,6 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
 }
 
 function getFolderSummary({ songCount, groupCount }: { songCount: number; groupCount: number }): string {
-  if (groupCount === 0) return `No songs here yet. ${SITE_NAME} songs will be the first.`;
+  if (groupCount === 0) return '0 songs in this folder.';
   return `${NUMBER_FORMAT.format(songCount)} ${songCount === 1 ? 'song' : 'songs'} in ${String(groupCount)} ${groupCount === 1 ? 'group' : 'groups'}. We never touch them.`;
 }

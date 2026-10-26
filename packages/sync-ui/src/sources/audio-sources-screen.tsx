@@ -2,6 +2,7 @@ import { useState, type ReactElement, type ReactNode } from 'react';
 import { Icon, type IconName } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { LifeBar } from '../shared/life-bar';
+import { EmptyBox } from '../shared/miss-line';
 import { InfoPanel, InfoToggleButton } from '../shared/small-parts';
 import { StatusChip } from '../status/status-chip';
 import type { AddonInstallPreview, AddonLookupResult, AddonView, MusicFolderScanState, MusicFolderView, PickedFileView, ServiceLookupRequest } from '../sync-ui-types';
@@ -64,11 +65,11 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
             <span className="sv-sync-text sv-sync-small">{ADDON_TRUST_NOTE}</span>
             {isExplainingAddons && <InfoPanel id="sv-sync-addons-explained">An addon links Sync to another place your audio can come from. Turn one off or remove it any time; songs keep the audio they already have.</InfoPanel>}
           </div>
-          <button className="sv-sync-button" type="button" onClick={() => { setIsAddingAddon(true); }}><Icon name="plus" strokeWidth={2.6} />Add addon</button>
+          {props.addons.length > 0 && <button className="sv-sync-button" type="button" onClick={() => { setIsAddingAddon(true); }}><Icon name="plus" strokeWidth={2.6} />Add addon</button>}
         </div>
         <div className="sv-sync-addon-list">
           {props.addons.map((addon) => <AddonCard key={addon.addonId} addon={addon} onToggle={props.onToggleAddon} onRemove={props.onRemoveAddon} onSetOption={props.onSetAddonOption} />)}
-          {props.addons.length === 0 && <p className="sv-sync-text sv-sync-small sv-sync-muted">No addons yet. Sync works without them.</p>}
+          {props.addons.length === 0 && <EmptyBox action={<button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { setIsAddingAddon(true); }}>Add addon</button>}>No addons yet. Sync works without them.</EmptyBox>}
         </div>
       </section>
       {isAddingAddon && (
@@ -95,7 +96,7 @@ function MusicFolderSource(props: AudioSourcesScreenProps): ReactElement {
             <span className="sv-sync-tabular sv-sync-muted">{props.scan.percent}%</span>
           </div>
           <LifeBar label="Scanning music folder" value={props.scan.percent} maximum={100} />
-          <span className="sv-sync-small sv-sync-muted">Keep using Sync while we look.</span>
+          <span className="sv-sync-small sv-sync-muted">You can keep using Sync while we look.</span>
         </div>
       )}
       <div className="sv-sync-big-stat"><b className="sv-sync-tabular">{props.matchedSongCount}</b><span>of {props.vaultSongCount} songs found</span></div>
@@ -131,7 +132,7 @@ function PickFileSource({ pickedFiles, onGoToSongs }: { pickedFiles: readonly Pi
   return (
     <section className="sv-sync-panel sv-sync-source-card" aria-labelledby="sv-sync-pick-file-heading">
       <SourceCardHead headingId="sv-sync-pick-file-heading" iconName="file" title="Pick a file" subtitle="Built in · for one song at a time" />
-      <p className="sv-sync-text sv-sync-text--medium">Use <b className="sv-sync-strong">Choose audio…</b> on any song. We still check the version.</p>
+      <p className="sv-sync-text sv-sync-text--medium">Use <b className="sv-sync-strong">Choose audio…</b> on any song. We still check it&apos;s the same version.</p>
       {pickedFiles.length > 0 && <span className="sv-sync-small sv-sync-muted">Picked files</span>}
       <ul className="sv-sync-picked-files">
         {pickedFiles.map((pickedFile) => (

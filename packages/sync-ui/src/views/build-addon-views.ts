@@ -24,6 +24,7 @@ export function buildAddonInstallPreview({ address, manifest, startCommand = nul
     name: manifest.name,
     version: manifest.version,
     author: manifest.author,
+    providesText: getProvidesText(manifest),
     options: buildAddonOptionViews({ options: manifest.options, values: {} }),
     seesWhatYouType: isAddonProviding({ manifest, ability: 'song-source' }),
     startCommand,

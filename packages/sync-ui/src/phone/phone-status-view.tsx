@@ -46,7 +46,7 @@ export function PhoneStatusView(props: PhoneStatusViewProps): ReactElement {
         </div>
         <div className="sv-sync-note sv-sync-small">
           <Icon name="computer" />
-          <span>Sync from a computer: {APP_NAME} on {props.computerName}, or {SITE_NAME} in Chrome or Edge.</span>
+          <span>Syncing needs a computer. Open {APP_NAME} on {props.computerName}, or {SITE_NAME} in Chrome or Edge.</span>
         </div>
         <ul className="sv-sync-phone-songs" aria-label={`Your ${SITE_NAME} songs`}>
           {props.songs.map((song) => (

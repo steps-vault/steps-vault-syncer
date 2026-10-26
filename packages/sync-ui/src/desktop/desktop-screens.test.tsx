@@ -67,7 +67,7 @@ describe('LinkedComputersTable', () => {
     expect(screen.getAllByRole('row')).toHaveLength(FAKE_LINKED_COMPUTERS.length + 1);
     expect(screen.getByText('Online')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Remove ARCADE-CAB' }));
-    const confirm = screen.getByRole('group', { name: 'Sign ARCADE-CAB out?' });
+    const confirm = screen.getByRole('group', { name: 'Remove ARCADE-CAB?' });
     expect(document.activeElement).toBe(within(confirm).getByRole('button', { name: 'Remove' }));
     expect(onRemoveComputer).not.toHaveBeenCalled();
     fireEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
@@ -85,5 +85,25 @@ describe('UpdateBanner', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Later' }));
     expect(onRestart).toHaveBeenCalledOnce();
     expect(onLater).toHaveBeenCalledOnce();
+  });
+});
+
+describe('LinkCodeForm Continue', () => {
+  it('sends the code with Continue once all six characters are typed, and still sends it by itself', () => {
+    const props = renderLinkCodeForm({ characters: ['K', '7', 'Q', '4', 'Z', ''] });
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveProperty('disabled', true);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Character 6' }), { target: { value: 'P' } });
+    expect(props.onSubmitCode).toHaveBeenCalledWith('K7Q4ZP');
+  });
+
+  it('sends a full code from Continue', () => {
+    const props = renderLinkCodeForm({ characters: ['K', '7', 'Q', '4', 'Z', 'P'] });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(props.onSubmitCode).toHaveBeenCalledWith('K7Q4ZP');
+  });
+
+  it('hides Continue once the code is answered', () => {
+    renderLinkCodeForm({ characters: ['K', '7', 'Q', '4', 'Z', 'B'], state: 'miss' });
+    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
   });
 });

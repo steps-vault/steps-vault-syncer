@@ -7,7 +7,7 @@ import { Note } from '../shared/small-parts';
 import type { AddonInstallPreview, AddonLookupResult, AddonOptionView, ServiceLookupRequest } from '../sync-ui-types';
 import { getAddonInitials } from './addon-card';
 import { AddonOptionFields } from './addon-option-fields';
-import { AddressError, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote } from './start-command-field';
+import { AddressError, EMPTY_SERVICE_ADDRESS_DRAFT, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote, type ServiceAddressDraft } from './start-command-field';
 
 /** The only song facts an addon ever receives (plan.md, "Addons see song facts only"). */
 export const ADDON_VISIBLE_SONG_FACTS = 'title, artist, album, genre, length, and the song’s YouTube link.';
@@ -37,11 +37,12 @@ type DialogStep = { kind: 'address' } | { kind: 'consent'; addon: AddonInstallPr
 /** Step 1: the address. Step 2: exactly what the addon will see, before anything is installed. */
 export function AddAddonDialog({ onLookUpAddon, canUseStartCommand = false, onInstall, onClose }: AddAddonDialogProps): ReactElement {
   const [step, setStep] = useState<DialogStep>({ kind: 'address' });
+  const [draft, setDraft] = useState<ServiceAddressDraft>(EMPTY_SERVICE_ADDRESS_DRAFT);
   return (
     <SyncDialog titleId="sv-sync-add-addon-title" onClose={onClose} focusKey={step.kind}>
       {step.kind === 'address'
-        ? <AddressStep onLookUpAddon={onLookUpAddon} canUseStartCommand={canUseStartCommand} onFound={(addon) => { setStep({ kind: 'consent', addon }); }} onCancel={onClose} />
-        : <ConsentStep addon={step.addon} onInstall={onInstall} onCancel={onClose} />}
+        ? <AddressStep onLookUpAddon={onLookUpAddon} canUseStartCommand={canUseStartCommand} draft={draft} onChangeDraft={setDraft} onFound={(addon) => { setStep({ kind: 'consent', addon }); }} onCancel={onClose} />
+        : <ConsentStep addon={step.addon} onInstall={onInstall} onBack={() => { setStep({ kind: 'address' }); }} onCancel={onClose} />}
     </SyncDialog>
   );
 }
@@ -50,12 +51,15 @@ interface AddressStepProps {
   onLookUpAddon: (request: ServiceLookupRequest) => Promise<AddonLookupResult>;
   canUseStartCommand: boolean;
   onFound: (addon: AddonInstallPreview) => void;
+  draft: ServiceAddressDraft;
+  onChangeDraft: (draft: ServiceAddressDraft) => void;
   onCancel: () => void;
 }
 
-function AddressStep({ onLookUpAddon, canUseStartCommand, onFound, onCancel }: AddressStepProps): ReactElement {
-  const [address, setAddress] = useState('https://');
-  const [startCommandText, setStartCommandText] = useState('');
+function AddressStep({ onLookUpAddon, canUseStartCommand, draft, onChangeDraft, onFound, onCancel }: AddressStepProps): ReactElement {
+  const { address, startCommandText } = draft;
+  const setAddress = (nextAddress: string): void => { onChangeDraft({ ...draft, address: nextAddress }); };
+  const setStartCommandText = (nextText: string): void => { onChangeDraft({ ...draft, startCommandText: nextText }); };
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const isOnThisComputer = canUseStartCommand && isThisComputerAddress(address);
@@ -94,7 +98,7 @@ function AddressStep({ onLookUpAddon, canUseStartCommand, onFound, onCancel }: A
   );
 }
 
-function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPreview; onInstall: (addon: AddonInstallPreview) => void; onCancel: () => void }): ReactElement {
+function ConsentStep({ addon, onInstall, onBack, onCancel }: { addon: AddonInstallPreview; onInstall: (addon: AddonInstallPreview) => void; onBack: () => void; onCancel: () => void }): ReactElement {
   const [options, setOptions] = useState<readonly AddonOptionView[]>(addon.options);
   const handleOptionChange = ({ optionId, value }: { optionId: string; value: string }): void => {
     setOptions((current) => current.map((option) => (option.optionId === optionId ? { ...option, value } : option)));
@@ -106,7 +110,11 @@ function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPrevie
         <span className="sv-sync-addon-icon" aria-hidden="true">{getAddonInitials(addon.name)}</span>
         <div>
           <b className="sv-sync-strong">{addon.name}</b> <span className="sv-sync-small sv-sync-muted">v{addon.version}</span>
-          <div className="sv-sync-small sv-sync-muted">by {addon.author} · <span className="sv-sync-mono">{addon.address}</span></div>
+          <div className="sv-sync-small sv-sync-muted">by {addon.author}</div>
+          <div className="sv-sync-row sv-sync-wrap">
+            {addon.providesText !== undefined && addon.providesText !== '' && <span className="sv-sync-addon-provides">{addon.providesText}</span>}
+            <span className="sv-sync-mono sv-sync-small sv-sync-break-all">{addon.address}</span>
+          </div>
         </div>
       </div>
       <div className="sv-sync-consent" role="group" aria-label="What this addon will see">
@@ -126,8 +134,9 @@ function ConsentStep({ addon, onInstall, onCancel }: { addon: AddonInstallPrevie
         </div>
       )}
       {addon.startCommand && <StartCommandNote startCommand={addon.startCommand} />}
-      <Note className="sv-sync-small">{ADDON_TRUST_NOTE}</Note>
+      <Note className="sv-sync-small">Only install addons you trust.</Note>
       <div className="sv-sync-dialog-buttons">
+        <button className="sv-sync-button sv-sync-button--ghost sv-sync-dialog-back" type="button" onClick={onBack}>Back</button>
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onInstall({ ...addon, options }); }}>Install</button>
       </div>

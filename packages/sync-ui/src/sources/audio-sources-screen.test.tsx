@@ -97,7 +97,7 @@ describe('AudioSourcesScreen', () => {
     expect(seenItems).toEqual([ADDON_VISIBLE_SONG_FACTS, ADDON_NEVER_SEES]);
     expect(ADDON_VISIBLE_SONG_FACTS).toBe('title, artist, album, genre, length, and the song’s YouTube link.');
     expect(consentDialog.textContent).toContain('by hyperpad');
-    expect(consentDialog.textContent).toContain('Made by other people, not dancedance.studio.');
+    expect(consentDialog.textContent).toContain('Only install addons you trust.');
     expect(props.onInstallAddon).not.toHaveBeenCalled();
     fireEvent.click(within(consentDialog).getByRole('button', { name: 'Install' }));
     expect(props.onInstallAddon).toHaveBeenCalledWith(FAKE_ADDON_PREVIEW);
@@ -149,9 +149,9 @@ describe('song-source addons and programs on this computer', () => {
     const onLookUpAddon = vi.fn(() => Promise.resolve<AddonLookupResult>({ kind: 'found', addon: { ...FAKE_ADDON_PREVIEW, startCommand: 'C:/addons/tube/start.cmd' } }));
     render(<AddAddonDialog onLookUpAddon={onLookUpAddon} canUseStartCommand onInstall={vi.fn()} onClose={vi.fn()} />);
     const addressField = screen.getByRole('textbox', { name: 'Addon address' });
-    expect(screen.queryByRole('textbox', { name: 'Start command (optional)' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Start command' })).toBeNull();
     fireEvent.change(addressField, { target: { value: 'http://127.0.0.1:7801' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Start command (optional)' }), { target: { value: 'C:/addons/tube/start.cmd' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Start command' }), { target: { value: 'C:/addons/tube/start.cmd' } });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Continue' })); await Promise.resolve(); });
     expect(onLookUpAddon).toHaveBeenCalledWith({ address: 'http://127.0.0.1:7801', startCommand: 'C:/addons/tube/start.cmd' });
     expect(screen.getByRole('dialog').textContent).toContain('Sync starts it when needed with C:/addons/tube/start.cmd');
@@ -170,5 +170,22 @@ describe('isAddonAddress', () => {
     ['bridge.example', false],
   ])('%j → %j', (address, isValid) => {
     expect(isAddonAddress(address)).toBe(isValid);
+  });
+});
+
+describe('add addon Back and no addons', () => {
+  it('goes back from step 2 with the address still typed', async () => {
+    renderAudioSources();
+    fireEvent.click(screen.getByRole('button', { name: 'Add addon' }));
+    const consentDialog = await goToConsentStep();
+    fireEvent.click(within(consentDialog).getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('textbox', { name: 'Addon address' })).toHaveProperty('value', FAKE_ADDON_PREVIEW.address);
+  });
+
+  it('offers to add the first addon from the empty list', () => {
+    renderAudioSources({ addons: [] });
+    expect(screen.getByText('No addons yet. Sync works without them.')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Add addon' }));
+    expect(screen.getByRole('dialog', { name: 'Add an addon' })).toBeDefined();
   });
 });

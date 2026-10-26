@@ -8,6 +8,7 @@ import {
   FolderLayoutScreen,
   GeneratorsScreen,
   SyncHomeScreen,
+  SyncLoadingPanel,
   SyncShell,
   UpdateBanner,
   type SyncScreen,
@@ -28,7 +29,7 @@ export function DesktopApp({ bridge }: { bridge: DesktopSyncBridge }): ReactElem
   const [currentScreen, setCurrentScreen] = useState<SyncScreen>('songs');
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [wasActivityCopied, setWasActivityCopied] = useState(false);
-  if (!state) return <div className="sv-sync-root" aria-busy="true" />;
+  if (!state) return <div className="sv-sync-root sv-sync-stage sv-desktop-loading" aria-busy="true"><SyncLoadingPanel /></div>;
   if (state.signIn.kind !== 'signed-in') return <SignInFrame state={state} bridge={bridge} />;
   if (!state.game) return <ConnectFrame state={state} bridge={bridge} />;
   const connectedState = { ...state, game: state.game };
@@ -119,6 +120,9 @@ function renderScreen(options: ScreenOptions): ReactNode {
         wasCopied={options.wasActivityCopied}
         hasOlderEntries={false}
         onShowOlder={() => undefined}
+        onGoToSongs={() => {
+          options.setCurrentScreen('songs');
+        }}
       />
     );
   }

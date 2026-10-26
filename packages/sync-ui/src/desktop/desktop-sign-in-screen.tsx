@@ -26,7 +26,7 @@ export function DesktopSignInScreen({ signIn, onOpenLinkPage, onGetNewCode, onCo
       <section className="sv-sync-sign-in" aria-labelledby="sv-sync-sign-in-heading">
         <JudgmentText word="GREAT" />
         <h2 id="sv-sync-sign-in-heading" className="sv-sync-heading-2">You&apos;re signed in as {signIn.playerName}</h2>
-        <p className="sv-sync-text sv-sync-small">{signIn.computerName} is linked. Next: connect your game.</p>
+        <p className="sv-sync-text sv-sync-small">{signIn.computerName} is linked to your library. Next: connect your game.</p>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={onConnectGame}>Connect your game<Icon name="chevron" strokeWidth={2.6} /></button>
       </section>
     );

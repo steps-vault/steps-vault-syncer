@@ -1,13 +1,13 @@
 /** Builds what the Generators screens show; shared by the website and the desktop app. */
-import { getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob } from '@stepsvault/sync-core';
-import type { GeneratedSongView, GeneratorInstallPreview, GeneratorJobStateView, GeneratorJobView, GeneratorView, ServiceLocationView } from '../sync-ui-types';
+import { GENERATOR_DIFFICULTIES, getMusicUploadWarningOrNull, isOnThisComputer, type GeneratedSong, type GeneratorManifest, type InstalledGenerator, type SavedGeneratorJob } from '@stepsvault/sync-core';
+import type { DifficultyLevels, GeneratedSongView, GeneratorInstallPreview, GeneratorJobStateView, GeneratorJobView, GeneratorView, ServiceLocationView } from '../sync-ui-types';
 import { buildAddonOptionViews } from './build-addon-views';
 
 /** The id Sync gives the site's own generator; a manifest id can't contain ':', so no generator can take it. */
 export const STEPSVAULT_GENERATOR_ID = 'stepsvault:default';
 
 const DONE_TEXTS_BY_RESULT: Readonly<Record<NonNullable<SavedGeneratorJob['result']>, string>> = {
-  'written': 'Added to My generated songs in your game.',
+  'written': 'Done. It’s in My generated songs.',
   'added-to-vault': 'Added to the library. It comes to your game, with your music, on your next sync.',
   'kept-vault-song': 'You kept the library song, so your game didn’t change.',
   'already-in-vault': 'This song is already in the library, so no token was spent.',
@@ -76,6 +76,7 @@ export function buildGeneratedSongViews({ generatedSongs, reportSongKeys }: { ge
       artist: generatedSong.song.artist,
       generatorName: generatedSong.generatorName,
       difficultiesText: LIST_FORMAT.format(generatedSong.difficulties),
+      levels: getGeneratedSongLevels(generatedSong),
       folderText: ['Songs', ...generatedSong.folderPath].join('/'),
       madeAtText: formatMadeAt(generatedSong.generatedAt),
       hasReport: reportSongKeys.has(generatedSong.songKey),
@@ -93,6 +94,13 @@ function getStageText(job: SavedGeneratorJob): string {
   if (job.state === 'needs-vault-choice') return 'Waiting for your answer';
   if (job.state === 'done') return 'Done';
   return job.state === 'failed' ? 'Not made' : 'Cancelled';
+}
+
+function getGeneratedSongLevels(generatedSong: GeneratedSong): DifficultyLevels | null {
+  const levelsByDifficulty = generatedSong.levelsByDifficulty;
+  if (!levelsByDifficulty) return null;
+  const [beginner, easy, medium, hard, challenge] = GENERATOR_DIFFICULTIES.map((difficulty) => levelsByDifficulty[difficulty] ?? null);
+  return [beginner ?? null, easy ?? null, medium ?? null, hard ?? null, challenge ?? null];
 }
 
 function formatMadeAt(isoTime: string): string {

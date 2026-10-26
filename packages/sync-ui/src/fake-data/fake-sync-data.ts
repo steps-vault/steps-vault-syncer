@@ -149,11 +149,19 @@ export const FAKE_GENERATOR_PREVIEW: GeneratorInstallPreview = { address: 'https
 
 export const FAKE_GENERATOR_JOBS: readonly GeneratorJobView[] = [
   { jobKey: 'job-night-drive', songTitle: 'Night Drive', songArtist: 'Lumen Park', generatorName: 'Tap Forge', isStepsVault: false, state: 'working', stageText: 'Placing the steps', progressPercent: 45, message: null, vaultChoiceQuestion: null, doneText: null },
-  { jobKey: 'job-low-tide', songTitle: 'Low Tide', songArtist: 'Marla Quinn', generatorName: 'Groove Lab', isStepsVault: false, state: 'needs-vault-choice', stageText: 'Waiting for your answer', progressPercent: null, message: null, vaultChoiceQuestion: '“Low Tide” is also in your library. Which one do you want in your game: the library song or the one you made?', doneText: null },
+  { jobKey: 'job-low-tide', songTitle: 'Low Tide', songArtist: 'Marla Quinn', generatorName: 'Groove Lab', isStepsVault: false, state: 'needs-vault-choice', stageText: 'Waiting for your answer', progressPercent: null, message: null, vaultChoiceQuestion: '“Low Tide” is already in the library. Keep the library song, or the one you made?', doneText: null },
 ];
 
 export const FAKE_GENERATED_SONGS: readonly GeneratedSongView[] = [
-  { songKey: 'song:paper planes club', title: 'Paper Planes Club', artist: 'Sora Vega', generatorName: 'Tap Forge', difficultiesText: 'Easy, Medium and Hard', folderText: 'Songs/My generated songs/Paper Planes Club', madeAtText: '24 Oct 2026, 21:14', hasReport: true },
+  { songKey: 'song:paper planes club', title: 'Paper Planes Club', artist: 'Sora Vega', generatorName: 'Tap Forge', difficultiesText: 'Easy, Medium and Hard', levels: [null, 3, 6, 9, null], folderText: 'Songs/My generated songs/Paper Planes Club', madeAtText: '24 Oct 2026, 21:14', hasReport: true },
+  { songKey: 'song:sky rails', title: 'Sky Rails', artist: 'Marla Quinn', generatorName: 'Groove Lab', difficultiesText: 'Easy and Hard', levels: null, folderText: 'Songs/My generated songs/Sky Rails', madeAtText: '22 Oct 2026, 18:02', hasReport: false },
+];
+
+/** What a song source found for a search: a few versions to pick from. */
+export const FAKE_FOUND_MUSICS: readonly MusicChoiceView[] = [
+  { musicId: 'found-night-drive', title: 'Night Drive', artist: 'Lumen Park', sourceText: 'From Song Scout', lengthText: '3:41', hasVideo: true },
+  { musicId: 'found-night-drive-live', title: 'Night Drive (Live)', artist: 'Lumen Park', sourceText: 'From Song Scout', lengthText: '4:58', hasVideo: false },
+  { musicId: 'found-night-drive-radio', title: 'Night Drive (Radio edit)', artist: 'Lumen Park', sourceText: 'From Song Scout', lengthText: '3:02', hasVideo: true },
 ];
 
 export const FAKE_MUSIC_CHOICES: readonly MusicChoiceView[] = [

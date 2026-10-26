@@ -129,6 +129,8 @@ export interface AddonInstallPreview {
   name: string;
   version: string;
   author: string;
+  /** For example "Audio and video links"; what Sync will ask it for. */
+  providesText?: string;
   /** Picked on the consent step, before installing; each starts at the addon's default. */
   options: readonly AddonOptionView[];
   /** True for a song source: it also sees what the player types in its tab on the Make a song page. */
@@ -273,7 +275,8 @@ export interface SongSourceSearchRequest {
 }
 
 export type SongSourceSearchResult =
-  | { kind: 'found'; music: MusicChoiceView }
+  /** One song, or a few for the player to pick from, best first. */
+  | { kind: 'found'; musics: readonly MusicChoiceView[] }
   /** The addon's own sentence: nothing found for what the player typed. */
   | { kind: 'not-found'; message: string }
   | { kind: 'not-answering'; message: string }
@@ -326,6 +329,8 @@ export interface GeneratedSongView {
   generatorName: string;
   /** For example "Easy, Medium and Hard". */
   difficultiesText: string;
+  /** Each made chart's level, in game order; null when the song was written before Sync kept levels. */
+  levels: DifficultyLevels | null;
   /** For example "Songs/My generated songs/Night Drive". */
   folderText: string;
   madeAtText: string;

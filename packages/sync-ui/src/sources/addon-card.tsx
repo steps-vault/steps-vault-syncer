@@ -27,7 +27,7 @@ export function AddonCard({ addon, onToggle, onRemove, onSetOption }: AddonCardP
         <div className="sv-sync-addon-name">
           {addon.name}
           <span className="sv-sync-version">v{addon.version}</span>
-          <span className="sv-sync-addon-provides"><Icon name="plug" size={12} strokeWidth={2.4} />{addon.providesText}</span>
+          <span className="sv-sync-addon-provides">{addon.providesText}</span>
           {addon.isNew === true && <span className="sv-sync-badge sv-sync-badge--new">New</span>}
         </div>
         <div className="sv-sync-small sv-sync-subtle">by {addon.author}</div>
@@ -50,7 +50,7 @@ function AddonState({ addon }: { addon: AddonView }): ReactElement {
     return <div className="sv-sync-addon-state sv-sync-subtle"><Icon name="none" size={14} strokeWidth={2.4} />Off · songs keep their audio</div>;
   }
   if (addon.isAudioSource === false) {
-    return <div className="sv-sync-addon-state sv-sync-subtle"><Icon name="sparkle" size={14} strokeWidth={2.4} />Not an audio source · brings new songs to make on Generators</div>;
+    return <div className="sv-sync-addon-state sv-sync-subtle"><Icon name="sparkle" size={14} strokeWidth={2.4} />Not an audio source. It suggests new songs to make.</div>;
   }
   if (addon.health.kind === 'not-answering') {
     return <div className="sv-sync-addon-state sv-sync-warning-text"><Icon name="note" size={14} strokeWidth={2.4} />{addon.health.note}</div>;

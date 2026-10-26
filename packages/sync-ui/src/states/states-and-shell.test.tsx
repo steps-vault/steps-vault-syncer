@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FAKE_GAME, FAKE_SONG_ROWS } from '../fake-data/fake-sync-data';
 import { PhoneStatusView } from '../phone/phone-status-view';
 import { SyncShell } from '../shell/sync-shell';
+import { SyncLoadingPanel } from '../songs/sync-home-screen';
 import { DiskFullState, EmptyVaultState, NeedsAudioBanner, PermissionLostState, SongFolderLockedState, SongsFolderMissingState } from './empty-and-error-states';
 
 describe('empty and error states', () => {
@@ -38,7 +39,7 @@ describe('empty and error states', () => {
 describe('PhoneStatusView', () => {
   it('shows status and counters but no Sync button', () => {
     render(<PhoneStatusView computerName="LIVING-ROOM-PC" gameName="StepMania 5 LTEK" overallStatus="synced" lastSyncText="2 hours ago" syncedCount={14} needsAudioCount={3} updateCount={2} songs={FAKE_SONG_ROWS.slice(0, 3)} />);
-    expect(screen.getByText('Sync from a computer', { exact: false })).toBeDefined();
+    expect(screen.getByText('Syncing needs a computer.', { exact: false })).toBeDefined();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -64,5 +65,17 @@ describe('SyncShell', () => {
     expect(screen.getByRole('link', { name: 'Account' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByText('banner here')).toBeDefined();
     expect(screen.getByText('Needs attention')).toBeDefined();
+  });
+});
+
+describe('website Generators and loading', () => {
+  it('shows Generators on the website only when the website can make songs', () => {
+    render(<SyncShell platform="website" currentScreen="generators" onNavigate={vi.fn()} hasWebsiteGenerators><p>screen</p></SyncShell>);
+    expect(screen.getByRole('navigation', { name: 'Sync' }).textContent).toBe('SongsAudio sourcesGeneratorsFolder layoutActivity');
+  });
+
+  it('shows the receptor loader while Sync reads the songs', () => {
+    render(<SyncLoadingPanel />);
+    expect(screen.getByRole('status').textContent).toBe('Loading your songs…');
   });
 });

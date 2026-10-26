@@ -1,10 +1,11 @@
 import { Fragment, useState, type ReactElement } from 'react';
 import { Icon, type IconName } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
+import { EmptyBox } from '../shared/miss-line';
 import { SegmentedControl, type SegmentedOption } from '../shared/small-parts';
 import type { ActivityEntryView, ActivityKind } from '../sync-ui-types';
 
-export type ActivityFilter = 'everything' | 'added' | 'updated' | 'skipped' | 'removed';
+export type ActivityFilter = 'everything' | 'added' | 'updated' | 'skipped' | 'removed' | 'made';
 
 const ACTIVITY_FILTER_OPTIONS: readonly SegmentedOption<ActivityFilter>[] = [
   { value: 'everything', label: 'Everything' },
@@ -12,6 +13,7 @@ const ACTIVITY_FILTER_OPTIONS: readonly SegmentedOption<ActivityFilter>[] = [
   { value: 'updated', label: 'Updated' },
   { value: 'skipped', label: 'Skipped' },
   { value: 'removed', label: 'Removed' },
+  { value: 'made', label: 'Made songs' },
 ];
 
 interface ActivityKindDisplay {
@@ -33,10 +35,10 @@ const ACTIVITY_KIND_DISPLAYS: Readonly<Record<ActivityKind, ActivityKindDisplay>
   'moved': { iconName: 'folder', toneClassName: 'sv-sync-tone--update-available', filter: 'everything' },
   'connected': { iconName: 'check', toneClassName: 'sv-sync-tone--syncing', filter: 'everything' },
   'write-failed': { iconName: 'warning', toneClassName: 'sv-sync-tone--different-edit', filter: 'skipped' },
-  'generating': { iconName: 'spin', toneClassName: 'sv-sync-tone--syncing', filter: 'everything' },
-  'generated': { iconName: 'plus', toneClassName: 'sv-sync-tone--synced', filter: 'added' },
-  'generate-failed': { iconName: 'warning', toneClassName: 'sv-sync-tone--different-edit', filter: 'skipped' },
-  'generate-cancelled': { iconName: 'none', toneClassName: 'sv-sync-tone--removed-from-vault', filter: 'skipped' },
+  'generating': { iconName: 'sparkle', toneClassName: 'sv-sync-tone--syncing', filter: 'made' },
+  'generated': { iconName: 'sparkle', toneClassName: 'sv-sync-tone--synced', filter: 'made' },
+  'generate-failed': { iconName: 'close', toneClassName: 'sv-sync-tone--different-edit', filter: 'made' },
+  'generate-cancelled': { iconName: 'close', toneClassName: 'sv-sync-tone--removed-from-vault', filter: 'made' },
 };
 
 export function getVisibleActivityEntries({ entries, filter }: { entries: readonly ActivityEntryView[]; filter: ActivityFilter }): ActivityEntryView[] {
@@ -52,6 +54,8 @@ export interface ActivityScreenProps {
   wasCopied: boolean;
   hasOlderEntries: boolean;
   onShowOlder: () => void;
+  /** Offered on the empty list. */
+  onGoToSongs?: () => void;
 }
 
 /** Screen 6: what Sync did, newest first; each entry opens to its details, and support can get a copy. */
@@ -71,7 +75,7 @@ export function ActivityScreen(props: ActivityScreenProps): ReactElement {
       <div className="sv-sync-row sv-sync-wrap sv-sync-space-between sv-sync-align-end">
         <div className="sv-sync-stack-small">
           <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Activity</h2>
-          <p className="sv-sync-text sv-sync-text--medium">Newest first. Open an entry for details.</p>
+          <p className="sv-sync-text sv-sync-text--medium">Everything Sync did, newest first. Open an entry to see the details.</p>
         </div>
         <div className="sv-sync-row sv-sync-wrap">
           {props.wasCopied && <span className="sv-sync-copied" role="status"><Icon name="check" size={14} strokeWidth={3} />Copied. Paste it into your message to support.</span>}
@@ -89,7 +93,11 @@ export function ActivityScreen(props: ActivityScreenProps): ReactElement {
           </Fragment>
         ))}
       </ol>
-      {visibleEntries.length === 0 && <p className="sv-sync-text sv-sync-muted" role="status">Nothing here yet.</p>}
+      {visibleEntries.length === 0 && (
+        <div role="status">
+          <EmptyBox action={props.onGoToSongs && <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={props.onGoToSongs}>Go to my songs</button>}>Nothing here yet.</EmptyBox>
+        </div>
+      )}
       {props.hasOlderEntries && <div className="sv-sync-center-row"><button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={props.onShowOlder}>Show older activity</button></div>}
     </div>
   );

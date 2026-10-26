@@ -38,7 +38,7 @@ export function GeneratorCard({ generator, onRemove, onSetOption }: GeneratorCar
           </div>
           <div className="sv-sync-small sv-sync-subtle">by {generator.author}</div>
           <ServiceLocation location={generator.location} />
-          {generator.startCommand !== null && <div className="sv-sync-small sv-sync-muted">Started with <span className="sv-sync-mono sv-sync-break-all">{generator.startCommand}</span></div>}
+          {generator.startCommand !== null && <div className="sv-sync-start-command-line"><Icon name="computer" size={14} /><span>Starts with</span><span className="sv-sync-mono sv-sync-break-all">{generator.startCommand}</span></div>}
         </div>
         <button className="sv-sync-button sv-sync-button--danger sv-sync-button--small" type="button" onClick={() => { onRemove(generator.generatorId); }} aria-label={`Remove ${generator.name}`} title="Songs it already made stay">Remove</button>
       </div>
@@ -67,8 +67,8 @@ export function StepsVaultGeneratorCard({ generator }: { generator: StepsVaultGe
           <span className="sv-sync-badge sv-sync-badge--default">Default</span>
         </div>
         <p className="sv-sync-text sv-sync-text--medium">Songs go to the library for everyone. Each song uses 1 token.</p>
-        <span className="sv-sync-small sv-sync-subtle">Used when you don&apos;t pick another one.</span>
-        {generator.difficulties === null && <span className="sv-sync-small sv-sync-warning-text">{SITE_NAME} can&apos;t be reached right now. Check your internet connection.</span>}
+        <span className="sv-sync-small sv-sync-subtle">by {SITE_NAME} · used when you don&apos;t pick another one</span>
+        {generator.difficulties === null && <span className="sv-sync-row sv-sync-warning-text"><Icon name="warning" size={16} />Can&apos;t be reached right now. Try again in a minute.</span>}
       </div>
       <div className="sv-sync-tokens">
         {generator.tokenCount !== null && <span className="sv-sync-token-count" aria-label={`You have ${String(generator.tokenCount)} tokens`}><b>{generator.tokenCount}</b><small>TOKENS</small></span>}

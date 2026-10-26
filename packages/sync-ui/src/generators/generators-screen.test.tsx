@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR } from '../fake-data/fake-sync-data';
+import { FAKE_FOUND_MUSICS, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR } from '../fake-data/fake-sync-data';
 import type { GeneratorJobView, GeneratorLookupResult, MakeSongResult, SongSourceSearchResult } from '../sync-ui-types';
 import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
 import { GENERATOR_GETS, GENERATOR_NEVER_GETS } from './add-generator-dialog';
@@ -13,7 +13,7 @@ function renderGenerators(overrides: Partial<GeneratorsScreenProps> = {}): Gener
     stepsVaultGenerator: FAKE_STEPSVAULT_GENERATOR, generators: FAKE_GENERATORS, jobs: [], generatedSongs: FAKE_GENERATED_SONGS, canUseStartCommand: true, songSourceTabs: FAKE_SONG_SOURCE_TABS,
     onLookUpGenerator: vi.fn(() => Promise.resolve<GeneratorLookupResult>({ kind: 'found', generator: FAKE_GENERATOR_PREVIEW })), onAddGenerator: vi.fn(), onRemoveGenerator: vi.fn(), onSetGeneratorOption: vi.fn(),
     onChooseMusicFile: vi.fn(() => Promise.resolve(PICKED_FILE)), onSearchMusic: vi.fn(() => Promise.resolve(FAKE_MUSIC_CHOICES)),
-    onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', music: { musicId: 'found', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true } })),
+    onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', musics: [{ musicId: 'found', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true }] })),
     onStopFindingSong: vi.fn(), onMakeSong: vi.fn(() => Promise.resolve<MakeSongResult>({ kind: 'started', jobKey: 'job-1' })), onCancelJob: vi.fn(), onAnswerVaultChoice: vi.fn(), onDismissJob: vi.fn(), onFetchSongReport: vi.fn(() => Promise.resolve('Made with onsets.')),
     ...overrides,
   };
@@ -33,7 +33,7 @@ function lookUpGenerator(address: string): HTMLElement {
 }
 
 async function goToSetupStep(): Promise<HTMLElement> {
-  fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
   await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Choose a file…' })); });
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
   return screen.getByRole('dialog', { name: 'Pick the generator and difficulties' });
@@ -55,7 +55,7 @@ describe('GeneratorsScreen', () => {
   it('shows what an internet generator gets and warns that the music is sent there before adding it', async () => {
     const props = renderGenerators();
     const dialog = lookUpGenerator('https://gen.beatsmith.example');
-    expect(within(dialog).queryByRole('textbox', { name: 'Start command (optional)' })).toBeNull();
+    expect(within(dialog).queryByRole('textbox', { name: 'Start command' })).toBeNull();
     await settle(() => { fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' })); });
     const confirmDialog = screen.getByRole('dialog', { name: 'Add “Beatsmith”?' });
     const gets = within(within(confirmDialog).getByRole('group', { name: 'What this generator gets' })).getAllByRole('listitem').map((item) => item.textContent);
@@ -70,12 +70,12 @@ describe('GeneratorsScreen', () => {
     const localPreview = { ...FAKE_GENERATOR_PREVIEW, address: 'http://localhost:7700', location: { kind: 'this-computer' as const }, startCommand: 'C:/gen/start.cmd' };
     const props = renderGenerators({ onLookUpGenerator: vi.fn(() => Promise.resolve<GeneratorLookupResult>({ kind: 'found', generator: localPreview })) });
     const dialog = lookUpGenerator('http://localhost:7700');
-    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Start command (optional)' }), { target: { value: '  C:/gen/start.cmd ' } });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Start command' }), { target: { value: '  C:/gen/start.cmd ' } });
     await settle(() => { fireEvent.click(within(dialog).getByRole('button', { name: 'Continue' })); });
     expect(props.onLookUpGenerator).toHaveBeenCalledWith({ address: 'http://localhost:7700', startCommand: 'C:/gen/start.cmd' });
     const confirmDialog = screen.getByRole('dialog', { name: 'Add “Beatsmith”?' });
     expect(confirmDialog.textContent).toContain('It runs on this computer. Your music file stays here.');
-    expect(confirmDialog.textContent).toContain('Sync starts it when needed with C:/gen/start.cmd');
+    expect(confirmDialog.textContent).toContain('Sync starts it with C:/gen/start.cmd');
   });
 
   it('shows the section a pasted address belongs in, as the lookup says', async () => {
@@ -100,7 +100,7 @@ describe('GeneratorsScreen', () => {
     const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, tokenCount: 0, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
     expect(within(setupDialog).getByRole('radio', { name: /dancedance.studio generator/ }).closest('label')?.textContent).toContain('you have 0 tokens');
-    expect(within(setupDialog).getByRole('alert').textContent).toContain('You have no tokens left. Buy tokens, or pick a community generator.');
+    expect(within(setupDialog).getByRole('alert').textContent).toContain('You’re out of tokens. Buy tokens, or pick a community generator.');
     expect(within(setupDialog).getByRole('link', { name: 'Buy tokens' }).getAttribute('href')).toBe('#tokens');
     expect(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })).toHaveProperty('disabled', true);
     fireEvent.click(within(setupDialog).getByRole('radio', { name: /Tap Forge/ }));
@@ -135,7 +135,7 @@ describe('GeneratorsScreen', () => {
 
   it('picks music from the music folders by searching them', async () => {
     const props = renderGenerators();
-    fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
     fireEvent.click(screen.getByRole('tab', { name: 'My music folders' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search your music folders' }), { target: { value: 'night' } });
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Search' })); });
@@ -147,7 +147,7 @@ describe('GeneratorsScreen', () => {
 
   it('draws a song source’s tab from its inputs, checks what the player types, and shows the found song to check', async () => {
     const props = renderGenerators();
-    fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
     const linkField = screen.getByRole('textbox', { name: 'YouTube link' });
     fireEvent.change(linkField, { target: { value: 'https://evil-youtube.com/watch' } });
@@ -157,14 +157,30 @@ describe('GeneratorsScreen', () => {
     expect(screen.getByText('Tube Songs sees what you type here.')).toBeDefined();
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     expect(props.onFindSong).toHaveBeenCalledWith({ addonId: 'tube-songs', valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
-    expect(screen.getByText('Is this the song? Check it before you make it.')).toBeDefined();
-    expect(screen.getByRole('radio', { name: /Low Tide/ })).toHaveProperty('checked', true);
+    expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Check it before you make it.');
+    expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Low Tide · Marla Quinn');
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, use it' }));
+    expect(screen.getByRole('dialog', { name: 'Pick the generator and difficulties' }).textContent).toContain('Low Tide — Marla Quinn');
+  });
+
+  it('lets the player pick one of the songs a song source found, check it, or pick another', async () => {
+    renderGenerators({ onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'found', musics: FAKE_FOUND_MUSICS })) });
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'YouTube link' }), { target: { value: 'https://youtu.be/dQw4w9WgXcQ' } });
+    await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
+    const found = screen.getByRole('radiogroup', { name: 'Music found' });
+    expect(within(found).getAllByRole('radio')).toHaveLength(3);
+    fireEvent.click(within(found).getByRole('radio', { name: /Night Drive \(Live\)/ }));
+    expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Night Drive (Live) · Lumen Park');
+    fireEvent.click(screen.getByRole('button', { name: 'Pick another' }));
+    expect(within(screen.getByRole('radiogroup', { name: 'Music found' })).getByRole('radio', { name: /Night Drive \(Live\)/ })).toHaveProperty('checked', true);
   });
 
   it('shows the song source’s own sentence when it finds nothing, under the field it names when the input is refused', async () => {
     renderGenerators({ onFindSong: vi.fn(() => Promise.resolve<SongSourceSearchResult>({ kind: 'invalid-input', inputId: 'search', message: 'Make it shorter: at most 200 characters.' })) });
-    fireEvent.click(screen.getByRole('button', { name: 'Generate a song' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make a song' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Tube Songs' }));
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     expect(screen.getByRole('alert').textContent).toBe('Paste a link from youtube.com or youtu.be.');
@@ -181,7 +197,7 @@ describe('GeneratorsScreen', () => {
     expect(within(workingJob).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('45');
     fireEvent.click(within(workingJob).getByRole('button', { name: 'Cancel Night Drive' }));
     const choiceJob = screen.getByRole('listitem', { name: 'Low Tide' });
-    fireEvent.click(within(choiceJob).getByRole('button', { name: 'Keep the one I made' }));
+    fireEvent.click(within(choiceJob).getByRole('button', { name: 'Use generated' }));
     expect(props.onCancelJob).toHaveBeenCalledWith('job-night-drive');
     expect(props.onAnswerVaultChoice).toHaveBeenCalledWith({ jobKey: 'job-low-tide', choice: 'keep-generated-song' });
   });

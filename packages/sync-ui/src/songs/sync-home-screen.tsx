@@ -1,6 +1,7 @@
 import { useRef, type ReactElement, type ReactNode } from 'react';
 import { JudgmentFlash } from '../progress/judgment-flash';
 import { SyncProgressBar } from '../progress/sync-progress-bar';
+import { ReceptorLoader } from '../shared/receptor-loader';
 import { SyncTopBar, type SyncTopBarProps } from '../shell/sync-top-bar';
 import { NeedsAudioBanner, type NeedsAudioBannerProps } from '../states/empty-and-error-states';
 import type { SongDetailsView, SongRowView, SyncPlatform } from '../sync-ui-types';
@@ -36,6 +37,8 @@ export interface SyncHomeScreenProps {
   onOpenSongDetails: (vaultSongId: string) => void;
   onCloseSongDetails: () => void;
   onSongAction: (request: SongActionRequest) => void;
+  /** True while Sync reads the songs for the first time: the screen shows only the loader. */
+  isLoading?: boolean;
 }
 
 /** Screen 2: the top bar, the sync progress or result, the counters, the song list and the details drawer. */
@@ -51,6 +54,7 @@ export function SyncHomeScreen(props: SyncHomeScreenProps): ReactElement {
     const opener = detailsOpenerRef.current;
     if (opener?.isConnected) opener.focus();
   };
+  if (props.isLoading === true) return <SyncLoadingPanel />;
   return (
     <div className="sv-sync-screen">
       <SyncTopBar {...props.topBar} platform={props.platform} isSyncing={isSyncing} />
@@ -69,5 +73,14 @@ export function SyncHomeScreen(props: SyncHomeScreenProps): ReactElement {
         />
       )}
     </div>
+  );
+}
+
+/** Sync is starting: reading the game folder and the library. */
+export function SyncLoadingPanel(): ReactElement {
+  return (
+    <section className="sv-sync-panel sv-sync-loading-panel">
+      <ReceptorLoader label="Loading your songs…" />
+    </section>
   );
 }

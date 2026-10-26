@@ -85,12 +85,12 @@ export class MakeSongMusic {
     });
   }
 
-  /** Asks a song source for the song the player described, as long as it keeps working on it or until stopped. */
+  /** Asks a song source for the song the player described, as long as it keeps working on it or until stopped. Each song it found becomes a choice; nothing is downloaded until one is made. */
   async findSong({ addon, valuesByInputId }: { addon: InstalledAddon; valuesByInputId: Readonly<Record<string, string>> }): Promise<SongSourceSearchResult> {
     this.isSongSearchStopped = false;
     try {
       const result = await waitForSongSource({ httpClient: this.ports.httpClient, addon, valuesByInputId, waitSeconds: (seconds) => this.waitUnlessStopped(seconds), shouldStop: () => this.isSongSearchStopped });
-      if (result.kind === 'found') return { kind: 'found', music: this.addSongSourceChoice({ addonName: addon.manifest.name, ...result }) };
+      if (result.kind === 'found') return { kind: 'found', musics: result.choices.map((choice) => this.addSongSourceChoice({ addonName: addon.manifest.name, ...choice })) };
       if (result.kind === 'not-found') return { kind: 'not-found', message: result.addonError };
       return result;
     } catch (error) {
