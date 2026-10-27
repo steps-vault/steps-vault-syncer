@@ -11,16 +11,15 @@ interface StateCardProps {
   tone: StateTone;
   picture: ReactNode;
   title: string;
-  isCentered?: boolean;
   children: ReactNode;
   action: ReactNode;
 }
 
 /** Every empty or error state says what happened and what to do next; none of them is a dead end. */
-function StateCard({ label, tone, picture, title, isCentered = false, children, action }: StateCardProps): ReactElement {
+function StateCard({ label, tone, picture, title, children, action }: StateCardProps): ReactElement {
   return (
-    <section className={joinClassNames('sv-sync-state-card', `sv-sync-state-card--${tone}`, isCentered && 'sv-sync-state-card--centered')} aria-label={label} role={tone === 'calm' ? undefined : 'alert'}>
-      {picture}
+    <section className={joinClassNames('sv-sync-state-card', `sv-sync-state-card--${tone}`)} aria-label={label} role={tone === 'calm' ? undefined : 'alert'}>
+      <div className="sv-sync-state-picture">{picture}</div>
       <h3>{title}</h3>
       <p className="sv-sync-text sv-sync-small">{children}</p>
       {action}
@@ -43,7 +42,7 @@ export function EmptyVaultState({ vaultHref }: { vaultHref: string }): ReactElem
     </div>
   );
   return (
-    <StateCard label="Empty library" tone="calm" picture={picture} title="Your library is empty" isCentered action={<a className="sv-sync-button" href={vaultHref}><Icon name="external" />Browse the library</a>}>
+    <StateCard label="Empty library" tone="calm" picture={picture} title="Your library is empty" action={<a className="sv-sync-button" href={vaultHref}><Icon name="external" />Browse the library</a>}>
       Make or add songs on {SITE_NAME}. They show up here and sync to your game.
     </StateCard>
   );

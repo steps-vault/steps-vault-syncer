@@ -56,7 +56,7 @@ export function PreviewApp(): ReactElement {
 
 function PreviewFrame({ platform, screen, children }: { platform: SyncPlatform; screen: PreviewScreen; children: ReactNode }): ReactElement {
   if (screen === 'states' || screen === 'phone') return <>{children}</>;
-  if (platform === 'website') return <>{children}</>;
+  if (platform === 'website') return <div className="preview-website-page">{children}</div>;
   return (
     <div className="preview-window">
       <div className="preview-window-bar">DanceDance Sync</div>

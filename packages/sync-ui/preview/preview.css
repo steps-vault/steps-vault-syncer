@@ -3,6 +3,9 @@ body { margin: 0; background: #0b0b12; color: #e8ebf4; font-family: Rubik, syste
 .preview-controls label { display: inline-flex; align-items: center; gap: 8px; color: #aab3c9; }
 .preview-controls select { min-height: 32px; border-radius: 8px; border: 1px solid #3a4360; background: #0e111a; color: #e8ebf4; font: inherit; padding: 0 8px; }
 .preview-controls b { color: #1cd8ff; font-style: italic; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; }
+/* Stands in for the website's page column (--content-width 1240, 28px gutters), which sets the Sync width there. */
+.preview-website-page { box-sizing: border-box; max-width: 1240px; margin: 0 auto; padding: 48px 28px 80px; }
+@media (max-width: 560px) { .preview-website-page { padding: 32px 16px 64px; } }
 .preview-window { max-width: 1440px; margin: 24px auto; border: 1px solid #3a4360; border-radius: 12px; overflow: hidden; }
 .preview-window-bar { display: flex; align-items: center; height: 40px; padding: 0 14px; background: #1a1e2b; border-bottom: 1px solid #2c3550; font-size: 13px; font-weight: 600; color: #fff; }
 .preview-board { max-width: 1384px; margin: 0 auto; padding: 28px; display: flex; flex-direction: column; gap: 30px; }
