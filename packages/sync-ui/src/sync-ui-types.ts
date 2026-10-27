@@ -155,6 +155,8 @@ export interface LayoutPreviewGroup {
   moreSongCount?: number;
   /** The "My groups" folder for songs in no group, drawn apart from the player's groups. */
   isUngrouped?: boolean;
+  /** A "My groups" folder's colour as a hex, the group's colour on the site; the folder is cyan without one. */
+  folderColorHex?: string;
 }
 
 export interface LayoutPreview {

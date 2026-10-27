@@ -84,6 +84,22 @@ describe('activity and layout views', () => {
     expect(preview.moreGroupsText).toBe('+ 1 more group');
   });
 
+  it('colours each of My groups like the site, cyan for a colour it doesn’t know, and never Ungrouped', () => {
+    const songs: VaultSongDetails[] = [
+      { ...CHEAP_THRILLS, groupFolderName: 'Warm-up', groupColorKey: 'green' },
+      { ...BUNNY, vaultSongId: 'c', groupFolderName: 'Marathon night', groupColorKey: 'pink' },
+      { ...BUNNY, vaultSongId: 'd', groupFolderName: 'J-Pop faves', groupColorKey: 'teal' },
+      { ...BUNNY, vaultSongId: 'e', groupFolderName: null, groupColorKey: null },
+    ];
+    const preview = buildLayoutViews({ vaultSongs: songs, record: RECORD, playerGroupNames: [] }).previewsByLayout['my-groups'];
+    expect(Object.fromEntries(preview.groups.map((group) => [group.groupName, group.folderColorHex ?? null]))).toEqual({
+      'Warm-up': '#2cff00',
+      'Marathon night': '#ff32f8',
+      'J-Pop faves': null,
+      'Ungrouped': null,
+    });
+  });
+
   it('names the day of an entry: today, yesterday, then the date', () => {
     const now = new Date(2026, 9, 27, 13, 0);
     expect(getDayText({ at: new Date(2026, 9, 27, 0, 5), now })).toBe('Today');

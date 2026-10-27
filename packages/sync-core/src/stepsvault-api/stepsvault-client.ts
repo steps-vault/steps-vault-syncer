@@ -168,6 +168,7 @@ function parseVaultSong(value: unknown): VaultSongDetails {
     chartVersion: getString(song.chartVersion),
     imageKinds: Array.isArray(song.imageKinds) ? song.imageKinds.filter((kind): kind is string => typeof kind === 'string' && /^[a-z]+$/.test(kind)) : [],
     hasFingerprint: song.hasFingerprint === true,
+    groupColorKey: typeof song.groupColorKey === 'string' && song.groupColorKey.trim() !== '' ? song.groupColorKey : null,
   };
 }
 

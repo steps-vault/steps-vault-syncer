@@ -71,6 +71,15 @@ describe('FolderLayoutScreen', () => {
     expect(screen.getByRole('link', { name: 'Edit my groups' }).getAttribute('href')).toBe('https://dancedance.studio/library?tab=groups');
   });
 
+  it('draws each of My groups’ folders in the group’s colour, and Ungrouped without one', () => {
+    renderFolderLayout();
+    const myGroups = screen.getByRole('radio', { name: /My groups/ });
+    const getFolderRow = (groupName: string): HTMLElement | null => within(myGroups).getByText(groupName).closest('li');
+    expect(getFolderRow('Warm-up')?.style.getPropertyValue('--sv-sync-group-color')).toBe('#2cff00');
+    expect(getFolderRow('Marathon night')?.style.getPropertyValue('--sv-sync-group-color')).toBe('#ff32f8');
+    expect(getFolderRow('Ungrouped')?.style.getPropertyValue('--sv-sync-group-color')).toBe('');
+  });
+
   it('shows My groups as current, without NEW', () => {
     renderFolderLayout({ currentLayout: 'my-groups' });
     const myGroups = screen.getByRole('radio', { name: /My groups/ });
