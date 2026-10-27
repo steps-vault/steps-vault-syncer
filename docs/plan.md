@@ -69,7 +69,9 @@ The website (a private repo) installs `sync-core` and `sync-ui` from npm under t
 
 ## Folder layout
 
-The player chooses one: **One group** (`dancedance.studio`), **By genre** (`Pop`, `Rock`…) or **By artist**. A group name
+The player chooses one: **One group** (`dancedance.studio`), **By genre** (`Pop`, `Rock`…), **By artist** or **My groups**
+(the groups the player made on the site: `dancedance.studio - Warm-up`, and `dancedance.studio - Ungrouped` for songs in
+no group; a song is in one group, and moves on the next sync when the player regroups it). A group name
 the player already uses (compared without case, as Windows does) gets the prefix `dancedance.studio - ` instead. Changing
 the layout moves only our folders. Folder names use English letters only, because StepMania 5 on Windows can't open
 Hebrew or Japanese names: a song in another script is named by the English-letter spelling StepsVault sends. StepMania keeps scores by folder path, so moved songs start with fresh scores,

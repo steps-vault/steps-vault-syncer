@@ -98,6 +98,47 @@ describe('a layout change', () => {
   });
 });
 
+describe('the My groups layout', () => {
+  const WARM_UP_THRILLS: SongFolderFacts = { ...CHEAP_THRILLS, groupFolderName: 'Warm-up' };
+  const UNGROUPED_SORRY: SongFolderFacts = { ...BEYONCE_SORRY, groupFolderName: null };
+
+  it('puts each song in its group’s folder, and songs in no group in Ungrouped', () => {
+    const targets = getTargetFolderPaths({ songs: [WARM_UP_THRILLS, UNGROUPED_SORRY, BIEBER_SORRY], layout: 'my-groups', playerGroupNames: [], record: buildEmptyInstalledSongsRecord() });
+    expect(targets.get('a')).toEqual(['dancedance.studio - Warm-up', 'Cheap Thrills']);
+    expect(targets.get('b')).toEqual(['dancedance.studio - Ungrouped', 'Sorry']);
+    expect(targets.get('c')).toEqual(['dancedance.studio - Ungrouped', 'Sorry (Beyonce)']);
+  });
+
+  it('keeps folder names plain English letters and safe on Windows', () => {
+    const song: SongFolderFacts = { ...CHEAP_THRILLS, groupFolderName: 'Café: "Night"' };
+    expect(getTargetFolderPaths({ songs: [song], layout: 'my-groups', playerGroupNames: [], record: buildEmptyInstalledSongsRecord() }).get('a')).toEqual(['dancedance.studio - Cafe Night', 'Cheap Thrills']);
+  });
+
+  it('numbers a group the player already has a folder for', () => {
+    const targets = getTargetFolderPaths({ songs: [WARM_UP_THRILLS], layout: 'my-groups', playerGroupNames: ['DANCEDANCE.STUDIO - warm-up'], record: buildEmptyInstalledSongsRecord() });
+    expect(targets.get('a')).toEqual(['dancedance.studio - Warm-up 2', 'Cheap Thrills']);
+  });
+
+  it('moves the installed songs when switching to it', () => {
+    const record = recordWithInstalled({ vaultSongId: 'a', folderPath: buildSongsPath('Pop', 'Cheap Thrills') });
+    const targets = getTargetFolderPaths({ songs: [WARM_UP_THRILLS], layout: 'my-groups', playerGroupNames: [], record });
+    expect(getSongFolderMoves({ record, targetPathsBySongId: targets })).toEqual([{ vaultSongId: 'a', from: ['Pop', 'Cheap Thrills'], to: ['dancedance.studio - Warm-up', 'Cheap Thrills'] }]);
+  });
+
+  it('moves a song whose group changed on the site, keeping its folder name', () => {
+    const record = recordWithInstalled({ vaultSongId: 'a', folderPath: buildSongsPath('dancedance.studio - Warm-up', 'Cheap Thrills') });
+    const regrouped: SongFolderFacts = { ...WARM_UP_THRILLS, groupFolderName: 'Marathon night' };
+    const unchanged = getTargetFolderPaths({ songs: [WARM_UP_THRILLS], layout: 'my-groups', playerGroupNames: [], record });
+    expect(getSongFolderMoves({ record, targetPathsBySongId: unchanged })).toEqual([]);
+    const moved = getTargetFolderPaths({ songs: [regrouped], layout: 'my-groups', playerGroupNames: [], record });
+    expect(moved.get('a')).toEqual(['dancedance.studio - Marathon night', 'Cheap Thrills']);
+  });
+
+  it('puts every song in Ungrouped when the site sends no groups', () => {
+    expect(getTargetFolderPaths({ songs: [CHEAP_THRILLS], layout: 'my-groups', playerGroupNames: [], record: buildEmptyInstalledSongsRecord() }).get('a')).toEqual(['dancedance.studio - Ungrouped', 'Cheap Thrills']);
+  });
+});
+
 describe('getPlayerGroupNames', () => {
   it('lists the top-level folders Sync did not create', async () => {
     const songsFolder = new MemorySongsFolder();

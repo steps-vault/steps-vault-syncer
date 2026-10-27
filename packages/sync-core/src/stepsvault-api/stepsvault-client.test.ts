@@ -15,6 +15,7 @@ const VAULT_SONG = {
   artist: 'Rei Hoshino',
   album: null,
   genre: 'J-Pop',
+  groupFolderName: 'Warm-up',
   lengthSeconds: 212,
   levels: [3, 5, 8, 11, 13],
   bpm: 174,
@@ -75,6 +76,13 @@ describe('StepsVaultClient', () => {
     const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     expect(await client.fetchVault()).toEqual([VAULT_SONG]);
     expect(api.requests[0]?.headers).toEqual({ Authorization: 'Bearer device-token' });
+  });
+
+  it('reads a song from a site without groups as in no group', async () => {
+    const songFromOlderSite = Object.fromEntries(Object.entries(VAULT_SONG).filter(([key]) => key !== 'groupFolderName'));
+    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
+    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    expect((await client.fetchVault())[0]?.groupFolderName).toBeNull();
   });
 
   it('fetches a song’s files for the writer: the song file and each image', async () => {

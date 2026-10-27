@@ -1,4 +1,4 @@
-import type { FolderLayout } from '@stepsvault/sync-core';
+import { FOLDER_LAYOUTS, type FolderLayout } from '@stepsvault/sync-core';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import {
   ActivityScreen, AudioSourcesScreen, ConnectGameScreen, GeneratorsScreen, DesktopSignInScreen, DiskFullState, EmptyVaultState, FolderLayoutScreen, JudgmentText, LinkCodeForm, LinkedComputersTable, NeedsAudioBanner,
@@ -173,7 +173,7 @@ function GeneratorsPreview(): ReactElement {
 }
 
 function FolderLayoutPreview(): ReactElement {
-  const [currentLayout, setCurrentLayout] = useState<FolderLayout>('by-genre');
+  const [currentLayout, setCurrentLayout] = useState<FolderLayout>(() => getQueryValue({ name: 'layout', allowedValues: FOLDER_LAYOUTS, fallback: 'by-genre' }));
   const [lastMove, setLastMove] = useState<{ layout: FolderLayout; movedSongCount: number } | null>(null);
   return (
     <FolderLayoutScreen
@@ -183,6 +183,7 @@ function FolderLayoutPreview(): ReactElement {
       playerGroupNames={FAKE_PLAYER_GROUPS.map((group) => group.groupName)}
       onChangeLayout={(layout) => { setLastMove({ layout, movedSongCount: FAKE_MOVING_SONG_COUNTS[layout] }); setCurrentLayout(layout); }}
       lastMove={lastMove}
+      editGroupsHref="#library-groups"
     />
   );
 }

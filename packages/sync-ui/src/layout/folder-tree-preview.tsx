@@ -47,7 +47,7 @@ function FolderTreePlayerGroup({ groupName, songText }: { groupName: string; son
 function FolderTreeGroup({ group }: { group: LayoutPreview['groups'][number] }): ReactElement {
   return (
     <>
-      <li className="sv-sync-mini-tree-group sv-sync-mini-tree--ours">
+      <li className={group.isUngrouped ? 'sv-sync-mini-tree-group sv-sync-mini-tree--ungrouped' : 'sv-sync-mini-tree-group sv-sync-mini-tree--ours'}>
         <Icon name="folder" size={14} /><span>{group.groupName}</span>
         {group.tagText !== undefined && <span className="sv-sync-mini-tree-tag">{group.tagText}</span>}
       </li>

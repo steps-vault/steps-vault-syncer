@@ -112,9 +112,18 @@ export const FAKE_LAYOUT_PREVIEWS: LayoutPreviewsByLayout = {
   'one-group': { groups: [{ groupName: 'dancedance.studio', tagText: '12 songs', songTitles: ['Paper Thrills', 'Watch Me Glow', '桜ドライブ'], moreSongCount: 9 }] },
   'by-genre': { groups: [{ groupName: 'dancedance.studio - Pop', songTitles: ['Paper Thrills', 'Watch Me Glow'] }, { groupName: 'Electronic', songTitles: ['Afterimage'] }, { groupName: 'J-Pop', songTitles: [] }], moreGroupsText: '+ 5 more genres' },
   'by-artist': { groups: [{ groupName: 'Merav Lin', songTitles: ['Watch Me Glow'] }, { groupName: 'Sola', songTitles: ['Paper Thrills'] }, { groupName: 'Kairo Lights', songTitles: ['Afterimage'] }], moreGroupsText: '+ 7 more artists' },
+  'my-groups': {
+    groups: [
+      { groupName: 'Warm-up', tagText: '5', songTitles: [] },
+      { groupName: 'Marathon night', tagText: '2', songTitles: [] },
+      { groupName: 'J-Pop faves', tagText: '1', songTitles: [] },
+      { groupName: 'Ungrouped', tagText: '15', songTitles: [], isUngrouped: true },
+    ],
+    moreGroupsText: '+ 1 more group',
+  },
 };
 
-export const FAKE_MOVING_SONG_COUNTS: Readonly<Record<FolderLayout, number>> = { 'one-group': 12, 'by-genre': 0, 'by-artist': 11 };
+export const FAKE_MOVING_SONG_COUNTS: Readonly<Record<FolderLayout, number>> = { 'one-group': 12, 'by-genre': 0, 'by-artist': 11, 'my-groups': 12 };
 
 export const FAKE_ACTIVITY_ENTRIES: readonly ActivityEntryView[] = [
   { entryId: 'finished', kind: 'sync-finished', dayText: 'Today', timeText: '18:42', textBefore: 'Sync finished: ', highlightedText: '8 synced, 4 need you', textAfter: '', summaryText: 'PERFECT! · 12 songs checked in 1 min 12 s', details: [{ label: 'Synced', value: '8 songs' }, { label: 'Need audio', value: 'שמש של חצות, Pulse Garden' }, { label: 'Different edit', value: 'Sugar You' }, { label: 'Started by', value: 'You pressed Sync now' }] },

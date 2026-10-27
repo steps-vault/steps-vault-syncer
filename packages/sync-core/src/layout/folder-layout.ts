@@ -2,7 +2,9 @@ import { findInstalledSong, type InstalledSongsRecord } from '../ownership/insta
 import { buildSongsPath, getNameKey, type SongsPath } from '../songs-folder/songs-path';
 import { getSafeFolderName } from './safe-folder-name';
 
-export type FolderLayout = 'one-group' | 'by-genre' | 'by-artist';
+export type FolderLayout = 'one-group' | 'by-genre' | 'by-artist' | 'my-groups';
+
+export const FOLDER_LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist', 'my-groups'];
 
 /** Plain ASCII, like every folder name Sync writes (see getSafeFolderName): v3 draws "dancedance.studio · Pop", but a
  * middle dot is missing from some Windows code pages StepMania opens folders through. */
@@ -11,6 +13,8 @@ export const CLASH_PREFIX = 'dancedance.studio - ';
 const UNKNOWN_GENRE_NAME = 'Other';
 const UNKNOWN_ARTIST_NAME = 'Unknown artist';
 const UNKNOWN_TITLE_NAME = 'Untitled';
+/** The game folder for the songs the player put in no group, in the "My groups" layout. */
+export const UNGROUPED_NAME = 'Ungrouped';
 
 /** What layout needs to know about a vault song. */
 export interface SongFolderFacts {
@@ -21,6 +25,8 @@ export interface SongFolderFacts {
   titleTransliteration?: string | null;
   artistTransliteration?: string | null;
   genre: string | null;
+  /** The player's group's folder name from the site (null: in no group). Sites from before groups leave it out. */
+  groupFolderName?: string | null;
 }
 
 /** The names a song folder is named from. */
@@ -37,7 +43,17 @@ function getFolderArtist(song: SongFolderNames): string {
 export function getGroupBaseName({ layout, song }: { layout: FolderLayout; song: SongFolderFacts }): string {
   if (layout === 'one-group') return ONE_GROUP_NAME;
   if (layout === 'by-genre') return getSafeFolderName({ name: song.genre ?? '', fallback: UNKNOWN_GENRE_NAME });
+  if (layout === 'my-groups') return getMyGroupFolderName(song.groupFolderName ?? null);
   return getSafeFolderName({ name: getFolderArtist(song), fallback: UNKNOWN_ARTIST_NAME });
+}
+
+/**
+ * The player's groups are always prefixed ("dancedance.studio - Warm-up", "dancedance.studio - Ungrouped"): a group is
+ * named by the player, so a plain "Warm-up" could easily be mistaken for one of their own game folders.
+ */
+function getMyGroupFolderName(groupFolderName: string | null): string {
+  const safeGroupName = getSafeFolderName({ name: groupFolderName ?? '', fallback: UNGROUPED_NAME });
+  return getSafeFolderName({ name: `${CLASH_PREFIX}${safeGroupName}`, fallback: `${CLASH_PREFIX}${UNGROUPED_NAME}` });
 }
 
 /**
@@ -47,7 +63,8 @@ export function getGroupBaseName({ layout, song }: { layout: FolderLayout; song:
 export function getGroupName({ baseName, playerGroupNames }: { baseName: string; playerGroupNames: readonly string[] }): string {
   const playerNameKeys = new Set(playerGroupNames.map(getNameKey));
   if (!playerNameKeys.has(getNameKey(baseName))) return baseName;
-  return getUnusedName({ preferredName: `${CLASH_PREFIX}${baseName}`, takenNameKeys: playerNameKeys });
+  const preferredName = baseName.startsWith(CLASH_PREFIX) ? baseName : `${CLASH_PREFIX}${baseName}`;
+  return getUnusedName({ preferredName, takenNameKeys: playerNameKeys });
 }
 
 export interface TargetFolderOptions {

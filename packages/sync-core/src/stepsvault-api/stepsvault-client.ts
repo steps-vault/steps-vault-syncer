@@ -160,6 +160,7 @@ function parseVaultSong(value: unknown): VaultSongDetails {
     artistTransliteration: typeof song.artistTransliteration === 'string' ? song.artistTransliteration : null,
     album: typeof song.album === 'string' ? song.album : null,
     genre: typeof song.genre === 'string' ? song.genre : null,
+    groupFolderName: typeof song.groupFolderName === 'string' && song.groupFolderName.trim() !== '' ? song.groupFolderName : null,
     lengthSeconds: typeof song.lengthSeconds === 'number' ? song.lengthSeconds : 0,
     levels: Array.isArray(song.levels) ? song.levels.slice(0, 5).map((level) => (typeof level === 'number' && level > 0 ? level : null)) : [],
     bpm: typeof song.bpm === 'number' && song.bpm > 0 ? song.bpm : null,
