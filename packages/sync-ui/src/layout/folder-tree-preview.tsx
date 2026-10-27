@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { CSSProperties, ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import type { LayoutPreview } from '../sync-ui-types';
 
@@ -44,10 +44,17 @@ function FolderTreePlayerGroup({ groupName, songText }: { groupName: string; son
   );
 }
 
+type GroupColorStyle = CSSProperties & { '--sv-sync-group-color'?: string };
+
+function getGroupColorStyle(folderColorHex: string | undefined): GroupColorStyle | undefined {
+  if (folderColorHex === undefined) return undefined;
+  return { '--sv-sync-group-color': folderColorHex };
+}
+
 function FolderTreeGroup({ group }: { group: LayoutPreview['groups'][number] }): ReactElement {
   return (
     <>
-      <li className={group.isUngrouped ? 'sv-sync-mini-tree-group sv-sync-mini-tree--ungrouped' : 'sv-sync-mini-tree-group sv-sync-mini-tree--ours'}>
+      <li className={group.isUngrouped ? 'sv-sync-mini-tree-group sv-sync-mini-tree--ungrouped' : 'sv-sync-mini-tree-group sv-sync-mini-tree--ours'} style={getGroupColorStyle(group.folderColorHex)}>
         <Icon name="folder" size={14} /><span>{group.groupName}</span>
         {group.tagText !== undefined && <span className="sv-sync-mini-tree-tag">{group.tagText}</span>}
       </li>

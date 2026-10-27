@@ -598,7 +598,7 @@
 .sv-sync-mini-tree-song svg { color: #6f7a99; }
 .sv-sync-mini-tree--ours { color: var(--sv-sync-link-hover); }
 .sv-sync-mini-tree li.sv-sync-mini-tree--ours { color: var(--sv-sync-link-hover); }
-.sv-sync-mini-tree--ours svg { color: var(--sv-sync-light-blue); }
+.sv-sync-mini-tree--ours svg { color: var(--sv-sync-group-color, var(--sv-sync-light-blue)); }
 .sv-sync-mini-tree--theirs svg { color: var(--sv-sync-text-subtle); }
 .sv-sync-mini-tree li.sv-sync-mini-tree--ungrouped { color: var(--sv-sync-text-soft); }
 .sv-sync-mini-tree--ungrouped svg { color: var(--sv-sync-text-subtle); stroke-dasharray: 3 2; }

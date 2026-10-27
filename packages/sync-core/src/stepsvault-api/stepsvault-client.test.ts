@@ -23,6 +23,7 @@ const VAULT_SONG = {
   chartVersion: '0f3a9c1d2e4b5a69',
   imageKinds: ['banner', 'background', 'jacket'],
   hasFingerprint: true,
+  groupColorKey: 'green',
 };
 
 /** Answers by URL, as the StepsVault API does (shapes recorded from the site's own API tests). */
@@ -83,6 +84,15 @@ describe('StepsVaultClient', () => {
     const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
     const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
     expect((await client.fetchVault())[0]?.groupFolderName).toBeNull();
+  });
+
+  it('reads a song from a site without group colours as having no colour', async () => {
+    const songFromOlderSite = Object.fromEntries(Object.entries(VAULT_SONG).filter(([key]) => key !== 'groupColorKey'));
+    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/vault': { status: 200, body: [songFromOlderSite] } });
+    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    const [song] = await client.fetchVault();
+    expect(song?.groupFolderName).toBe('Warm-up');
+    expect(song?.groupColorKey).toBeNull();
   });
 
   it('fetches a song’s files for the writer: the song file and each image', async () => {

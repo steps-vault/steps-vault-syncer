@@ -114,9 +114,9 @@ export const FAKE_LAYOUT_PREVIEWS: LayoutPreviewsByLayout = {
   'by-artist': { groups: [{ groupName: 'Merav Lin', songTitles: ['Watch Me Glow'] }, { groupName: 'Sola', songTitles: ['Paper Thrills'] }, { groupName: 'Kairo Lights', songTitles: ['Afterimage'] }], moreGroupsText: '+ 7 more artists' },
   'my-groups': {
     groups: [
-      { groupName: 'Warm-up', tagText: '5', songTitles: [] },
-      { groupName: 'Marathon night', tagText: '2', songTitles: [] },
-      { groupName: 'J-Pop faves', tagText: '1', songTitles: [] },
+      { groupName: 'Warm-up', tagText: '5', songTitles: [], folderColorHex: '#2cff00' },
+      { groupName: 'Marathon night', tagText: '2', songTitles: [], folderColorHex: '#ff32f8' },
+      { groupName: 'J-Pop faves', tagText: '1', songTitles: [], folderColorHex: '#1cd8ff' },
       { groupName: 'Ungrouped', tagText: '15', songTitles: [], isUngrouped: true },
     ],
     moreGroupsText: '+ 1 more group',

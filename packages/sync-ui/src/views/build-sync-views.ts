@@ -16,7 +16,8 @@ import {
   type SongPlan,
   type VaultSongDetails,
 } from '@stepsvault/sync-core';
-import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, LayoutPreviewsByLayout, SongAudioSource, SongDetailsView, SongRowView, TrayStatus } from '../sync-ui-types';
+import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, LayoutPreviewGroup, LayoutPreviewsByLayout, SongAudioSource, SongDetailsView, SongRowView, TrayStatus } from '../sync-ui-types';
+import { getGroupColorHex } from './group-colors';
 
 const PREVIEW_GROUP_COUNT = 3;
 const MORE_GROUP_NOUNS_BY_LAYOUT: Readonly<Record<FolderLayout, { one: string; many: string }>> = {
@@ -221,13 +222,29 @@ function buildMyGroupsPreview({ targetPathsBySongId, vaultSongs }: { targetPaths
   const groupedSongs = vaultSongs.filter((song) => (song.groupFolderName ?? null) !== null);
   const ungroupedSongs = vaultSongs.filter((song) => (song.groupFolderName ?? null) === null);
   const titlesByGroup = getSongTitlesByGroup({ targetPathsBySongId, vaultSongs: groupedSongs });
+  const colorHexesByGroup = getColorHexesByGroup({ targetPathsBySongId, vaultSongs: groupedSongs });
   const biggestGroups = [...titlesByGroup].sort(([firstName, firstTitles], [secondName, secondTitles]) => secondTitles.length - firstTitles.length || firstName.localeCompare(secondName)).slice(0, PREVIEW_GROUP_COUNT);
   const ungroupedName = ungroupedSongs[0] ? targetPathsBySongId.get(ungroupedSongs[0].vaultSongId)?.[0] : undefined;
   const groups = [
-    ...biggestGroups.map(([groupName, titles]) => ({ groupName: getNameWithoutPrefix(groupName), tagText: String(titles.length), songTitles: [] })),
+    ...biggestGroups.map(([groupName, titles]) => buildMyGroupPreviewGroup({ groupName, songCount: titles.length, folderColorHex: colorHexesByGroup.get(groupName) })),
     ...(ungroupedName === undefined ? [] : [{ groupName: getNameWithoutPrefix(ungroupedName), tagText: String(ungroupedSongs.length), songTitles: [], isUngrouped: true }]),
   ];
   return { groups, moreGroupsText: getMoreGroupsText({ layout: 'my-groups', moreGroupCount: titlesByGroup.size - biggestGroups.length }) };
+}
+
+function buildMyGroupPreviewGroup({ groupName, songCount, folderColorHex }: { groupName: string; songCount: number; folderColorHex: string | undefined }): LayoutPreviewGroup {
+  return { groupName: getNameWithoutPrefix(groupName), tagText: String(songCount), songTitles: [], ...(folderColorHex === undefined ? {} : { folderColorHex }) };
+}
+
+/** Every song in a group carries the same colour, so the first one with a colour Sync knows names the folder's. */
+function getColorHexesByGroup({ targetPathsBySongId, vaultSongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): Map<string, string> {
+  const colorHexesByGroup = new Map<string, string>();
+  for (const song of vaultSongs) {
+    const groupName = targetPathsBySongId.get(song.vaultSongId)?.[0];
+    const colorHex = getGroupColorHex(song.groupColorKey);
+    if (groupName && colorHex && !colorHexesByGroup.has(groupName)) colorHexesByGroup.set(groupName, colorHex);
+  }
+  return colorHexesByGroup;
 }
 
 function getNameWithoutPrefix(groupName: string): string {

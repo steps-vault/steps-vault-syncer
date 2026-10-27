@@ -11,6 +11,9 @@ export interface VaultSongDetails extends VaultSong {
   youtubeId: string | null;
   imageKinds: string[];
   hasFingerprint: boolean;
+  /** The colour of the player's group on the site (green, pink, cyan, yellow, orange or purple; null: in no group), so
+   * Sync draws the group's folder in it. Sites from before group colours leave it out. */
+  groupColorKey?: string | null;
 }
 
 /** The signed-in player as GET /api/sync/me describes them. */
