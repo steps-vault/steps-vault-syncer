@@ -106,7 +106,7 @@ function renderScreen(options: ScreenOptions): ReactNode {
   if (options.currentScreen === 'audio-sources') return renderAudioSources(options);
   if (options.currentScreen === 'generators') return renderGenerators(options);
   if (options.currentScreen === 'folder-layout') {
-    return <FolderLayoutScreen currentLayout={state.layout} previewsByLayout={state.previewsByLayout} movingSongCountsByLayout={state.movingSongCountsByLayout} playerGroupNames={state.playerGroupNames} onChangeLayout={(layout) => void bridge.setLayout(layout)} lastMove={state.lastLayoutMove} />;
+    return <FolderLayoutScreen currentLayout={state.layout} previewsByLayout={state.previewsByLayout} movingSongCountsByLayout={state.movingSongCountsByLayout} playerGroupNames={state.playerGroupNames} onChangeLayout={(layout) => void bridge.setLayout(layout)} lastMove={state.lastLayoutMove} editGroupsHref={`${state.siteUrl}/library?tab=groups`} />;
   }
   if (options.currentScreen === 'activity') {
     return (

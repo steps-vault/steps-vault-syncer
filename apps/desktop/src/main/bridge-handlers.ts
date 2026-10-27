@@ -1,11 +1,11 @@
-import { GENERATOR_DIFFICULTIES, type FolderLayout, type GeneratorDifficulty, type VaultSongChoice } from '@stepsvault/sync-core';
+import { FOLDER_LAYOUTS, GENERATOR_DIFFICULTIES, type FolderLayout, type GeneratorDifficulty, type VaultSongChoice } from '@stepsvault/sync-core';
 import type { AddonInstallPreview, AddonOptionView, GeneratorInstallPreview, MakeSongRequest, ServiceLocationView, ServiceLookupRequest, SongAction, SongSourceSearchRequest, VaultChoiceAnswer } from '@stepsvault/sync-ui';
 import type { DesktopSyncBridge } from '../shared/bridge-types';
 import type { SyncController } from './sync-controller';
 
 type BridgeHandlers = Record<Exclude<keyof DesktopSyncBridge, 'onState'>, (argument: unknown) => Promise<unknown>>;
 
-const LAYOUTS: readonly string[] = ['one-group', 'by-genre', 'by-artist'];
+const LAYOUTS: readonly string[] = FOLDER_LAYOUTS;
 const SONG_ACTIONS: readonly string[] = ['sync', 'choose-audio', 'use-different-file', 'update', 'keep-mine', 'replace-with-stepsvault', 'remove-from-game', 'keep-in-game'];
 const MAX_TEXT_LENGTH = 2_000;
 const MAX_ADDON_OPTIONS = 8;

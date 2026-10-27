@@ -59,10 +59,29 @@ describe('activity and layout views', () => {
 
   it('counts the songs each layout would move, with "song" for one', () => {
     const views = buildLayoutViews({ vaultSongs: [CHEAP_THRILLS], record: RECORD, playerGroupNames: ['Pop'] });
-    expect(views.movingSongCountsByLayout).toEqual({ 'one-group': 0, 'by-genre': 1, 'by-artist': 1 });
+    expect(views.movingSongCountsByLayout).toEqual({ 'one-group': 0, 'by-genre': 1, 'by-artist': 1, 'my-groups': 1 });
     expect(views.previewsByLayout['by-genre'].groups[0]).toMatchObject({ groupName: 'dancedance.studio - Pop' });
     expect(views.previewsByLayout['by-genre'].groups[0]?.tagText).toBeUndefined();
     expect(views.previewsByLayout['one-group'].groups[0]).toMatchObject({ groupName: 'dancedance.studio', tagText: '1 song' });
+  });
+
+  it('previews My groups: the biggest groups with their counts, then Ungrouped', () => {
+    const songs: VaultSongDetails[] = [
+      { ...CHEAP_THRILLS, groupFolderName: 'Warm-up' },
+      { ...BUNNY, groupFolderName: 'Warm-up' },
+      { ...BUNNY, vaultSongId: 'c', groupFolderName: 'Marathon night' },
+      { ...BUNNY, vaultSongId: 'd', groupFolderName: 'J-Pop faves' },
+      { ...BUNNY, vaultSongId: 'e', groupFolderName: 'Chill' },
+      { ...BUNNY, vaultSongId: 'f', groupFolderName: null },
+    ];
+    const preview = buildLayoutViews({ vaultSongs: songs, record: RECORD, playerGroupNames: [] }).previewsByLayout['my-groups'];
+    expect(preview.groups.map((group) => [group.groupName, group.tagText, group.isUngrouped ?? false])).toEqual([
+      ['Warm-up', '2', false],
+      ['Chill', '1', false],
+      ['J-Pop faves', '1', false],
+      ['Ungrouped', '1', true],
+    ]);
+    expect(preview.moreGroupsText).toBe('+ 1 more group');
   });
 
   it('names the day of an entry: today, yesterday, then the date', () => {

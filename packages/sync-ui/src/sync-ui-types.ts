@@ -153,6 +153,8 @@ export interface LayoutPreviewGroup {
   tagText?: string;
   songTitles: readonly string[];
   moreSongCount?: number;
+  /** The "My groups" folder for songs in no group, drawn apart from the player's groups. */
+  isUngrouped?: boolean;
 }
 
 export interface LayoutPreview {

@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
 import { Note } from '../shared/small-parts';
 
-export const FOLDER_LAYOUT_NAMES: Readonly<Record<FolderLayout, string>> = { 'one-group': 'One group', 'by-genre': 'By genre', 'by-artist': 'By artist' };
+export const FOLDER_LAYOUT_NAMES: Readonly<Record<FolderLayout, string>> = { 'one-group': 'One group', 'by-genre': 'By genre', 'by-artist': 'By artist', 'my-groups': 'My groups' };
 
 export interface LayoutChangeDialogProps {
   nextLayout: FolderLayout;

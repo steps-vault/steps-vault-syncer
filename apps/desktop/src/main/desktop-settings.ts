@@ -1,8 +1,7 @@
-import { isOnThisComputer, loadSavedAddon, loadSavedGenerator, type ActivityLogEvent, type FolderLayout, type InstalledAddon, type InstalledGenerator } from '@stepsvault/sync-core';
+import { FOLDER_LAYOUTS, isOnThisComputer, loadSavedAddon, loadSavedGenerator, type ActivityLogEvent, type FolderLayout, type InstalledAddon, type InstalledGenerator } from '@stepsvault/sync-core';
 
 export const DEFAULT_SITE_URL = 'https://dancedance.studio';
 const MAX_ACTIVITY_EVENTS = 300;
-const LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist'];
 
 /** Everything the app remembers between runs, except the device token (kept encrypted on its own). */
 export interface DesktopSettings {
@@ -59,7 +58,7 @@ export function parseSettings(value: unknown): DesktopSettings {
     ...defaults,
     game: isSavedGame(saved.game) ? saved.game : null,
     musicFolders: getStrings(saved.musicFolders),
-    layout: typeof saved.layout === 'string' && (LAYOUTS as readonly string[]).includes(saved.layout) ? (saved.layout as FolderLayout) : defaults.layout,
+    layout: typeof saved.layout === 'string' && (FOLDER_LAYOUTS as readonly string[]).includes(saved.layout) ? (saved.layout as FolderLayout) : defaults.layout,
     shouldUpdateAutomatically: saved.shouldUpdateAutomatically !== false,
     isBackgroundSyncOn: saved.isBackgroundSyncOn !== false,
     pickedFilePathsBySongId: getStringsByKey(saved.pickedFilePathsBySongId),

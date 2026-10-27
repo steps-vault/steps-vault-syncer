@@ -72,7 +72,7 @@ export function ActivityScreen(props: ActivityScreenProps): ReactElement {
   const visibleEntries = getVisibleActivityEntries({ entries: props.entries, filter });
   return (
     <div className="sv-sync-screen">
-      <div className="sv-sync-row sv-sync-wrap sv-sync-space-between sv-sync-align-end">
+      <div className="sv-sync-row sv-sync-wrap sv-sync-space-between sv-sync-align-end sv-sync-screen-header">
         <div className="sv-sync-stack-small">
           <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Activity</h2>
           <p className="sv-sync-text sv-sync-text--medium">Everything Sync did, newest first. Open an entry to see the details.</p>

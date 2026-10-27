@@ -139,7 +139,8 @@
   background-size: 56px 56px;
   animation: sv-sync-grid-drift 4s linear infinite;
 }
-.sv-sync-stage.sv-sync-shell--website { overflow: visible; background-color: transparent; }
+/* No isolation on the website: the song details slide over the site's own sticky header on smaller pages. */
+.sv-sync-stage.sv-sync-shell--website { overflow: visible; isolation: auto; background-color: transparent; }
 .sv-sync-stage.sv-sync-shell--website::before { content: none; }
 .sv-sync-shell { display: flex; flex-direction: column; min-height: 640px; }
 .sv-sync-shell-body { flex: 1; min-width: 0; }
@@ -578,14 +579,19 @@
 
 /* ---------- Folder layout ---------- */
 .sv-sync-moved-toast { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; padding: 14px 18px; border-color: rgba(164, 255, 0, .5); }
-.sv-sync-layout-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.sv-sync-layout-option { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 16px; border: 1.5px solid var(--sv-sync-border); background: #131722; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+/* Four cards in a row (two by two in the desktop app); each card's name, text and tree line up with its neighbours'. */
+.sv-sync-layout-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.sv-sync-shell--desktop .sv-sync-layout-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sv-sync-layout-option { position: relative; display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 14px; align-content: start; padding: 18px; border-radius: 16px; border: 1.5px solid var(--sv-sync-border); background: #131722; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .sv-sync-layout-option:hover { border-color: #3d4a6c; }
 .sv-sync-layout-option[aria-checked="true"] { border-color: var(--sv-sync-light-blue); background: linear-gradient(180deg, rgba(28, 216, 255, .09), transparent 40%), #131a27; }
-.sv-sync-layout-option-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 24px; }
+.sv-sync-layout-option-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 26px; }
+.sv-sync-new-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: 999px; border: 1.5px solid var(--sv-sync-great); color: #c8ff6a; font: italic 800 11px/1 var(--sv-sync-font-display); font-stretch: 115%; letter-spacing: .1em; }
+.sv-sync-my-groups-source { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; margin: -6px 0 0; padding: 12px 16px; border-radius: 12px; background: #121621; border: 1px solid var(--sv-sync-border); color: var(--sv-sync-text-body); font-size: 14.5px; }
 .sv-sync-layout-option-name { font: italic 800 21px/1 var(--sv-sync-font-display); font-stretch: 120%; color: #fff; }
 .sv-sync-current-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 9px; border-radius: 999px; background: var(--sv-sync-light-blue); color: #04131a; font: 700 11px/1 var(--sv-sync-font-body); }
-.sv-sync-layout-option .sv-sync-mini-tree { flex: 1; }
+.sv-sync-layout-option > * { min-width: 0; }
+.sv-sync-layout-option .sv-sync-mini-tree { align-self: stretch; }
 .sv-sync-mini-tree { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px; list-style: none; border-radius: 12px; background: #0b0e16; border: 1px solid var(--sv-sync-border-soft); font-size: 13px; }
 .sv-sync-mini-tree li { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 6px; border-radius: 6px; color: var(--sv-sync-text-soft); white-space: nowrap; }
 .sv-sync-mini-tree li.sv-sync-mini-tree-song { padding-left: 28px; color: var(--sv-sync-text-muted); font-size: 12.5px; }
@@ -594,6 +600,9 @@
 .sv-sync-mini-tree li.sv-sync-mini-tree--ours { color: var(--sv-sync-link-hover); }
 .sv-sync-mini-tree--ours svg { color: var(--sv-sync-light-blue); }
 .sv-sync-mini-tree--theirs svg { color: var(--sv-sync-text-subtle); }
+.sv-sync-mini-tree li.sv-sync-mini-tree--ungrouped { color: var(--sv-sync-text-soft); }
+.sv-sync-mini-tree--ungrouped svg { color: var(--sv-sync-text-subtle); stroke-dasharray: 3 2; }
+.sv-sync-mini-tree li > span:not([class]) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sv-sync-mini-tree-lock { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--sv-sync-link); }
 .sv-sync-mini-tree-lock svg { color: var(--sv-sync-link); }
 .sv-sync-mini-tree-tag { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--sv-sync-light-blue); }
@@ -806,4 +815,117 @@
   .sv-sync-filters > * { flex: 1 1 100%; }
   .sv-sync-code-box { width: 42px; height: 54px; font-size: 24px; }
   .sv-sync-big-code { font-size: 44px; }
+}
+
+/* ---------- The website below 1440 (v3.23): the website shows these screens inside its own page ---------- */
+.sv-sync-drawer-scrim { display: none; }
+.sv-sync-mini-tree li { min-width: 0; }
+.sv-sync-picked-files li { flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+@media (max-width: 1279px) {
+  .sv-sync-shell--website .sv-sync-layout-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* The song details slide over the list instead of squeezing it. */
+  .sv-sync-shell--website .sv-sync-home-grid--with-drawer { grid-template-columns: minmax(0, 1fr); }
+  .sv-sync-shell--website .sv-sync-drawer-scrim { display: block; position: fixed; inset: 0; z-index: 990; background: rgba(5, 6, 10, .62); }
+  .sv-sync-shell--website .sv-sync-home-grid--with-drawer .sv-sync-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 991; width: min(430px, 100%); margin-top: 0; border-radius: 0; border-width: 0 0 0 1px; overflow-y: auto; overscroll-behavior: contain; }
+  .sv-sync-shell--website .sv-sync-drawer > * { flex-shrink: 0; }
+  .sv-sync-shell--website .sv-sync-song-browser--compact .sv-sync-song-list-head, .sv-sync-shell--website .sv-sync-song-browser--compact .sv-sync-song-row { grid-template-columns: 52px minmax(160px, 1.3fr) 168px 200px minmax(120px, 1fr); }
+  .sv-sync-shell--website .sv-sync-song-browser--compact .sv-sync-song-row > .sv-sync-song-column--source { display: flex; }
+  .sv-sync-shell--website .sv-sync-song-browser--compact .sv-sync-song-list-head > .sv-sync-song-column--source { display: block; }
+}
+@media (max-width: 1100px) {
+  .sv-sync-shell--website .sv-sync-generated-song-top { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; }
+}
+@media (max-width: 900px) {
+  .sv-sync-shell--website .sv-sync-song-browser .sv-sync-song-list-head, .sv-sync-shell--website .sv-sync-song-browser .sv-sync-song-row { grid-template-columns: 52px minmax(0, 1fr) 168px 190px; }
+  .sv-sync-shell--website .sv-sync-song-browser .sv-sync-song-row > .sv-sync-song-column--source, .sv-sync-shell--website .sv-sync-song-browser .sv-sync-song-list-head > .sv-sync-song-column--source { display: none; }
+}
+@media (max-width: 640px) {
+  .sv-sync-shell--website { gap: 18px; }
+  .sv-sync-shell--website .sv-sync-display-title { font-size: 32px; }
+  .sv-sync-shell--website .sv-sync-navigation { align-self: stretch; }
+  .sv-sync-shell--website .sv-sync-navigation a { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-segmented { display: flex; }
+  .sv-sync-shell--website .sv-sync-segmented button { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-now-button { width: 100%; justify-content: center; }
+  /* Songs: one card per song, its levels and status under the title. */
+  .sv-sync-shell--website .sv-sync-song-browser .sv-sync-song-list-head { display: none; }
+  .sv-sync-shell--website .sv-sync-song-browser .sv-sync-song-row { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px 12px; padding: 12px; }
+  .sv-sync-shell--website .sv-sync-song-row > .sv-sync-cover { width: 44px; height: 44px; grid-row: 1; }
+  .sv-sync-shell--website .sv-sync-song-row > .sv-sync-song-title-block { grid-column: 2 / -1; }
+  .sv-sync-shell--website .sv-sync-song-row > .sv-sync-levels { grid-column: 1 / 3; grid-row: 2; }
+  .sv-sync-shell--website .sv-sync-song-row > .sv-sync-song-status { grid-column: 1 / -1; grid-row: 3; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+  .sv-sync-shell--website .sv-sync-status-actions .sv-sync-link-button { min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-song-title { min-height: 44px; font-size: 18px; }
+  .sv-sync-shell--website .sv-sync-list-footer { flex-wrap: wrap; gap: 8px; }
+  .sv-sync-shell--website .sv-sync-list-footer .sv-sync-link-button { min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-drawer .sv-sync-facts, .sv-sync-shell--website .sv-sync-drawer .sv-sync-facts--boxed { grid-template-columns: 84px minmax(0, 1fr); }
+  .sv-sync-shell--website .sv-sync-drawer .sv-sync-cover--large { width: 96px; height: 96px; }
+  /* Audio sources */
+  .sv-sync-shell--website .sv-sync-source-card { padding: 18px 16px; }
+  .sv-sync-shell--website .sv-sync-music-folders li { grid-template-columns: 20px minmax(0, 1fr) 44px; row-gap: 6px; padding: 8px 6px 8px 12px; }
+  .sv-sync-shell--website .sv-sync-music-folders li > :first-child { grid-row: 1 / span 2; }
+  .sv-sync-shell--website .sv-sync-music-folders li .sv-sync-mono { white-space: normal; overflow-wrap: anywhere; }
+  .sv-sync-shell--website .sv-sync-music-folders li > .sv-sync-chip { grid-column: 2; grid-row: 2; justify-self: start; }
+  .sv-sync-shell--website .sv-sync-music-folders li > .sv-sync-close-button { grid-column: 3; grid-row: 1 / span 2; width: 44px; height: 44px; }
+  .sv-sync-shell--website .sv-sync-picked-files li .sv-sync-mono { overflow-wrap: anywhere; min-width: 0; }
+  .sv-sync-shell--website .sv-sync-addon-card { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 14px; align-items: start; }
+  .sv-sync-shell--website .sv-sync-addon-card > .sv-sync-addon-icon, .sv-sync-shell--website .sv-sync-generator-top > .sv-sync-addon-icon { width: 44px; height: 44px; font-size: 17px; }
+  .sv-sync-shell--website .sv-sync-addon-controls { grid-column: 1 / -1; justify-content: space-between; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--sv-sync-border-soft); }
+  .sv-sync-shell--website .sv-sync-addon-controls .sv-sync-switch { min-width: 44px; }
+  .sv-sync-shell--website .sv-sync-addon-controls .sv-sync-button { min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-addon-option { min-width: 0; flex: 1 1 100%; }
+  /* Generators */
+  .sv-sync-shell--website .sv-sync-generator-main { align-items: start; padding: 16px; }
+  .sv-sync-shell--website .sv-sync-generator-main, .sv-sync-shell--website .sv-sync-generator-top { grid-template-columns: 44px minmax(0, 1fr); gap: 12px; }
+  .sv-sync-shell--website .sv-sync-generator-main .sv-sync-tokens { flex-direction: row; align-items: center; justify-content: space-between; justify-self: stretch; gap: 14px; }
+  .sv-sync-shell--website .sv-sync-generator-top { align-items: start; }
+  .sv-sync-shell--website .sv-sync-generator-card, .sv-sync-shell--website .sv-sync-generator-job { padding: 14px; }
+  .sv-sync-shell--website .sv-sync-start-command-line { gap: 4px 8px; }
+  .sv-sync-shell--website .sv-sync-start-command-line .sv-sync-mono, .sv-sync-shell--website .sv-sync-location .sv-sync-mono, .sv-sync-shell--website .sv-sync-generated-song .sv-sync-mono { overflow-wrap: anywhere; min-width: 0; }
+  .sv-sync-shell--website .sv-sync-generator-job > .sv-sync-space-between { flex-wrap: wrap; }
+  .sv-sync-shell--website .sv-sync-job-question > .sv-sync-row { width: 100%; }
+  .sv-sync-shell--website .sv-sync-job-question .sv-sync-button { flex: 1 1 auto; min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-generator-job .sv-sync-close-button { min-width: 44px; min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-generated-song-top { grid-template-columns: minmax(0, 1fr); }
+  .sv-sync-shell--website .sv-sync-generated-song-top > .sv-sync-link-button { justify-self: start; min-height: 44px; }
+  /* Folder layout */
+  .sv-sync-shell--website .sv-sync-layout-options { grid-template-columns: minmax(0, 1fr); }
+  .sv-sync-shell--website .sv-sync-layout-option { padding: 16px; }
+  .sv-sync-shell--website .sv-sync-name-rule { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .sv-sync-shell--website .sv-sync-my-groups-source { flex-direction: column; align-items: stretch; }
+  /* Activity */
+  .sv-sync-shell--website .sv-sync-screen-header > * { min-width: 0; flex-basis: 100%; }
+  .sv-sync-shell--website .sv-sync-screen-header .sv-sync-button { width: 100%; }
+  .sv-sync-shell--website .sv-sync-timeline-head { grid-template-columns: 36px minmax(0, 1fr) 20px; gap: 4px 12px; padding: 10px 12px; }
+  .sv-sync-shell--website .sv-sync-timeline-icon { grid-row: 1 / span 2; }
+  .sv-sync-shell--website .sv-sync-timeline-time { grid-column: 2; grid-row: 2; }
+  .sv-sync-shell--website .sv-sync-timeline-caret { grid-column: 3; grid-row: 1 / span 2; }
+  .sv-sync-shell--website .sv-sync-timeline-details { padding: 0 12px 12px; }
+  .sv-sync-shell--website .sv-sync-timeline .sv-sync-facts--boxed { grid-template-columns: 96px minmax(0, 1fr); padding: 10px 12px; }
+  .sv-sync-shell--website .sv-sync-timeline .sv-sync-facts--boxed dd { overflow-wrap: anywhere; }
+  /* Connect your game */
+  .sv-sync-shell--website .sv-sync-setup-steps { gap: 8px; }
+  .sv-sync-shell--website .sv-sync-setup-steps li { white-space: nowrap; }
+  .sv-sync-shell--website .sv-sync-setup-steps li:not(.sv-sync-setup-step--current) { font-size: 0; gap: 0; }
+  .sv-sync-shell--website .sv-sync-setup-steps li + li::before { width: 22px; }
+  .sv-sync-shell--website .sv-sync-big-pick { padding: 24px 18px; }
+  .sv-sync-shell--website .sv-sync-pick-button { width: 100%; min-height: 64px; padding: 10px 16px 10px 10px; font-size: 19px; line-height: 1.1; text-align: left; }
+  .sv-sync-shell--website .sv-sync-pick-icon { flex: 0 0 44px; width: 44px; height: 44px; }
+  .sv-sync-shell--website .sv-sync-permission-explainer { gap: 8px; }
+  .sv-sync-shell--website .sv-sync-permission-explainer a { display: inline-flex; align-items: center; min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-narrow > .sv-sync-row:not(.sv-sync-wrap) { align-items: flex-start; }
+  .sv-sync-shell--website .sv-sync-narrow > .sv-sync-row .sv-sync-mono { overflow-wrap: anywhere; }
+  .sv-sync-shell--website .sv-sync-folder-tree li { gap: 10px; padding: 0 10px; }
+  .sv-sync-shell--website .sv-sync-folder-tree li.sv-sync-folder-tree-ours { grid-template-columns: 24px minmax(0, 1fr) auto; padding: 8px 10px; row-gap: 2px; }
+  .sv-sync-shell--website .sv-sync-folder-tree-ours > :first-child { grid-row: 1 / span 2; }
+  .sv-sync-shell--website .sv-sync-folder-tree-ours > :nth-child(2) { grid-column: 2 / -1; }
+  .sv-sync-shell--website .sv-sync-folder-tree-ours .sv-sync-link-button { min-height: 44px; }
+  .sv-sync-shell--website .sv-sync-narrow > .sv-sync-wrap > .sv-sync-button { flex: 1 1 100%; }
+  .sv-sync-shell--website .sv-sync-blocking-card { padding-left: 20px; padding-right: 20px; }
+  .sv-sync-shell--website .sv-sync-blocking-card .sv-sync-heading-1 { font-size: 26px; }
+  .sv-sync-shell--website .sv-sync-blocking-card .sv-sync-button { flex: 1 1 100%; }
+  /* Dialogs open over the page, outside the screen, so these hold wherever a phone shows them. */
+  .sv-sync-dialog-backdrop { padding: 20px 12px; }
+  .sv-sync-dialog { padding: 20px 16px; }
+  .sv-sync-dialog-buttons .sv-sync-button { flex: 1 1 auto; }
 }

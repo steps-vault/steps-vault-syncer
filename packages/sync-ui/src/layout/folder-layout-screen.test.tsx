@@ -17,10 +17,10 @@ function renderFolderLayout(overrides: Partial<FolderLayoutScreenProps> = {}): F
 }
 
 describe('FolderLayoutScreen', () => {
-  it('renders the three layouts with the current one chosen', () => {
+  it('renders the four layouts with the current one chosen', () => {
     renderFolderLayout();
     const options = within(screen.getByRole('radiogroup', { name: 'Folder layout' })).getAllByRole('radio');
-    expect(options.map((option) => option.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false']);
+    expect(options.map((option) => option.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false']);
     expect(options[1]?.textContent).toContain('Current');
     expect(screen.getByText(/Ours is named/).textContent).toContain('dancedance.studio - Pop');
   });
@@ -60,6 +60,30 @@ describe('FolderLayoutScreen', () => {
     renderFolderLayout();
     fireEvent.keyDown(screen.getByRole('radio', { name: /By genre/ }), { key: 'ArrowRight' });
     expect(screen.getByRole('alertdialog').textContent).toContain('Switch to “By artist”');
+  });
+
+  it('marks My groups NEW, previews the player’s groups and Ungrouped, and links to where groups are made', () => {
+    renderFolderLayout({ editGroupsHref: 'https://dancedance.studio/library?tab=groups' });
+    const myGroups = screen.getByRole('radio', { name: /My groups/ });
+    expect(within(myGroups).getByText('NEW')).toBeDefined();
+    expect(within(myGroups).getByText('Warm-up')).toBeDefined();
+    expect(within(myGroups).getByText('Ungrouped')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Edit my groups' }).getAttribute('href')).toBe('https://dancedance.studio/library?tab=groups');
+  });
+
+  it('shows My groups as current, without NEW', () => {
+    renderFolderLayout({ currentLayout: 'my-groups' });
+    const myGroups = screen.getByRole('radio', { name: /My groups/ });
+    expect(myGroups.getAttribute('aria-checked')).toBe('true');
+    expect(myGroups.textContent).toContain('Current');
+    expect(within(myGroups).queryByText('NEW')).toBeNull();
+  });
+
+  it('asks before switching to My groups', () => {
+    const props = renderFolderLayout();
+    fireEvent.click(screen.getByRole('radio', { name: /My groups/ }));
+    fireEvent.click(within(screen.getByRole('alertdialog', { name: 'Switch to “My groups” and move 12 songs?' })).getByRole('button', { name: 'Move songs' }));
+    expect(props.onChangeLayout).toHaveBeenCalledWith('my-groups');
   });
 
   it('says GREAT after a move', () => {

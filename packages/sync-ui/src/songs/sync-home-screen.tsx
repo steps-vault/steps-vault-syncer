@@ -69,7 +69,13 @@ export function SyncHomeScreen(props: SyncHomeScreenProps): ReactElement {
           selectedSongId={props.selectedSongDetails?.song.vaultSongId ?? null}
           onOpenSongDetails={handleOpenDetails}
           onSongAction={props.onSongAction}
-          drawer={props.selectedSongDetails && <SongDetailsDrawer details={props.selectedSongDetails} onClose={handleCloseDetails} onSongAction={props.onSongAction} />}
+          drawer={props.selectedSongDetails && (
+            <>
+              {/* On a smaller website page the details slide over the list; a click beside them closes them. */}
+              <div className="sv-sync-drawer-scrim" aria-hidden="true" onClick={handleCloseDetails} />
+              <SongDetailsDrawer details={props.selectedSongDetails} onClose={handleCloseDetails} onSongAction={props.onSongAction} />
+            </>
+          )}
         />
       )}
     </div>

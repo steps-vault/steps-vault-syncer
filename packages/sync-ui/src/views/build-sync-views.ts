@@ -1,5 +1,7 @@
 /** Builds what the screens show from a sync's results; shared by the website and the desktop app. */
 import {
+  CLASH_PREFIX,
+  FOLDER_LAYOUTS,
   findInstalledSong,
   getSongFolderMoves,
   getTargetFolderPaths,
@@ -16,9 +18,13 @@ import {
 } from '@stepsvault/sync-core';
 import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, LayoutPreviewsByLayout, SongAudioSource, SongDetailsView, SongRowView, TrayStatus } from '../sync-ui-types';
 
-const LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist'];
 const PREVIEW_GROUP_COUNT = 3;
-const MORE_GROUP_NOUNS_BY_LAYOUT: Readonly<Record<FolderLayout, string>> = { 'one-group': 'groups', 'by-genre': 'genres', 'by-artist': 'artists' };
+const MORE_GROUP_NOUNS_BY_LAYOUT: Readonly<Record<FolderLayout, { one: string; many: string }>> = {
+  'one-group': { one: 'group', many: 'groups' },
+  'by-genre': { one: 'genre', many: 'genres' },
+  'by-artist': { one: 'artist', many: 'artists' },
+  'my-groups': { one: 'group', many: 'groups' },
+};
 const PREVIEW_SONG_COUNT = 3;
 const ACTIVITY_KINDS_BY_EVENT_KIND: Readonly<Record<ActivityEvent['kind'], ActivityKind>> = { added: 'added', updated: 'updated', moved: 'moved', removed: 'removed', failed: 'write-failed' };
 const ACTIVITY_VERBS_BY_EVENT_KIND: Readonly<Record<ActivityEvent['kind'], string>> = { added: 'Added ', updated: 'Updated ', moved: 'Moved ', removed: 'Removed ', failed: 'Couldn’t save ' };
@@ -184,7 +190,7 @@ export function getDayText({ at, now }: { at: Date; now: Date }): string {
 }
 
 export function buildLayoutViews({ vaultSongs, record, playerGroupNames }: { vaultSongs: readonly VaultSongDetails[]; record: InstalledSongsRecord; playerGroupNames: readonly string[] }): { previewsByLayout: LayoutPreviewsByLayout; movingSongCountsByLayout: Record<FolderLayout, number> } {
-  const entries = LAYOUTS.map((layout) => {
+  const entries = FOLDER_LAYOUTS.map((layout) => {
     const targetPathsBySongId = getTargetFolderPaths({ songs: vaultSongs, layout, playerGroupNames, record });
     return { layout, preview: buildLayoutPreview({ layout, targetPathsBySongId, vaultSongs }), movingCount: getSongFolderMoves({ record, targetPathsBySongId }).length };
   });
@@ -196,19 +202,51 @@ export function buildLayoutViews({ vaultSongs, record, playerGroupNames }: { vau
 
 /** The one group shows its song count; genres and artists show a few groups and how many more there are. */
 function buildLayoutPreview({ layout, targetPathsBySongId, vaultSongs }: { layout: FolderLayout; targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): LayoutPreview {
-  const titlesByGroup = new Map<string, string[]>();
-  for (const song of vaultSongs) {
-    const groupName = targetPathsBySongId.get(song.vaultSongId)?.[0];
-    if (groupName) titlesByGroup.set(groupName, [...(titlesByGroup.get(groupName) ?? []), song.title]);
-  }
+  if (layout === 'my-groups') return buildMyGroupsPreview({ targetPathsBySongId, vaultSongs });
+  const titlesByGroup = getSongTitlesByGroup({ targetPathsBySongId, vaultSongs });
   const groups = [...titlesByGroup].slice(0, PREVIEW_GROUP_COUNT).map(([groupName, titles]) => ({
     groupName,
     ...(layout === 'one-group' ? { tagText: `${String(titles.length)} ${titles.length === 1 ? 'song' : 'songs'}` } : {}),
     songTitles: titles.slice(0, PREVIEW_SONG_COUNT),
     moreSongCount: Math.max(0, titles.length - PREVIEW_SONG_COUNT),
   }));
-  const moreGroupCount = titlesByGroup.size - groups.length;
-  return { groups, moreGroupsText: moreGroupCount > 0 ? `+ ${String(moreGroupCount)} more ${MORE_GROUP_NOUNS_BY_LAYOUT[layout]}` : undefined };
+  return { groups, moreGroupsText: getMoreGroupsText({ layout, moreGroupCount: titlesByGroup.size - groups.length }) };
+}
+
+/**
+ * The player's biggest groups with their song counts, then Ungrouped, which shows while it has songs. Every one of these
+ * folders starts with the same "dancedance.studio - ", so the small tree leaves it off and names the groups as the site does.
+ */
+function buildMyGroupsPreview({ targetPathsBySongId, vaultSongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): LayoutPreview {
+  const groupedSongs = vaultSongs.filter((song) => (song.groupFolderName ?? null) !== null);
+  const ungroupedSongs = vaultSongs.filter((song) => (song.groupFolderName ?? null) === null);
+  const titlesByGroup = getSongTitlesByGroup({ targetPathsBySongId, vaultSongs: groupedSongs });
+  const biggestGroups = [...titlesByGroup].sort(([firstName, firstTitles], [secondName, secondTitles]) => secondTitles.length - firstTitles.length || firstName.localeCompare(secondName)).slice(0, PREVIEW_GROUP_COUNT);
+  const ungroupedName = ungroupedSongs[0] ? targetPathsBySongId.get(ungroupedSongs[0].vaultSongId)?.[0] : undefined;
+  const groups = [
+    ...biggestGroups.map(([groupName, titles]) => ({ groupName: getNameWithoutPrefix(groupName), tagText: String(titles.length), songTitles: [] })),
+    ...(ungroupedName === undefined ? [] : [{ groupName: getNameWithoutPrefix(ungroupedName), tagText: String(ungroupedSongs.length), songTitles: [], isUngrouped: true }]),
+  ];
+  return { groups, moreGroupsText: getMoreGroupsText({ layout: 'my-groups', moreGroupCount: titlesByGroup.size - biggestGroups.length }) };
+}
+
+function getNameWithoutPrefix(groupName: string): string {
+  return groupName.startsWith(CLASH_PREFIX) ? groupName.slice(CLASH_PREFIX.length) : groupName;
+}
+
+function getSongTitlesByGroup({ targetPathsBySongId, vaultSongs }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): Map<string, string[]> {
+  const titlesByGroup = new Map<string, string[]>();
+  for (const song of vaultSongs) {
+    const groupName = targetPathsBySongId.get(song.vaultSongId)?.[0];
+    if (groupName) titlesByGroup.set(groupName, [...(titlesByGroup.get(groupName) ?? []), song.title]);
+  }
+  return titlesByGroup;
+}
+
+function getMoreGroupsText({ layout, moreGroupCount }: { layout: FolderLayout; moreGroupCount: number }): string | undefined {
+  if (moreGroupCount <= 0) return undefined;
+  const nouns = MORE_GROUP_NOUNS_BY_LAYOUT[layout];
+  return `+ ${String(moreGroupCount)} more ${moreGroupCount === 1 ? nouns.one : nouns.many}`;
 }
 
 export function getTrayStatus({ isSyncing, isPaused, songPlans }: { isSyncing: boolean; isPaused: boolean; songPlans: readonly SongPlan[] }): TrayStatus {

@@ -164,6 +164,15 @@ describe('an installed song', () => {
     expect(getSongPlan({ plan, vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'move', to: ['Pop', 'Cheap Thrills'] }]);
     expect(getSongPlan({ plan, vaultSongId: 'b' })?.actions).toMatchObject([{ kind: 'move', to: ['Hip-Hop', 'Watch Me'] }]);
   });
+
+  it('moves a song to its new group on the next sync after the player regroups it on the site', async () => {
+    const game = await buildSyncedGame([CHEAP_THRILLS]);
+    const warmUpOptions = { vaultSongs: [{ ...CHEAP_THRILLS, groupFolderName: 'Warm-up' }], layout: 'my-groups' as const };
+    await game.carryOut(await game.plan(warmUpOptions));
+    expect(game.getFolderPath('a')).toEqual(['dancedance.studio - Warm-up', 'Cheap Thrills']);
+    const plan = await game.plan({ vaultSongs: [{ ...CHEAP_THRILLS, groupFolderName: null }], layout: 'my-groups' });
+    expect(getSongPlan({ plan, vaultSongId: 'a' })?.actions).toMatchObject([{ kind: 'move', from: ['dancedance.studio - Warm-up', 'Cheap Thrills'], to: ['dancedance.studio - Ungrouped', 'Cheap Thrills'] }]);
+  });
 });
 
 describe('carrying out a plan', () => {
