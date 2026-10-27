@@ -13,7 +13,7 @@ import { AddressError, EMPTY_SERVICE_ADDRESS_DRAFT, getStartCommandOrNull, isSer
 export const ADDON_VISIBLE_SONG_FACTS = 'title, artist, album, genre, length, and the song’s YouTube link.';
 export const ADDON_NEVER_SEES = 'your account, or anything else on your computer.';
 /** What a song source also sees (addons.md, "Song sources"). */
-export const SONG_SOURCE_SEES = 'what you type in its tab on the Make a song page, such as a link or a search.';
+export const SONG_SOURCE_SEES = 'what you type in its tab in Make a song.';
 export const ADDON_TRUST_NOTE = `Made by other people, not ${SITE_NAME}. Only install ones you trust.`;
 const LOOKUP_FAILED_MESSAGE = 'We couldn’t reach that addon. Check the address with whoever made it, then try again.';
 
@@ -42,7 +42,7 @@ export function AddAddonDialog({ onLookUpAddon, canUseStartCommand = false, onIn
     <SyncDialog titleId="sv-sync-add-addon-title" onClose={onClose} focusKey={step.kind}>
       {step.kind === 'address'
         ? <AddressStep onLookUpAddon={onLookUpAddon} canUseStartCommand={canUseStartCommand} draft={draft} onChangeDraft={setDraft} onFound={(addon) => { setStep({ kind: 'consent', addon }); }} onCancel={onClose} />
-        : <ConsentStep addon={step.addon} onInstall={onInstall} onBack={() => { setStep({ kind: 'address' }); }} onCancel={onClose} />}
+        : <ConsentStep addon={step.addon} onInstall={onInstall} onBack={() => { setStep({ kind: 'address' }); }} />}
     </SyncDialog>
   );
 }
@@ -65,7 +65,7 @@ function AddressStep({ onLookUpAddon, canUseStartCommand, draft, onChangeDraft, 
   const isOnThisComputer = canUseStartCommand && isThisComputerAddress(address);
   const lookUp = async (): Promise<void> => {
     if (!isAddonAddress(address)) {
-      setErrorMessage('Enter an address that starts with https://');
+      setErrorMessage(canUseStartCommand ? 'Enter an address that starts with https:// or http://localhost' : 'Enter an address that starts with https://');
       return;
     }
     setIsLookingUp(true);
@@ -82,10 +82,9 @@ function AddressStep({ onLookUpAddon, canUseStartCommand, draft, onChangeDraft, 
   return (
     <form className="sv-sync-dialog-form" onSubmit={handleSubmit} noValidate>
       <DialogHeading titleId="sv-sync-add-addon-title" title="Add an addon" stepText="Step 1 of 2" />
-      <p className="sv-sync-text sv-sync-small">Paste its address. Whoever made it can give it to you.</p>
       <label className="sv-sync-field-label">
         Addon address
-        <input className="sv-sync-field sv-sync-mono" type="url" value={address} placeholder="https://" data-autofocus aria-invalid={errorMessage !== null} aria-describedby={errorMessage === null ? undefined : 'sv-sync-addon-address-error'} onChange={(event) => { setAddress(event.target.value); setErrorMessage(null); }} />
+        <input className="sv-sync-field sv-sync-mono" type="url" value={address} placeholder={canUseStartCommand ? 'https:// or http://localhost' : 'https://'} data-autofocus aria-invalid={errorMessage !== null} aria-describedby={errorMessage === null ? undefined : 'sv-sync-addon-address-error'} onChange={(event) => { setAddress(event.target.value); setErrorMessage(null); }} />
       </label>
       {errorMessage !== null && <AddressError id="sv-sync-addon-address-error" message={errorMessage} />}
       {isOnThisComputer && <StartCommandField serviceName="addon" value={startCommandText} onChange={setStartCommandText} />}
@@ -98,7 +97,7 @@ function AddressStep({ onLookUpAddon, canUseStartCommand, draft, onChangeDraft, 
   );
 }
 
-function ConsentStep({ addon, onInstall, onBack, onCancel }: { addon: AddonInstallPreview; onInstall: (addon: AddonInstallPreview) => void; onBack: () => void; onCancel: () => void }): ReactElement {
+function ConsentStep({ addon, onInstall, onBack }: { addon: AddonInstallPreview; onInstall: (addon: AddonInstallPreview) => void; onBack: () => void }): ReactElement {
   const [options, setOptions] = useState<readonly AddonOptionView[]>(addon.options);
   const handleOptionChange = ({ optionId, value }: { optionId: string; value: string }): void => {
     setOptions((current) => current.map((option) => (option.optionId === optionId ? { ...option, value } : option)));
@@ -109,8 +108,7 @@ function ConsentStep({ addon, onInstall, onBack, onCancel }: { addon: AddonInsta
       <div className="sv-sync-addon-who">
         <span className="sv-sync-addon-icon" aria-hidden="true">{getAddonInitials(addon.name)}</span>
         <div>
-          <b className="sv-sync-strong">{addon.name}</b> <span className="sv-sync-small sv-sync-muted">v{addon.version}</span>
-          <div className="sv-sync-small sv-sync-muted">by {addon.author}</div>
+          <b className="sv-sync-strong">{addon.name}</b> <span className="sv-sync-small sv-sync-muted">v{addon.version} · by {addon.author}</span>
           <div className="sv-sync-row sv-sync-wrap">
             {addon.providesText !== undefined && addon.providesText !== '' && <span className="sv-sync-addon-provides">{addon.providesText}</span>}
             <span className="sv-sync-mono sv-sync-small sv-sync-break-all">{addon.address}</span>
@@ -129,15 +127,13 @@ function ConsentStep({ addon, onInstall, onBack, onCancel }: { addon: AddonInsta
       {options.length > 0 && (
         <div className="sv-sync-addon-setup">
           <b>Choose how it works</b>
-          <span className="sv-sync-small sv-sync-muted">Change it any time on the addon&apos;s card.</span>
           <AddonOptionFields addonName={addon.name} options={options} onChange={handleOptionChange} />
         </div>
       )}
       {addon.startCommand && <StartCommandNote startCommand={addon.startCommand} />}
       <Note className="sv-sync-small">Only install addons you trust.</Note>
       <div className="sv-sync-dialog-buttons">
-        <button className="sv-sync-button sv-sync-button--ghost sv-sync-dialog-back" type="button" onClick={onBack}>Back</button>
-        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
+        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onBack} data-autofocus>Back</button>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onInstall({ ...addon, options }); }}>Install</button>
       </div>
     </>

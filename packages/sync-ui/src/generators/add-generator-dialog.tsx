@@ -41,7 +41,7 @@ export function AddGeneratorDialog({ onLookUpGenerator, canUseStartCommand, onAd
     <SyncDialog titleId="sv-sync-add-generator-title" onClose={onClose} focusKey={step.kind}>
       {step.kind === 'address'
         ? <AddressStep onLookUpGenerator={onLookUpGenerator} canUseStartCommand={canUseStartCommand} draft={draft} onChangeDraft={setDraft} onFound={(generator) => { setStep({ kind: 'confirm', generator }); }} onCancel={onClose} />
-        : <ConfirmStep generator={step.generator} onAdd={onAdd} onBack={() => { setStep({ kind: 'address' }); }} onCancel={onClose} />}
+        : <ConfirmStep generator={step.generator} onAdd={onAdd} onBack={() => { setStep({ kind: 'address' }); }} />}
     </SyncDialog>
   );
 }
@@ -81,14 +81,12 @@ function AddressStep({ onLookUpGenerator, canUseStartCommand, draft, onChangeDra
   return (
     <form className="sv-sync-dialog-form" onSubmit={handleSubmit} noValidate>
       <DialogHeading titleId="sv-sync-add-generator-title" title="Add a generator" stepText="Step 1 of 2" />
-      <p className="sv-sync-text sv-sync-small">Paste its address. Whoever made it can give it to you.</p>
       <label className="sv-sync-field-label">
         Generator address
         <input className="sv-sync-field sv-sync-mono" type="url" value={address} placeholder="https:// or http://localhost" data-autofocus aria-invalid={errorMessage !== null} aria-describedby={errorMessage === null ? undefined : 'sv-sync-generator-address-error'} onChange={(event) => { setAddress(event.target.value); setErrorMessage(null); }} />
       </label>
       {errorMessage !== null && <AddressError id="sv-sync-generator-address-error" message={errorMessage} />}
       {isOnThisComputer && <StartCommandField serviceName="generator" value={startCommandText} onChange={setStartCommandText} />}
-      <Note className="sv-sync-small">{GENERATOR_TRUST_NOTE}</Note>
       <div className="sv-sync-dialog-buttons">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel}>Cancel</button>
         <button className="sv-sync-button" type="submit" disabled={isLookingUp}>{isLookingUp ? 'Checking…' : 'Continue'}</button>
@@ -97,7 +95,7 @@ function AddressStep({ onLookUpGenerator, canUseStartCommand, draft, onChangeDra
   );
 }
 
-function ConfirmStep({ generator, onAdd, onBack, onCancel }: { generator: GeneratorInstallPreview; onAdd: (generator: GeneratorInstallPreview) => void; onBack: () => void; onCancel: () => void }): ReactElement {
+function ConfirmStep({ generator, onAdd, onBack }: { generator: GeneratorInstallPreview; onAdd: (generator: GeneratorInstallPreview) => void; onBack: () => void }): ReactElement {
   const [options, setOptions] = useState<readonly AddonOptionView[]>(generator.options);
   const handleOptionChange = ({ optionId, value }: { optionId: string; value: string }): void => {
     setOptions((current) => current.map((option) => (option.optionId === optionId ? { ...option, value } : option)));
@@ -125,14 +123,12 @@ function ConfirmStep({ generator, onAdd, onBack, onCancel }: { generator: Genera
       {options.length > 0 && (
         <div className="sv-sync-addon-setup">
           <b>Choose how it works</b>
-          <span className="sv-sync-small sv-sync-muted">Change it any time on the generator&apos;s card.</span>
           <AddonOptionFields addonName={generator.name} options={options} onChange={handleOptionChange} />
         </div>
       )}
       <Note className="sv-sync-small">Songs it makes stay on this computer and never go to the library.</Note>
       <div className="sv-sync-dialog-buttons">
-        <button className="sv-sync-button sv-sync-button--ghost sv-sync-dialog-back" type="button" onClick={onBack}>Back</button>
-        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
+        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onBack} data-autofocus>Back</button>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onAdd({ ...generator, options }); }}>Add</button>
       </div>
     </>

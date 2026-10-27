@@ -15,8 +15,7 @@ const LAYOUT_DESCRIPTIONS: Readonly<Record<FolderLayout, string>> = {
   'by-genre': 'Pop, Rock, Electronic… one group per genre.',
   'by-artist': 'Mergui, Sia… one group per artist.',
 };
-const PREVIEW_PLAYER_GROUP_COUNT = 2;
-const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: `${CLASH_PREFIX}Pop`, tagText: 'ours', songTitles: ['Pop songs from your library'] }] };
+const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: `${CLASH_PREFIX}Pop`, tagText: 'ours', songTitles: ['Pop songs from the library'] }] };
 
 export interface FolderLayoutScreenProps {
   currentLayout: FolderLayout;
@@ -49,7 +48,7 @@ export function FolderLayoutScreen(props: FolderLayoutScreenProps): ReactElement
     <div className="sv-sync-screen">
       <div className="sv-sync-stack-small">
         <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Folder layout</h2>
-        <p className="sv-sync-text sv-sync-text--medium">How our songs are grouped in your game. Your own groups never change.</p>
+        <p className="sv-sync-text sv-sync-text--medium">Your own groups never change.</p>
       </div>
       {props.lastMove && (
         <section className="sv-sync-panel sv-sync-moved-toast" role="status">
@@ -66,7 +65,7 @@ export function FolderLayoutScreen(props: FolderLayoutScreenProps): ReactElement
               {layout === props.currentLayout && <span className="sv-sync-current-badge"><Icon name="check" size={12} strokeWidth={3} />Current</span>}
             </span>
             <span className="sv-sync-small sv-sync-text">{LAYOUT_DESCRIPTIONS[layout]}</span>
-            <FolderTreePreview playerGroupNames={props.playerGroupNames.slice(0, PREVIEW_PLAYER_GROUP_COUNT)} morePlayerGroupCount={Math.max(0, props.playerGroupNames.length - PREVIEW_PLAYER_GROUP_COUNT)} preview={props.previewsByLayout[layout]} />
+            <FolderTreePreview playerGroupNames={[]} collapsedPlayerGroupCount={props.playerGroupNames.length} preview={props.previewsByLayout[layout]} />
           </button>
         ))}
       </div>
@@ -87,7 +86,7 @@ function NameRuleExplainer(): ReactElement {
         <p className="sv-sync-text sv-sync-text--medium">Already have a folder with that name, like your own <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-light-blue-text">{CLASH_PREFIX}Pop</b>. The two never mix.</p>
         <span className="sv-sync-small sv-sync-muted">Same for genres, artists and the single group.</span>
       </div>
-      <FolderTreePreview playerGroupNames={['Pop']} morePlayerGroupCount={0} preview={NAME_RULE_PREVIEW} />
+      <FolderTreePreview playerGroupNames={['Pop']} playerSongText="Your own Pop songs" preview={NAME_RULE_PREVIEW} />
     </section>
   );
 }

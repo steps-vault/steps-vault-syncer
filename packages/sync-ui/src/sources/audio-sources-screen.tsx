@@ -1,5 +1,6 @@
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { Icon, type IconName } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import { LifeBar } from '../shared/life-bar';
 import { EmptyBox } from '../shared/miss-line';
@@ -49,7 +50,7 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
     <div className="sv-sync-screen">
       <div className="sv-sync-stack-small">
         <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Audio sources</h2>
-        <p className="sv-sync-text sv-sync-text--medium">Every song needs your own copy of the music. Syncing never sends it anywhere.</p>
+        <p className="sv-sync-text sv-sync-text--medium">{SITE_NAME} never sends anyone music.</p>
       </div>
       <div className="sv-sync-two-columns">
         <MusicFolderSource {...props} />

@@ -119,7 +119,7 @@ describe('AudioSourcesScreen', () => {
     renderAudioSources();
     fireEvent.click(screen.getByRole('button', { name: 'Add addon' }));
     const consentDialog = await goToConsentStep();
-    expect(document.activeElement).toBe(within(consentDialog).getByRole('button', { name: 'Cancel' }));
+    expect(document.activeElement).toBe(within(consentDialog).getByRole('button', { name: 'Back' }));
   });
 
   it('shows the addon’s own error when the address does not answer', async () => {

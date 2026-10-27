@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildEmptyInstalledSongsRecord, buildSongsPath, withInstalledSong, type VaultSongDetails } from '@stepsvault/sync-core';
-import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, describeShift, getTrayStatus, type SongViewInput } from './build-sync-views';
+import { buildActivityEntries, buildLayoutViews, buildSongDetailsById, buildSongRows, describeShift, getDayText, getTrayStatus, type SongViewInput } from './build-sync-views';
 
 const CHEAP_THRILLS: VaultSongDetails = { vaultSongId: 'a', slug: 'cheap-thrills', title: 'Cheap Thrills', artist: 'Sia', album: null, genre: 'Pop', lengthSeconds: 224, levels: [2, 4, 6, 9, null], bpm: 90, youtubeId: null, chartVersion: 'v1', imageKinds: [], hasFingerprint: true };
 const BUNNY: VaultSongDetails = { ...CHEAP_THRILLS, vaultSongId: 'b', slug: 'bunny', title: 'Big Buck Bunny', artist: 'Blender', genre: 'Electronic' };
@@ -52,7 +52,7 @@ describe('activity and layout views', () => {
       ],
       vaultSongs: [CHEAP_THRILLS, BUNNY],
     });
-    expect(entries.map((entry) => `${entry.textBefore}${entry.highlightedText}${entry.textAfter}`)).toEqual(['Couldn’t write Big Buck Bunny', 'Added Cheap Thrills in dancedance.studio']);
+    expect(entries.map((entry) => `${entry.textBefore}${entry.highlightedText}${entry.textAfter}`)).toEqual(['Couldn’t save Big Buck Bunny', 'Added Cheap Thrills to dancedance.studio']);
     expect(entries[0]?.kind).toBe('write-failed');
     expect(entries[0]?.summaryText).toBe('Your disk is full.');
   });
@@ -60,8 +60,17 @@ describe('activity and layout views', () => {
   it('counts the songs each layout would move, with "song" for one', () => {
     const views = buildLayoutViews({ vaultSongs: [CHEAP_THRILLS], record: RECORD, playerGroupNames: ['Pop'] });
     expect(views.movingSongCountsByLayout).toEqual({ 'one-group': 0, 'by-genre': 1, 'by-artist': 1 });
-    expect(views.previewsByLayout['by-genre'].groups[0]).toMatchObject({ groupName: 'dancedance.studio - Pop', tagText: 'name taken' });
+    expect(views.previewsByLayout['by-genre'].groups[0]).toMatchObject({ groupName: 'dancedance.studio - Pop' });
+    expect(views.previewsByLayout['by-genre'].groups[0]?.tagText).toBeUndefined();
     expect(views.previewsByLayout['one-group'].groups[0]).toMatchObject({ groupName: 'dancedance.studio', tagText: '1 song' });
+  });
+
+  it('names the day of an entry: today, yesterday, then the date', () => {
+    const now = new Date(2026, 9, 27, 13, 0);
+    expect(getDayText({ at: new Date(2026, 9, 27, 0, 5), now })).toBe('Today');
+    expect(getDayText({ at: new Date(2026, 9, 26, 23, 59), now })).toBe('Yesterday');
+    expect(getDayText({ at: new Date(2026, 9, 20, 19, 2), now })).toBe('Oct 20');
+    expect(getDayText({ at: new Date(2025, 9, 20, 19, 2), now })).toBe('Oct 20, 2025');
   });
 
   it('shows the tray status', () => {

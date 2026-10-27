@@ -38,7 +38,8 @@ export function SyncShell(props: SyncShellProps): ReactElement {
     <div className={joinClassNames('sv-sync-root sv-sync-stage sv-sync-shell', `sv-sync-shell--${props.platform}`, props.isBare === true && 'sv-sync-shell--bare')}>
       {props.platform === 'desktop' && <h1 className="sv-sync-visually-hidden">{APP_NAME}</h1>}
       {props.platform === 'desktop' && props.banner}
-      {props.platform === 'website' && <WebsiteSyncHeader />}
+      {props.platform === 'website' && props.isBare !== true && <WebsiteSyncHeader />}
+      {props.platform === 'website' && props.isBare === true && <h1 className="sv-sync-visually-hidden">Sync to my game</h1>}
       <div className="sv-sync-shell-body">
         {props.isBare !== true && (
           <div className="sv-sync-sidebar">

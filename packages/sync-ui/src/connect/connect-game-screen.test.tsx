@@ -11,7 +11,7 @@ describe('ConnectGameScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: /CHOOSE MY SONGS FOLDER/ }));
     expect(onChooseSongsFolder).toHaveBeenCalledOnce();
     expect(screen.getByRole('img', { name: /browser asking for permission/ })).toBeDefined();
-    expect(screen.getByText(/It asks again after a restart/)).toBeDefined();
+    expect(screen.getByText(/Your browser asks again after a restart/)).toBeDefined();
   });
 
   it('in Firefox or Safari, blocks calmly and explains how to open Edge', () => {
@@ -51,6 +51,6 @@ describe('SongsFolderPreview', () => {
     expect(screen.getByText('1,312 songs in 7 groups. We never touch them.')).toBeDefined();
     const groups = within(screen.getByRole('list', { name: 'Groups in your Songs folder' })).getAllByRole('listitem');
     expect(groups.filter((group) => group.textContent.includes('Yours — never touched'))).toHaveLength(FAKE_PLAYER_GROUPS.length);
-    expect(groups.at(-1)?.textContent).toContain('New dancedance.studio groups go here');
+    expect(groups.at(-1)?.textContent).toContain('New dancedance.studio groups');
   });
 });

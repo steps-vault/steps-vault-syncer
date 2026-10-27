@@ -102,7 +102,7 @@ export function NeedsAudioBanner({ songCount, onAddMusicFolder, onDismiss }: Nee
       <span className="sv-sync-needs-audio-count sv-sync-tabular">{songCount}</span>
       <div className="sv-sync-grow">
         <b>songs need audio</b>
-        <div className="sv-sync-small sv-sync-warning-text">Add your music folder. Sync checks it and lines them up. Your music stays on your computer.</div>
+        <div className="sv-sync-small sv-sync-warning-text">Add your music folder. Sync checks it and lines them up.</div>
       </div>
       <button className="sv-sync-button" type="button" onClick={onAddMusicFolder}><Icon name="folder" />Add music folder</button>
       <button className="sv-sync-link-button" type="button" onClick={onDismiss}>Not now</button>

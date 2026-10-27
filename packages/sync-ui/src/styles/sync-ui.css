@@ -1,6 +1,6 @@
 /*
  * DanceDance Sync screens. Every class starts with "sv-sync-" so the website's own styles and ours never clash.
- * Colours and type come from the dancedance.studio v3 visual system: arcade type, calm text, flat panels, no glows.
+ * Colours and type come from the dancedance.studio v3 visual system: arcade type, calm text, flat panels, soft neon glows.
  * Fonts are named here but never loaded: the website and the app load Rubik, Saira, Noto Sans JP and JetBrains Mono
  * themselves.
  */
@@ -106,6 +106,7 @@
 .sv-sync-display-title { margin: 0; font: italic 800 48px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-text-strong); }
 .sv-sync-heading-1 { margin: 0; font: italic 800 40px/1.05 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-text-strong); }
 .sv-sync-heading-1--medium { font-size: 34px; }
+.sv-sync-shell--website .sv-sync-heading-1:not(.sv-sync-heading-1--medium) { font-size: 28px; }
 .sv-sync-heading-2 { margin: 0; font: italic 800 24px/1.1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-text-strong); }
 .sv-sync-heading-2--small { font-size: 20px; }
 .sv-sync-heading-2--tiny { font-size: 18px; }
@@ -129,11 +130,17 @@
 .sv-sync-two-columns { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 
 /* ---------- Stage, shell and navigation ---------- */
-.sv-sync-stage {
-  background-color: var(--sv-sync-stage);
-  background-image: radial-gradient(120% 60% at 50% 0%, #141a2b, transparent 70%);
-  background-repeat: no-repeat;
+/* The cyan grid drifts up one square every 4 seconds, as a layer moved with transform so the window is not repainted
+   each frame. On the website the page already draws this grid, so the Sync area stays see-through there. */
+.sv-sync-stage { position: relative; isolation: isolate; overflow: clip; background-color: var(--sv-sync-stage); }
+.sv-sync-stage::before {
+  content: ""; position: absolute; z-index: -1; inset: 0 0 -56px; pointer-events: none;
+  background-image: linear-gradient(rgba(28, 216, 255, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(28, 216, 255, .035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: sv-sync-grid-drift 4s linear infinite;
 }
+.sv-sync-stage.sv-sync-shell--website { overflow: visible; background-color: transparent; }
+.sv-sync-stage.sv-sync-shell--website::before { content: none; }
 .sv-sync-shell { display: flex; flex-direction: column; min-height: 640px; }
 .sv-sync-shell-body { flex: 1; min-width: 0; }
 .sv-sync-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
@@ -329,6 +336,37 @@
 .sv-sync-search-box .sv-sync-field { width: 240px; padding-left: 36px; text-transform: none; letter-spacing: 0; }
 .sv-sync-name-filter { width: 200px; }
 .sv-sync-name-filter .sv-sync-field { text-transform: none; letter-spacing: 0; }
+/* Genre and artist: a field you type into, with a list under it (design: V3Combo). */
+.sv-sync-combo { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.sv-sync-combo .sv-sync-field-label { font: 600 12px/1 var(--sv-sync-font-body); letter-spacing: .04em; color: var(--sv-sync-text-muted); }
+.sv-sync-combo-field { position: relative; display: flex; align-items: center; }
+.sv-sync-combo-field > svg { position: absolute; left: 12px; color: var(--sv-sync-text-subtle); pointer-events: none; }
+.sv-sync-combo-input { padding: 0 64px 0 36px; text-overflow: ellipsis; }
+.sv-sync-combo-input::placeholder { color: var(--sv-sync-text-body); }
+.sv-sync-root .sv-sync-combo-input:focus { outline: none; border-color: var(--sv-sync-focus-field); box-shadow: 0 0 0 3px rgba(5, 236, 138, .22); }
+.sv-sync-combo--picked .sv-sync-combo-input { color: #fff; font-weight: 600; border-color: #4a5677; }
+.sv-sync-combo-buttons { position: absolute; right: 4px; display: flex; align-items: center; }
+.sv-sync-combo-button { display: grid; place-items: center; width: 30px; height: 36px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--sv-sync-text-subtle); cursor: pointer; }
+.sv-sync-combo-button:hover { color: #fff; background: #1d2232; }
+.sv-sync-combo-toggle svg { transition: transform .15s; }
+.sv-sync-combo--open .sv-sync-combo-toggle svg { transform: rotate(180deg); }
+.sv-sync-combo-popup { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 220px; padding: 6px; border-radius: 12px; background: var(--sv-sync-panel); border: 1px solid var(--sv-sync-border-strong); box-shadow: 0 18px 40px rgba(0, 0, 0, .55); animation: sv-sync-appear .14s ease-out both; }
+.sv-sync-combo-list { display: flex; flex-direction: column; gap: 2px; max-height: 264px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.sv-sync-combo-option { position: relative; display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px; border-radius: 8px; color: var(--sv-sync-text-soft); font-size: 14px; cursor: pointer; }
+.sv-sync-combo-option--any { color: var(--sv-sync-text-muted); }
+.sv-sync-combo-option--active { background: #1d2335; color: #fff; }
+.sv-sync-combo-option--active::before, .sv-sync-combo-option--active::after { content: ""; position: absolute; width: 8px; height: 8px; border: 2px solid var(--sv-sync-light-blue); pointer-events: none; filter: drop-shadow(0 0 3px var(--sv-sync-light-blue)); }
+.sv-sync-combo-option--active::before { left: 0; top: 0; border-right: 0; border-bottom: 0; border-radius: 4px 0 0 0; }
+.sv-sync-combo-option--active::after { right: 0; bottom: 0; border-left: 0; border-top: 0; border-radius: 0 0 4px 0; }
+.sv-sync-combo-option--picked .sv-sync-combo-name { color: #fff; font-weight: 600; }
+.sv-sync-combo-check { display: inline-flex; flex: 0 0 16px; width: 16px; color: var(--sv-sync-great); }
+.sv-sync-combo-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv-sync-combo-name mark { background: none; color: var(--sv-sync-great); font-weight: 700; }
+.sv-sync-combo-count { color: var(--sv-sync-text-subtle); font-size: 12px; }
+.sv-sync-combo-empty { padding: 12px; color: var(--sv-sync-text-muted); font-size: 14px; }
+.sv-sync-combo-hint { display: flex; gap: 12px; margin-top: 4px; padding: 8px 8px 2px; border-top: 1px solid var(--sv-sync-border); color: var(--sv-sync-text-subtle); font-size: 11px; }
+.sv-sync-combo-hint span { white-space: nowrap; }
+.sv-sync-combo-hint kbd { padding: 3px 5px; border-radius: 4px; border: 1px solid var(--sv-sync-border-strong); background: var(--sv-sync-field-background); color: var(--sv-sync-text-soft); font: 600 11px/1 var(--sv-sync-font-body); }
 .sv-sync-clear-filters { margin-bottom: 4px; }
 .sv-sync-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 .sv-sync-home-grid--with-drawer { grid-template-columns: minmax(0, 1fr) 430px; }
@@ -666,8 +704,57 @@
   .sv-sync-generator-main .sv-sync-tokens, .sv-sync-generator-top > button { grid-column: 1 / -1; align-items: flex-start; justify-self: start; }
 }
 
+/* ---------- Neon layer: the soft glows the v3 design writes into its rules ---------- */
+.sv-sync-button { box-shadow: inset 0 1px 0 #fff8, 0 0 18px rgba(236, 203, 5, .3); }
+.sv-sync-button--go { box-shadow: inset 0 1px 0 #fff8, 0 0 16px rgba(164, 255, 0, .3); }
+.sv-sync-button--ghost, .sv-sync-root a.sv-sync-button--ghost, .sv-sync-button--danger { box-shadow: none; }
+.sv-sync-now-button { box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage), 0 0 30px rgba(28, 216, 255, .45); }
+.sv-sync-pick-button { box-shadow: inset 0 2px 0 #fff9, inset 0 -4px 0 rgba(0, 0, 0, .25), 0 0 0 2px var(--sv-sync-stage), 0 0 30px rgba(164, 255, 0, .4); }
+.sv-sync-judgment { text-shadow: 0 0 22px currentColor, 0 4px 0 var(--sv-sync-stage); }
+.sv-sync-life-bar { box-shadow: 0 0 12px rgba(28, 216, 255, .25); }
+.sv-sync-life-bar > span { box-shadow: 0 0 10px rgba(164, 255, 0, .5); }
+.sv-sync-switch[aria-checked="true"]::after { box-shadow: 0 0 8px var(--sv-sync-great); }
+.sv-sync-meter-block--on { box-shadow: 0 0 5px var(--sv-sync-difficulty); }
+.sv-sync-dialog { box-shadow: 0 30px 80px rgba(0, 0, 0, .7), 0 0 40px rgba(28, 216, 255, .12); }
+.sv-sync-token-count b { text-shadow: 0 0 14px rgba(255, 198, 0, .6), 0 2px 0 #4a3500; }
+.sv-sync-progress { box-shadow: 0 0 30px rgba(52, 191, 255, .12); }
+.sv-sync-counter-number { text-shadow: 0 0 14px color-mix(in srgb, var(--sv-sync-tone) 45%, transparent); }
+.sv-sync-step-dots i.sv-sync-step-dot--on { box-shadow: 0 0 6px var(--sv-sync-good); }
+.sv-sync-drawer { box-shadow: 0 20px 60px rgba(0, 0, 0, .5), 0 0 30px rgba(28, 216, 255, .1); }
+.sv-sync-drawer .sv-sync-cover--large { box-shadow: 0 0 26px rgba(28, 216, 255, .35); }
+.sv-sync-level-badge { box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .28), 0 0 12px color-mix(in srgb, var(--sv-sync-difficulty) 50%, transparent); }
+.sv-sync-confidence i.sv-sync-confidence-block--on { box-shadow: 0 0 4px var(--sv-sync-great); }
+.sv-sync-confidence--low i.sv-sync-confidence-block--on { box-shadow: 0 0 4px var(--sv-sync-gold); }
+.sv-sync-setup-step--current i { box-shadow: 0 0 10px rgba(28, 216, 255, .5); }
+.sv-sync-game-card[aria-checked="true"] { box-shadow: 0 0 26px rgba(28, 216, 255, .15); }
+.sv-sync-game-card[aria-checked="true"] .sv-sync-radio-mark { box-shadow: 0 0 10px rgba(28, 216, 255, .6); }
+.sv-sync-browser-prompt-buttons .sv-sync-browser-prompt-allow { box-shadow: 0 0 0 4px rgba(164, 255, 0, .55), 0 0 22px rgba(164, 255, 0, .7); }
+.sv-sync-browser-prompt-pointer { text-shadow: 0 0 10px rgba(164, 255, 0, .6); }
+.sv-sync-blocking-card { box-shadow: 0 0 40px rgba(255, 198, 0, .08); }
+.sv-sync-generator-main { box-shadow: 0 0 24px rgba(236, 203, 5, .08); }
+.sv-sync-done-icon { box-shadow: 0 0 18px rgba(164, 255, 0, .35); }
+.sv-sync-layout-option[aria-checked="true"] { box-shadow: 0 0 30px rgba(28, 216, 255, .15); }
+.sv-sync-big-code { text-shadow: 0 0 24px rgba(28, 216, 255, .6); }
+.sv-sync-big-stat b { text-shadow: 0 0 12px rgba(164, 255, 0, .4); }
+.sv-sync-needs-audio-banner { box-shadow: 0 0 30px rgba(255, 198, 0, .12); }
+.sv-sync-needs-audio-count { text-shadow: 0 0 14px rgba(255, 198, 0, .5); }
+.sv-sync-status-dot { box-shadow: 0 0 8px var(--sv-sync-tray); }
+/* Every set of lock-on corners glows in its own colour. */
+.sv-sync-navigation a[aria-current="page"]::before, .sv-sync-navigation a[aria-current="page"]::after,
+.sv-sync-segmented button[aria-pressed="true"]::before, .sv-sync-segmented button[aria-pressed="true"]::after,
+.sv-sync-counter-tile[aria-pressed="true"]::before, .sv-sync-counter-tile[aria-pressed="true"]::after,
+.sv-sync-song-row--selected::before, .sv-sync-song-row--selected::after,
+.sv-sync-game-card[aria-checked="true"]::before, .sv-sync-game-card[aria-checked="true"]::after,
+.sv-sync-layout-option[aria-checked="true"]::before, .sv-sync-layout-option[aria-checked="true"]::after {
+  filter: drop-shadow(0 0 3px var(--sv-sync-lock-on, var(--sv-sync-light-blue)));
+}
+@media (max-width: 720px) {
+  .sv-sync-life-bar { box-shadow: none; }
+}
+
 /* ---------- Motion ---------- */
 @keyframes sv-sync-spin { to { transform: rotate(360deg); } }
+@keyframes sv-sync-grid-drift { to { transform: translateY(-56px); } }
 @keyframes sv-sync-loader-beat { 0%, 22% { opacity: 1; } 26%, 100% { opacity: 0; } }
 @keyframes sv-sync-appear { from { opacity: 0; transform: translateY(6px); } }
 @keyframes sv-sync-lock-on { from { opacity: 0; transform: translate(var(--sv-sync-lock-x, 0), var(--sv-sync-lock-y, 0)); } to { opacity: 1; transform: none; } }

@@ -211,6 +211,7 @@ function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
       onAnswerVaultChoice={(answer) => void bridge.answerVaultChoice(answer)}
       onDismissJob={(jobKey) => void bridge.dismissGeneratorJob(jobKey)}
       onFetchSongReport={(songKey) => bridge.fetchGeneratedSongReport(songKey)}
+      mySongsHref={`${state.siteUrl}/my-songs`}
     />
   );
 }

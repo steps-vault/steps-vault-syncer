@@ -12,7 +12,7 @@ const DONE_TEXTS_BY_RESULT: Readonly<Record<NonNullable<SavedGeneratorJob['resul
   'kept-vault-song': 'You kept the library song, so your game didn’t change.',
   'already-in-vault': 'This song is already in the library, so no token was spent.',
 };
-const MADE_AT_FORMAT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const MADE_AT_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const LIST_FORMAT = new Intl.ListFormat('en', { type: 'conjunction' });
 
 export function getServiceLocationView(baseUrl: string): ServiceLocationView {

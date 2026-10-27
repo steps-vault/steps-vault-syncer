@@ -23,6 +23,8 @@ export interface GeneratorsScreenProps extends MusicSources, GeneratorJobActions
   onMakeSong: MakeSongDialogProps['onMakeSong'];
   onDismissJob: (jobKey: string) => void;
   onFetchSongReport: (songKey: string) => Promise<string | null>;
+  /** The website's My songs page, where the player sees every song they made. */
+  mySongsHref?: string;
 }
 
 /** The Generators section: the site's own generator, the player's community generators, and Make a song. */
@@ -69,7 +71,7 @@ function CommunityGenerators(props: GeneratorsScreenProps & { onAdd: () => void 
         {props.generators.length === 0 && <Note>No community generators yet. Got an address from someone? Use <b>Add a generator</b>.</Note>}
       </div>
       <span className="sv-sync-text sv-sync-small">You can remove one any time. Songs it already made stay.</span>
-      <Note iconName="computer">Their songs stay on this computer, never in the library. Find them in <b>My generated songs</b> in your game.</Note>
+      <Note iconName="computer">Their songs stay on this computer, never in the library. {props.mySongsHref ? <>See <a href={props.mySongsHref} target="_blank" rel="noreferrer">My songs</a>.</> : <>Find them in <b>My generated songs</b> in your game.</>}</Note>
     </section>
   );
 }

@@ -17,7 +17,7 @@ export function UnsupportedBrowserCard({ desktopAppHref, onCopySyncAddress }: Un
     <section className="sv-sync-panel sv-sync-blocking-card" role="alert" aria-labelledby="sv-sync-unsupported-heading">
       <ArrowReceptor size={64} className="sv-sync-receptor--warning" />
       <h2 id="sv-sync-unsupported-heading" className="sv-sync-heading-1 sv-sync-heading-1--medium">Sync needs Chrome or Edge on a computer</h2>
-      <p className="sv-sync-text sv-sync-text--medium">This browser can&apos;t open folders. Edge is already on every Windows PC, or get the desktop app.</p>
+      <p className="sv-sync-text sv-sync-text--medium">This browser can&apos;t open folders. Edge is already on every Windows PC.</p>
       <div className="sv-sync-row sv-sync-wrap sv-sync-center">
         <button className="sv-sync-button" type="button" aria-expanded={isShowingEdgeSteps} aria-controls="sv-sync-edge-steps" onClick={() => { setIsShowingEdgeSteps(!isShowingEdgeSteps); }}>
           <Icon name="external" />Open in Edge
@@ -32,12 +32,12 @@ export function UnsupportedBrowserCard({ desktopAppHref, onCopySyncAddress }: Un
             <ol className="sv-sync-numbered-steps sv-sync-numbered-steps--small">
               <li><span>Copy this address: <span className="sv-sync-mono sv-sync-strong">{SYNC_ADDRESS}</span> <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={onCopySyncAddress}><Icon name="copy" size={14} />Copy</button></span></li>
               <li><span>Open <b className="sv-sync-strong">Microsoft Edge</b> from the Start menu.</span></li>
-              <li><span>Paste it in the address bar and press Enter. Sign in if it asks.</span></li>
+              <li><span>Paste it in the address bar and press Enter.</span></li>
             </ol>
           </div>
         </div>
       )}
-      <span className="sv-sync-small sv-sync-muted">Phones and tablets show sync status only. Syncing needs a computer.</span>
+      <span className="sv-sync-small sv-sync-muted">Phones and tablets show sync status only.</span>
     </section>
   );
 }

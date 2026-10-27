@@ -17,10 +17,7 @@ export function GeneratedSongList({ songs, onFetchSongReport, onMakeSong }: Gene
   if (songs.length === 0 && !onMakeSong) return null;
   return (
     <section className="sv-sync-stack" aria-labelledby="sv-sync-generated-songs-heading">
-      <div className="sv-sync-stack-tiny">
-        <h2 id="sv-sync-generated-songs-heading" className="sv-sync-heading-2">My generated songs</h2>
-        <span className="sv-sync-text sv-sync-small">Made with community generators. Yours alone, on this computer.</span>
-      </div>
+      <h2 id="sv-sync-generated-songs-heading" className="sv-sync-heading-2">My generated songs</h2>
       {songs.length === 0 && onMakeSong && (
         <EmptyBox action={<button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onMakeSong}>Make a song</button>}>No generated songs yet.</EmptyBox>
       )}

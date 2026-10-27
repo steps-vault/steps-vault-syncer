@@ -40,7 +40,7 @@ export function MusicTabs(props: MusicStepProps): ReactElement {
   };
   return (
     <div className="sv-sync-stack-small">
-      <span className="sv-sync-label sv-sync-label--plain" id="sv-sync-music-tabs-label">Get music from</span>
+      <span className="sv-sync-visually-hidden" id="sv-sync-music-tabs-label">Where the music comes from</span>
       <div className="sv-sync-tabs sv-sync-music-tabs" role="tablist" aria-labelledby="sv-sync-music-tabs-label" onKeyDown={moveSelection}>
         {tabs.map((tab) => (
           <button key={tab.tabId} id={`sv-sync-tab-${tab.tabId}`} type="button" role="tab" aria-selected={tab.tabId === selectedTabId} aria-controls="sv-sync-music-tab-panel" tabIndex={tab.tabId === selectedTabId ? 0 : -1} onClick={() => { setSelectedTabId(tab.tabId); }}>
@@ -63,7 +63,7 @@ export function MusicChoiceRow({ music, isPicked, onPick }: { music: MusicChoice
     <label className={joinClassNames('sv-sync-pick', isPicked && 'sv-sync-pick--on')}>
       <input type="radio" name="sv-sync-music" checked={isPicked} onChange={() => { onPick(music); }} />
       <span className="sv-sync-min-width-0">
-        <span className="sv-sync-pick-title" dir="auto">{music.title} <span className="sv-sync-muted">— {music.artist}</span></span>
+        <span className="sv-sync-pick-title" dir="auto">{music.title} <span className="sv-sync-muted">· {music.artist}</span></span>
         <span className="sv-sync-pick-subtitle">{[music.sourceText, music.lengthText].filter(Boolean).join(' · ')}</span>
       </span>
       {music.hasVideo && <span className="sv-sync-badge">Video too</span>}
@@ -181,7 +181,6 @@ function SongCheck({ music, onUse, onPickAnother }: { music: MusicChoiceView; on
     <div className="sv-sync-song-check" role="group" aria-label="Is this the song?">
       <b>Is this the song?</b>
       <span dir="auto">{[`${music.title} · ${music.artist}`, music.sourceText, music.lengthText].filter(Boolean).join(' · ')}{music.hasVideo ? ' · video too' : ''}</span>
-      <span className="sv-sync-small sv-sync-muted">Check it before you make it.</span>
       {(onUse ?? onPickAnother) && (
         <span className="sv-sync-row sv-sync-wrap">
           {onUse && <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onUse(music); }}>Yes, use it</button>}

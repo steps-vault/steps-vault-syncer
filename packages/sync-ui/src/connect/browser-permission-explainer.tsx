@@ -9,7 +9,7 @@ export function BrowserPermissionExplainer({ desktopAppHref }: { desktopAppHref:
     <section className="sv-sync-permission-explainer" aria-labelledby="sv-sync-permission-heading">
       <div className="sv-sync-stack">
         <h3 id="sv-sync-permission-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">Then click Allow</h3>
-        <p className="sv-sync-text sv-sync-text--medium">Your browser asks if {SITE_NAME} may edit files in that folder. It asks again after a restart.</p>
+        <p className="sv-sync-text sv-sync-text--medium">Your browser asks again after a restart.</p>
         <span className="sv-sync-text sv-sync-text--medium"><a className="sv-sync-link" href={desktopAppHref}>Get the desktop app</a> to sync in the background.</span>
       </div>
       <div className="sv-sync-browser-prompt-frame" role="img" aria-label="Example of the browser asking for permission, with the Allow button highlighted">

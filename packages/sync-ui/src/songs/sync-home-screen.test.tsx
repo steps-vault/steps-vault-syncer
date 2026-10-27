@@ -72,8 +72,8 @@ describe('SyncHomeScreen', () => {
     renderHomeScreen();
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'kairo' } });
     expect(getVisibleTitles()).toEqual(['Paris', 'Neon Overdrive', 'Pulse Garden', 'Afterimage']);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Genre' }), { target: { value: 'Electronic' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Artist' }), { target: { value: 'Kairo Lights' } });
+    pickComboBoxOption({ label: 'Genre', optionText: 'Electronic' });
+    pickComboBoxOption({ label: 'Artist', optionText: 'Kairo Lights' });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'garden' } });
     expect(getVisibleTitles()).toEqual(['Pulse Garden']);
     fireEvent.click(screen.getAllByRole('button', { name: 'Clear filters' })[0] as HTMLElement);
@@ -152,3 +152,10 @@ describe('SyncHomeScreen', () => {
     expect(screen.queryByRole('list')).toBeNull();
   });
 });
+
+function pickComboBoxOption({ label, optionText }: { label: string; optionText: string }): void {
+  const comboBox = screen.getByRole('combobox', { name: label });
+  fireEvent.focus(comboBox);
+  fireEvent.change(comboBox, { target: { value: optionText } });
+  fireEvent.keyDown(comboBox, { key: 'Enter' });
+}

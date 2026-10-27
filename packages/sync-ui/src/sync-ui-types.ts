@@ -149,7 +149,7 @@ export type AddonLookupResult = { kind: 'found'; addon: AddonInstallPreview } | 
 
 export interface LayoutPreviewGroup {
   groupName: string;
-  /** Shown next to the group, for example "23 songs" or "name taken". */
+  /** Shown next to the group, for example "23 songs". */
   tagText?: string;
   songTitles: readonly string[];
   moreSongCount?: number;

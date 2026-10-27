@@ -167,6 +167,7 @@ function GeneratorsPreview(): ReactElement {
       onAnswerVaultChoice={noop}
       onDismissJob={noop}
       onFetchSongReport={() => Promise.resolve('# How it was made\n\nOnsets found with a simple energy rule, arrows by flow.')}
+      mySongsHref="#my-songs"
     />
   );
 }

@@ -50,14 +50,16 @@ export function ConnectGameScreen(props: ConnectGameScreenProps): ReactElement {
 
 function WebsiteFolderPicker({ onChooseSongsFolder, desktopAppHref }: WebsiteConnectGameProps): ReactElement {
   return (
-    <section className="sv-sync-panel sv-sync-big-pick" aria-label="Choose your Songs folder">
-      <button className="sv-sync-pick-button" type="button" onClick={onChooseSongsFolder}>
-        <span className="sv-sync-pick-icon"><Icon name="folder" size={24} strokeWidth={2.4} /></span>
-        CHOOSE MY SONGS FOLDER
-      </button>
-      <span className="sv-sync-small sv-sync-muted">Usually <span className="sv-sync-mono sv-sync-soft">C:\Games\StepMania 5\Songs</span></span>
+    <>
+      <section className="sv-sync-panel sv-sync-big-pick" aria-label="Choose your Songs folder">
+        <button className="sv-sync-pick-button" type="button" onClick={onChooseSongsFolder}>
+          <span className="sv-sync-pick-icon"><Icon name="folder" size={24} strokeWidth={2.4} /></span>
+          CHOOSE MY SONGS FOLDER
+        </button>
+        <span className="sv-sync-small sv-sync-muted">Usually <span className="sv-sync-mono sv-sync-soft">C:\Games\StepMania 5\Songs</span></span>
+      </section>
       <BrowserPermissionExplainer desktopAppHref={desktopAppHref} />
-    </section>
+    </>
   );
 }
 

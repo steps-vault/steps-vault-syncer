@@ -30,7 +30,6 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
       <div className="sv-sync-row">
         <Icon name="folder" size={18} />
         <span className="sv-sync-mono sv-sync-strong">{props.songsFolderPath}</span>
-        <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onChooseAnotherFolder}>Change</button>
       </div>
       <ul className="sv-sync-folder-tree" aria-label="Groups in your Songs folder">
         {props.playerGroups.length === 0 && <li className="sv-sync-folder-tree-none">No songs here yet. Ours go in their own groups.</li>}
@@ -38,13 +37,13 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
           <li key={group.groupName}>
             <Icon name="folder" size={18} className="sv-sync-subtle" />
             <span dir="auto">{group.groupName}</span>
-            <span className="sv-sync-folder-count">{NUMBER_FORMAT.format(group.songCount)} songs</span>
+            <span className="sv-sync-folder-count">{NUMBER_FORMAT.format(group.songCount)}<span className="sv-sync-visually-hidden"> songs</span></span>
             <LockedBadge />
           </li>
         ))}
         <li className="sv-sync-folder-tree-ours">
           <Icon name="plus" size={18} strokeWidth={2.6} />
-          <span>New {SITE_NAME} groups go here, next to yours</span>
+          <span>New {SITE_NAME} groups</span>
           <span className="sv-sync-folder-count">{props.layoutText}</span>
           <button className="sv-sync-link-button sv-sync-link-button--small" type="button" onClick={props.onChangeLayout}>Change layout</button>
         </li>

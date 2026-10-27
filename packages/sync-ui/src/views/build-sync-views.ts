@@ -1,6 +1,5 @@
 /** Builds what the screens show from a sync's results; shared by the website and the desktop app. */
 import {
-  CLASH_PREFIX,
   findInstalledSong,
   getSongFolderMoves,
   getTargetFolderPaths,
@@ -19,20 +18,22 @@ import type { ActivityEntryView, ActivityKind, DifficultyLevels, LayoutPreview, 
 
 const LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist'];
 const PREVIEW_GROUP_COUNT = 3;
+const MORE_GROUP_NOUNS_BY_LAYOUT: Readonly<Record<FolderLayout, string>> = { 'one-group': 'groups', 'by-genre': 'genres', 'by-artist': 'artists' };
 const PREVIEW_SONG_COUNT = 3;
 const ACTIVITY_KINDS_BY_EVENT_KIND: Readonly<Record<ActivityEvent['kind'], ActivityKind>> = { added: 'added', updated: 'updated', moved: 'moved', removed: 'removed', failed: 'write-failed' };
-const ACTIVITY_VERBS_BY_EVENT_KIND: Readonly<Record<ActivityEvent['kind'], string>> = { added: 'Added ', updated: 'Updated ', moved: 'Moved ', removed: 'Removed ', failed: 'Couldn’t write ' };
+const ACTIVITY_VERBS_BY_EVENT_KIND: Readonly<Record<ActivityEvent['kind'], string>> = { added: 'Added ', updated: 'Updated ', moved: 'Moved ', removed: 'Removed ', failed: 'Couldn’t save ' };
 const GENERATED_SONG_TEXTS_BY_STEP: Readonly<Record<GeneratedSongActivityStep, { kind: ActivityKind; textBefore: string; getTextAfter: (event: GeneratedSongActivityEvent) => string }>> = {
   'started': { kind: 'generating', textBefore: 'Started making ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'resumed': { kind: 'generating', textBefore: 'Went on making ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'not-cancelled': { kind: 'generating', textBefore: 'Couldn’t cancel ', getTextAfter: () => '' },
-  'written': { kind: 'generated', textBefore: 'Made ', getTextAfter: (event) => ` in ${event.folderPath[0] ?? 'your game'}` },
+  'written': { kind: 'generated', textBefore: 'Made ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'added-to-vault': { kind: 'generated', textBefore: 'Made ', getTextAfter: () => ' for the library' },
   'kept-vault-song': { kind: 'generated', textBefore: 'Kept the library song of ', getTextAfter: () => '' },
   'failed': { kind: 'generate-failed', textBefore: 'Couldn’t make ', getTextAfter: (event) => ` with ${event.generatorName}` },
   'cancelled': { kind: 'generate-cancelled', textBefore: 'Cancelled ', getTextAfter: () => '' },
 };
-const DAY_FORMAT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const DAY_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const DAY_WITH_YEAR_FORMAT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const TIME_FORMAT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 export interface SongViewInput {
@@ -141,8 +142,8 @@ function buildSyncEntry({ event, entryId, titlesById }: { event: ActivityEvent; 
     ...formatEntryTime(event.at),
     textBefore: ACTIVITY_VERBS_BY_EVENT_KIND[event.kind],
     highlightedText: titlesById.get(event.vaultSongId) ?? event.folderPath.at(-1) ?? 'a song',
-    textAfter: event.kind === 'failed' ? '' : event.kind === 'removed' ? ' from your game' : ` in ${groupName}`,
-    summaryText: event.message ?? `Songs/${event.folderPath.join('/')}`,
+    textAfter: getSyncEntryTextAfter({ event, groupName }),
+    summaryText: event.message ?? (event.kind === 'removed' ? `Deleted only Songs/${event.folderPath.join('/')}` : `Songs/${event.folderPath.join('/')}`),
     details: [{ label: 'Folder', value: `Songs/${event.folderPath.join('/')}` }, ...(event.failure ? [{ label: 'Problem', value: event.failure }] : [])],
   };
 }
@@ -157,20 +158,35 @@ function buildGeneratedSongEntry({ event, entryId }: { event: GeneratedSongActiv
     textBefore: texts.textBefore,
     highlightedText: event.songTitle,
     textAfter: texts.getTextAfter(event),
-    summaryText: event.message ?? folderText ?? `With ${event.generatorName}`,
+    summaryText: event.message ?? (event.step === 'written' && event.folderPath[0] ? `In ${event.folderPath[0]}` : folderText) ?? `With ${event.generatorName}`,
     details: [{ label: 'Generator', value: event.generatorName }, ...(folderText ? [{ label: 'Folder', value: folderText }] : []), ...(event.message ? [{ label: 'Problem', value: event.message }] : [])],
   };
 }
 
+function getSyncEntryTextAfter({ event, groupName }: { event: ActivityEvent; groupName: string }): string {
+  if (event.kind === 'failed' || event.kind === 'updated') return '';
+  if (event.kind === 'removed') return ' from your game';
+  return ` to ${groupName}`;
+}
+
 function formatEntryTime(isoTime: string): { dayText: string; timeText: string } {
   const at = new Date(isoTime);
-  return { dayText: DAY_FORMAT.format(at), timeText: TIME_FORMAT.format(at) };
+  return { dayText: getDayText({ at, now: new Date() }), timeText: TIME_FORMAT.format(at) };
+}
+
+/** "Today", "Yesterday", "Oct 20", or "Oct 20, 2025" for another year. */
+export function getDayText({ at, now }: { at: Date; now: Date }): string {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dayLength = 24 * 60 * 60 * 1000;
+  if (at.getTime() >= startOfToday) return 'Today';
+  if (at.getTime() >= startOfToday - dayLength) return 'Yesterday';
+  return at.getFullYear() === now.getFullYear() ? DAY_FORMAT.format(at) : DAY_WITH_YEAR_FORMAT.format(at);
 }
 
 export function buildLayoutViews({ vaultSongs, record, playerGroupNames }: { vaultSongs: readonly VaultSongDetails[]; record: InstalledSongsRecord; playerGroupNames: readonly string[] }): { previewsByLayout: LayoutPreviewsByLayout; movingSongCountsByLayout: Record<FolderLayout, number> } {
   const entries = LAYOUTS.map((layout) => {
     const targetPathsBySongId = getTargetFolderPaths({ songs: vaultSongs, layout, playerGroupNames, record });
-    return { layout, preview: buildLayoutPreview({ targetPathsBySongId, vaultSongs, playerGroupNames }), movingCount: getSongFolderMoves({ record, targetPathsBySongId }).length };
+    return { layout, preview: buildLayoutPreview({ layout, targetPathsBySongId, vaultSongs }), movingCount: getSongFolderMoves({ record, targetPathsBySongId }).length };
   });
   return {
     previewsByLayout: Object.fromEntries(entries.map((entry) => [entry.layout, entry.preview])) as LayoutPreviewsByLayout,
@@ -178,21 +194,21 @@ export function buildLayoutViews({ vaultSongs, record, playerGroupNames }: { vau
   };
 }
 
-function buildLayoutPreview({ targetPathsBySongId, vaultSongs, playerGroupNames }: { targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[]; playerGroupNames: readonly string[] }): LayoutPreview {
+/** The one group shows its song count; genres and artists show a few groups and how many more there are. */
+function buildLayoutPreview({ layout, targetPathsBySongId, vaultSongs }: { layout: FolderLayout; targetPathsBySongId: ReadonlyMap<string, readonly string[]>; vaultSongs: readonly VaultSongDetails[] }): LayoutPreview {
   const titlesByGroup = new Map<string, string[]>();
   for (const song of vaultSongs) {
     const groupName = targetPathsBySongId.get(song.vaultSongId)?.[0];
     if (groupName) titlesByGroup.set(groupName, [...(titlesByGroup.get(groupName) ?? []), song.title]);
   }
-  const playerNameKeys = new Set(playerGroupNames.map((name) => name.toLowerCase()));
   const groups = [...titlesByGroup].slice(0, PREVIEW_GROUP_COUNT).map(([groupName, titles]) => ({
     groupName,
-    tagText: groupName.startsWith(CLASH_PREFIX) && playerNameKeys.has(groupName.slice(CLASH_PREFIX.length).toLowerCase()) ? 'name taken' : `${String(titles.length)} ${titles.length === 1 ? 'song' : 'songs'}`,
+    ...(layout === 'one-group' ? { tagText: `${String(titles.length)} ${titles.length === 1 ? 'song' : 'songs'}` } : {}),
     songTitles: titles.slice(0, PREVIEW_SONG_COUNT),
     moreSongCount: Math.max(0, titles.length - PREVIEW_SONG_COUNT),
   }));
   const moreGroupCount = titlesByGroup.size - groups.length;
-  return { groups, moreGroupsText: moreGroupCount > 0 ? `+ ${String(moreGroupCount)} more groups` : undefined };
+  return { groups, moreGroupsText: moreGroupCount > 0 ? `+ ${String(moreGroupCount)} more ${MORE_GROUP_NOUNS_BY_LAYOUT[layout]}` : undefined };
 }
 
 export function getTrayStatus({ isSyncing, isPaused, songPlans }: { isSyncing: boolean; isPaused: boolean; songPlans: readonly SongPlan[] }): TrayStatus {

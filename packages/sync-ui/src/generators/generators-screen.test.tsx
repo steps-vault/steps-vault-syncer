@@ -100,7 +100,7 @@ describe('GeneratorsScreen', () => {
     const props = renderGenerators({ stepsVaultGenerator: { ...FAKE_STEPSVAULT_GENERATOR, tokenCount: 0, musicUploadWarning: null } });
     const setupDialog = await goToSetupStep();
     expect(within(setupDialog).getByRole('radio', { name: /dancedance.studio generator/ }).closest('label')?.textContent).toContain('you have 0 tokens');
-    expect(within(setupDialog).getByRole('alert').textContent).toContain('You’re out of tokens. Buy tokens, or pick a community generator.');
+    expect(within(setupDialog).getByRole('alert').textContent).toContain('You’re out of tokens.');
     expect(within(setupDialog).getByRole('link', { name: 'Buy tokens' }).getAttribute('href')).toBe('#tokens');
     expect(within(setupDialog).getByRole('button', { name: 'Make the steps · 1 token' })).toHaveProperty('disabled', true);
     fireEvent.click(within(setupDialog).getByRole('radio', { name: /Tap Forge/ }));
@@ -142,7 +142,7 @@ describe('GeneratorsScreen', () => {
     expect(props.onSearchMusic).toHaveBeenCalledWith('night');
     fireEvent.click(within(screen.getByRole('radiogroup', { name: 'Music in your folders' })).getByRole('radio', { name: /Paper Planes Club/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(screen.getByRole('dialog', { name: 'Pick the generator and difficulties' }).textContent).toContain('Music: Paper Planes Club — Sora Vega');
+    expect(screen.getByRole('dialog', { name: 'Pick the generator and difficulties' }).textContent).toContain('Music: Paper Planes Club · Sora Vega');
   });
 
   it('draws a song source’s tab from its inputs, checks what the player types, and shows the found song to check', async () => {
@@ -157,11 +157,11 @@ describe('GeneratorsScreen', () => {
     expect(screen.getByText('Tube Songs sees what you type here.')).toBeDefined();
     await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Find the song' })); });
     expect(props.onFindSong).toHaveBeenCalledWith({ addonId: 'tube-songs', valuesByInputId: { link: 'https://youtu.be/dQw4w9WgXcQ' } });
-    expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Check it before you make it.');
+    expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Yes, use it');
     expect(screen.getByRole('group', { name: 'Is this the song?' }).textContent).toContain('Low Tide · Marla Quinn');
     expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', false);
     fireEvent.click(screen.getByRole('button', { name: 'Yes, use it' }));
-    expect(screen.getByRole('dialog', { name: 'Pick the generator and difficulties' }).textContent).toContain('Low Tide — Marla Quinn');
+    expect(screen.getByRole('dialog', { name: 'Pick the generator and difficulties' }).textContent).toContain('Low Tide · Marla Quinn');
   });
 
   it('lets the player pick one of the songs a song source found, check it, or pick another', async () => {

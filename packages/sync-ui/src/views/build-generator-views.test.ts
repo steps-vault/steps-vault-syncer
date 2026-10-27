@@ -61,9 +61,9 @@ describe('generator views', () => {
       { vaultSongId: 'v1', kind: 'added', at: '2026-10-25T10:07:00.000Z', folderPath: ['dancedance.studio', 'Paris'] },
     ] });
     expect(entries.map((entry) => [entry.kind, `${entry.textBefore}${entry.highlightedText}${entry.textAfter}`, entry.summaryText])).toEqual([
-      ['added', 'Added Paris in dancedance.studio', 'Songs/dancedance.studio/Paris'],
+      ['added', 'Added Paris to dancedance.studio', 'Songs/dancedance.studio/Paris'],
       ['generate-failed', 'Couldn’t make Low Tide with Tap Forge', 'Tap Forge isn’t answering.'],
-      ['generated', 'Made Night Drive in My generated songs', 'Songs/My generated songs/Night Drive'],
+      ['generated', 'Made Night Drive with Tap Forge', 'In My generated songs'],
       ['generating', 'Started making Night Drive with Tap Forge', 'With Tap Forge'],
     ]);
   });

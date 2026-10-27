@@ -10,7 +10,7 @@ import { ReceptorLoader } from '../shared/receptor-loader';
 import type { GeneratorJobView, GeneratorView, MakeSongRequest, MakeSongResult, MusicChoiceView, StepsVaultGeneratorView } from '../sync-ui-types';
 import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
 import { MusicUploadWarning } from './add-generator-dialog';
-import { GeneratorJobProgress, type GeneratorJobActions } from './generator-jobs';
+import { CancelJobButton, GeneratorJobProgress, type GeneratorJobActions } from './generator-jobs';
 import { MusicTabs, type MusicSources } from './music-step';
 
 const DIFFICULTY_SHORT_NAMES: Readonly<Record<GeneratorDifficulty, string>> = { Beginner: 'B', Easy: 'E', Medium: 'M', Hard: 'H', Challenge: 'C' };
@@ -23,6 +23,8 @@ export interface MakeSongDialogProps extends MusicSources, GeneratorJobActions {
   /** Gets the music ready and sends it to the generator; resolves once the job started, or with a sentence why not. */
   onMakeSong: (request: MakeSongRequest) => Promise<MakeSongResult>;
   onClose: () => void;
+  /** The website's My songs page, offered when the song is ready. */
+  mySongsHref?: string;
 }
 
 type DialogStep = { kind: 'music' } | { kind: 'setup'; music: MusicChoiceView } | { kind: 'job'; music: MusicChoiceView; jobKey: string };
@@ -102,7 +104,7 @@ function SetupStep(props: SetupStepProps): ReactElement {
   return (
     <>
       <DialogHeading titleId="sv-sync-make-song-title" title="Pick the generator and difficulties" stepText="Step 2 of 3" />
-      <div className="sv-sync-addon-who"><Icon name="note" size={18} className="sv-sync-link-colour" /><span>Music: <b className="sv-sync-strong" dir="auto">{props.music.title} — {props.music.artist}</b></span></div>
+      <div className="sv-sync-addon-who"><Icon name="note" size={18} className="sv-sync-link-colour" /><span>Music: <b className="sv-sync-strong" dir="auto">{props.music.title} · {props.music.artist}</b></span></div>
       <span className="sv-sync-label sv-sync-label--plain" id="sv-sync-generator-choice-label">Generator</span>
       <div className="sv-sync-pick-list" role="radiogroup" aria-labelledby="sv-sync-generator-choice-label">
         {choices.map((choice) => (
@@ -120,7 +122,7 @@ function SetupStep(props: SetupStepProps): ReactElement {
       {isStepsVault && !pickedChoice.uploadWarning && <span className="sv-sync-small sv-sync-muted">Your music file is uploaded to {SITE_NAME} to make the steps.</span>}
       {isOutOfTokens && (
         <MissLine action={<a className="sv-sync-button sv-sync-button--small" href={props.stepsVaultGenerator.tokensHref} target="_blank" rel="noreferrer">Buy tokens</a>}>
-          You’re out of tokens. Buy tokens, or pick a community generator.
+          You’re out of tokens.
         </MissLine>
       )}
       {problem !== null && <MissLine action={<button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => void makeSong()}>Try again</button>}>{problem}</MissLine>}
@@ -163,7 +165,10 @@ function JobStep(props: MakeSongDialogProps & { music: MusicChoiceView; jobKey: 
         <span className="sv-sync-done-icon" aria-hidden="true"><Icon name="check" size={28} strokeWidth={2.8} /></span>
         <h2 id="sv-sync-make-song-title" className="sv-sync-heading-2">Your song is ready</h2>
         <p className="sv-sync-text sv-sync-text--medium"><b className="sv-sync-strong" dir="auto">{job.songTitle}</b><br />{job.doneText}</p>
-        <div className="sv-sync-dialog-buttons"><button className="sv-sync-button" type="button" onClick={props.onClose} data-autofocus>Close</button></div>
+        <div className="sv-sync-dialog-buttons">
+          {props.mySongsHref && <a className="sv-sync-button sv-sync-button--ghost" href={props.mySongsHref} target="_blank" rel="noreferrer">See it in My songs</a>}
+          <button className="sv-sync-button" type="button" onClick={props.onClose} data-autofocus>Close</button>
+        </div>
       </>
     );
   }
@@ -179,7 +184,7 @@ function JobStep(props: MakeSongDialogProps & { music: MusicChoiceView; jobKey: 
     return (
       <>
         <DialogHeading titleId="sv-sync-make-song-title" title="Making the steps" stepText="Step 3 of 3" />
-        <span className="sv-sync-text"><b className="sv-sync-strong" dir="auto">{props.music.title} — {props.music.artist}</b> · with {job.generatorName}</span>
+        <span className="sv-sync-text"><b className="sv-sync-strong" dir="auto">{props.music.title} · {props.music.artist}</b> · with {job.generatorName}</span>
         <MissLine isLarge action={<button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onClose}>Close</button>}>{job.message}</MissLine>
       </>
     );
@@ -187,9 +192,10 @@ function JobStep(props: MakeSongDialogProps & { music: MusicChoiceView; jobKey: 
   return (
     <>
       <DialogHeading titleId="sv-sync-make-song-title" title="Making the steps" stepText="Step 3 of 3" />
-      <span className="sv-sync-text"><b className="sv-sync-strong" dir="auto">{props.music.title} — {props.music.artist}</b>{job ? ` · with ${job.generatorName}` : ''}</span>
-      {job ? <GeneratorJobProgress job={job} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} /> : <ReceptorLoader label="Starting…" isSmall />}
+      <span className="sv-sync-text"><b className="sv-sync-strong" dir="auto">{props.music.title} · {props.music.artist}</b>{job ? ` · with ${job.generatorName}` : ''}</span>
+      {job ? <GeneratorJobProgress job={job} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} isPercentOnStageLine /> : <ReceptorLoader label="Starting…" isSmall />}
       {job?.state === 'working' && <span className="sv-sync-small sv-sync-muted">You can close this. Sync tells you when it&apos;s done.</span>}
+      {job?.state === 'working' && <div className="sv-sync-dialog-buttons"><CancelJobButton job={job} onCancelJob={props.onCancelJob} isDanger /></div>}
       {job && job.state !== 'working' && <div className="sv-sync-dialog-buttons"><button className="sv-sync-button" type="button" onClick={props.onClose}>Close</button></div>}
     </>
   );
