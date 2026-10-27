@@ -43,7 +43,7 @@ export interface DeviceDescription {
 
 export class SignedOutError extends Error {
   constructor() {
-    super('This computer is signed out of StepsVault. Choose "Sign in" and type the new code on stepsvault.com/link.');
+    super('This computer is signed out of dancedance.studio. Choose "Sign in" and type the new code on dancedance.studio/link.');
     this.name = 'SignedOutError';
   }
 }

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { FAKE_GAME, FAKE_SONG_ROWS } from '../fake-data/fake-sync-data';
 import { PhoneStatusView } from '../phone/phone-status-view';
 import { SyncShell } from '../shell/sync-shell';
+import { SyncLoadingPanel } from '../songs/sync-home-screen';
 import { DiskFullState, EmptyVaultState, NeedsAudioBanner, PermissionLostState, SongFolderLockedState, SongsFolderMissingState } from './empty-and-error-states';
 
 describe('empty and error states', () => {
@@ -17,11 +18,11 @@ describe('empty and error states', () => {
         <SongFolderLockedState songTitle="Watch Me Glow" onTryAgain={onAction} />
       </>,
     );
-    expect(screen.getByRole('link', { name: 'Go to StepsVault' }).getAttribute('href')).toBe('https://stepsvault.example/vault');
-    expect(screen.getByRole('heading', { name: 'Your browser needs permission again' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Browse the library' }).getAttribute('href')).toBe('https://stepsvault.example/vault');
+    expect(screen.getByRole('heading', { name: 'Permission needed' })).toBeDefined();
     expect(screen.getByText(FAKE_GAME.songsFolderPath)).toBeDefined();
     expect(screen.getByText(/Nothing was half-written/).textContent).toContain('3 songs');
-    expect(screen.getByText('Close StepMania and try again.')).toBeDefined();
+    expect(screen.getByText(/Close it to update/)).toBeDefined();
     for (const button of screen.getAllByRole('button')) fireEvent.click(button);
     expect(onAction).toHaveBeenCalledTimes(4);
   });
@@ -29,7 +30,7 @@ describe('empty and error states', () => {
   it('gathers many songs without audio into one banner', () => {
     const onAddMusicFolder = vi.fn();
     render(<NeedsAudioBanner songCount={17} onAddMusicFolder={onAddMusicFolder} onDismiss={vi.fn()} />);
-    expect(screen.getByText('17 songs need audio — add your music folder')).toBeDefined();
+    expect(screen.getByRole('status').textContent).toContain('17songs need audio');
     fireEvent.click(screen.getByRole('button', { name: 'Add music folder' }));
     expect(onAddMusicFolder).toHaveBeenCalledOnce();
   });
@@ -64,5 +65,17 @@ describe('SyncShell', () => {
     expect(screen.getByRole('link', { name: 'Account' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByText('banner here')).toBeDefined();
     expect(screen.getByText('Needs attention')).toBeDefined();
+  });
+});
+
+describe('website Generators and loading', () => {
+  it('shows Generators on the website only when the website can make songs', () => {
+    render(<SyncShell platform="website" currentScreen="generators" onNavigate={vi.fn()} hasWebsiteGenerators><p>screen</p></SyncShell>);
+    expect(screen.getByRole('navigation', { name: 'Sync' }).textContent).toBe('SongsAudio sourcesGeneratorsFolder layoutActivity');
+  });
+
+  it('shows the receptor loader while Sync reads the songs', () => {
+    render(<SyncLoadingPanel />);
+    expect(screen.getByRole('status').textContent).toBe('Loading your songs…');
   });
 });

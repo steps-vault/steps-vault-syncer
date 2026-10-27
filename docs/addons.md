@@ -148,6 +148,10 @@ Answers:
   `/audio-links`: one music file, and a video if the addon provides videos. Sync shows the song so the player can
   check it, then sends the music (and the video, if the generator wants it) to the generator; the video from the same
   answer plays behind the steps.
+- `200 { "choices": [{ "song": {…}, "links": [...] }, …] }`: a few songs for the player to pick from (for a search,
+  or versions of one song), best first, each a `song` with its `links` as above. Sync keeps the first 10 and drops
+  any it can't use; the player picks one, then checks it ("Is this the song?"). An empty `choices` with an `error` is
+  "nothing found"; choices that are all unusable count as not answering.
 - `202 { "retryAfterSeconds": 5 }`: still working, as for `/audio-links`.
 - `200 { "error": "One short sentence" }`: nothing found for this input.
 

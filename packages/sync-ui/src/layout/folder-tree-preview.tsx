@@ -3,28 +3,44 @@ import { Icon } from '../icons/icon';
 import type { LayoutPreview } from '../sync-ui-types';
 
 export interface FolderTreePreviewProps {
-  /** A few of the player's own groups, shown locked above ours. */
+  /** The player's own groups by name, each locked, above ours. */
   playerGroupNames: readonly string[];
-  morePlayerGroupCount: number;
+  /** Or all of them on one locked line: "Your 7 groups". */
+  collapsedPlayerGroupCount?: number;
+  /** The songs shown under each of the player's named groups. */
+  playerSongText?: string;
   preview: LayoutPreview;
 }
 
-/** A small folder tree: the player's groups locked, then where StepsVault songs would go. It repeats nearby text, so screen readers skip it. */
-export function FolderTreePreview({ playerGroupNames, morePlayerGroupCount, preview }: FolderTreePreviewProps): ReactElement {
+/** A small folder tree: the player's groups locked, then where our songs would go. It repeats nearby text, so screen readers skip it. */
+export function FolderTreePreview({ playerGroupNames, collapsedPlayerGroupCount = 0, playerSongText, preview }: FolderTreePreviewProps): ReactElement {
   return (
     <ul className="sv-sync-mini-tree" aria-hidden="true">
-      {playerGroupNames.map((groupName) => (
-        <li key={`player-${groupName}`} className="sv-sync-mini-tree-group sv-sync-mini-tree--theirs">
-          <Icon name="folder" size={14} /><span>{groupName}</span>
-          <span className="sv-sync-mini-tree-lock"><Icon name="lock" size={11} strokeWidth={2.6} />Yours — never touched</span>
+      {collapsedPlayerGroupCount > 0 && (
+        <li className="sv-sync-mini-tree-group sv-sync-mini-tree--theirs">
+          <Icon name="lock" size={14} /><span>Your {collapsedPlayerGroupCount} {collapsedPlayerGroupCount === 1 ? 'group' : 'groups'}</span>
         </li>
+      )}
+      {playerGroupNames.map((groupName) => (
+        <FolderTreePlayerGroup key={`player-${groupName}`} groupName={groupName} songText={playerSongText} />
       ))}
-      {morePlayerGroupCount > 0 && <li className="sv-sync-mini-tree-group sv-sync-mini-tree-more">+ {morePlayerGroupCount} more of yours</li>}
       {preview.groups.map((group) => (
         <FolderTreeGroup key={`ours-${group.groupName}`} group={group} />
       ))}
       {preview.moreGroupsText !== undefined && <li className="sv-sync-mini-tree-group sv-sync-mini-tree-more">{preview.moreGroupsText}</li>}
     </ul>
+  );
+}
+
+function FolderTreePlayerGroup({ groupName, songText }: { groupName: string; songText: string | undefined }): ReactElement {
+  return (
+    <>
+      <li className="sv-sync-mini-tree-group sv-sync-mini-tree--theirs">
+        <Icon name="folder" size={14} /><span>{groupName}</span>
+        <span className="sv-sync-mini-tree-lock"><Icon name="lock" size={11} strokeWidth={2.6} />Yours</span>
+      </li>
+      {songText !== undefined && <li className="sv-sync-mini-tree-song"><Icon name="note" size={12} /><span>{songText}</span></li>}
+    </>
   );
 }
 

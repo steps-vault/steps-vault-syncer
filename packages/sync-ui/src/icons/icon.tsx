@@ -22,6 +22,7 @@ const ICON_PATHS = {
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.01" /></>,
   search: <><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></>,
   chevron: <path d="M9 6l6 6-6 6" />,
+  'chevron-down': <path d="M6 9l6 6 6-6" />,
   external: <><path d="M14 4h6v6M20 4l-9 9" /><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></>,
   download: <path d="M12 4v12M6 11l6 6 6-6M5 20h14" />,
   copy: <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>,

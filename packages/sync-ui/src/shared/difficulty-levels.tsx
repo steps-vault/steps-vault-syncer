@@ -47,7 +47,7 @@ function DifficultyPanel({ difficultyName, className, level }: { difficultyName:
       <div>
         <div className="sv-sync-difficulty-name">
           {difficultyName.toUpperCase()}
-          <span>{level === null ? 'Not in this chart' : `Level ${String(level)}`}</span>
+          {level === null && <span>Not in this chart</span>}
         </div>
         <div className="sv-sync-level-meter" aria-hidden="true">
           {Array.from({ length: LEVEL_METER_BLOCK_COUNT }, (_, blockIndex) => (

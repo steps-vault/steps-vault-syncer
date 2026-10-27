@@ -23,17 +23,17 @@ export interface SyncNavigationProps {
   onNavigate: (screen: SyncScreen) => void;
   /** Real addresses for the website's router; without them the links only call onNavigate. */
   hrefsByScreen?: Partial<Record<SyncScreen, string>>;
+  /** Website only: show Generators, once the website can send music to a generator. */
+  hasWebsiteGenerators?: boolean;
 }
 
-// The website keeps the account in its own settings, and has no way yet to send music to a generator.
-const DESKTOP_ONLY_SCREENS: readonly SyncScreen[] = ['account', 'generators'];
-
-/** Only the desktop app shows "Account" and "Generators" here. */
-export function getNavigationItems(platform: SyncPlatform): readonly NavigationItem[] {
-  return platform === 'desktop' ? NAVIGATION_ITEMS : NAVIGATION_ITEMS.filter((item) => !DESKTOP_ONLY_SCREENS.includes(item.screen));
+/** The website keeps the account in its own settings, and shows Generators only when it can make songs. */
+export function getNavigationItems({ platform, hasWebsiteGenerators = false }: { platform: SyncPlatform; hasWebsiteGenerators?: boolean }): readonly NavigationItem[] {
+  if (platform === 'desktop') return NAVIGATION_ITEMS;
+  return NAVIGATION_ITEMS.filter((item) => item.screen !== 'account' && (item.screen !== 'generators' || hasWebsiteGenerators));
 }
 
-export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScreen }: SyncNavigationProps): ReactElement {
+export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScreen, hasWebsiteGenerators }: SyncNavigationProps): ReactElement {
   const handleClick = ({ event, screen }: { event: MouseEvent<HTMLAnchorElement>; screen: SyncScreen }): void => {
     if (event.ctrlKey || event.metaKey || event.shiftKey) return;
     event.preventDefault();
@@ -41,7 +41,7 @@ export function SyncNavigation({ platform, currentScreen, onNavigate, hrefsByScr
   };
   return (
     <nav className="sv-sync-navigation" aria-label="Sync">
-      {getNavigationItems(platform).map((item) => (
+      {getNavigationItems({ platform, hasWebsiteGenerators }).map((item) => (
         <a key={item.screen} href={hrefsByScreen?.[item.screen] ?? `#${item.screen}`} aria-current={item.screen === currentScreen ? 'page' : undefined} onClick={(event) => { handleClick({ event, screen: item.screen }); }}>
           <Icon name={item.iconName} size={18} />
           {item.label}

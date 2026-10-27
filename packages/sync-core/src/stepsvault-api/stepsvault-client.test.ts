@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
 import { SignedOutError, StepsVaultApiError } from './stepsvault-api-types';
+import { buildSongsPath } from '../songs-folder/songs-path';
+import { buildComputerSongReports, MAX_COMPUTER_SONGS_PER_REPORT } from './computer-songs';
 import { buildAddonSongFacts, pollDeviceSignIn, startDeviceSignIn, StepsVaultClient } from './stepsvault-client';
 
 const SITE_URL = 'https://stepsvault.com/';
@@ -133,6 +135,33 @@ describe('StepsVaultClient', () => {
     const api = new RecordedApi({ 'POST https://stepsvault.com/api/sync/devices/me/seen': { status: 200, body: { isRecorded: true } } });
     await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportSeen({ songCountsByStatus: { synced: 14 }, gameName: 'StepMania 5 LTEK' });
     expect(api.requests[0]?.jsonBody).toEqual({ songCountsByStatus: { synced: 14 }, gameName: 'StepMania 5 LTEK' });
+  });
+});
+
+describe('reportComputerSongs', () => {
+  it('posts the whole list with the device token to /api/computer-songs', async () => {
+    const api = new RecordedApi({ 'POST https://stepsvault.com/api/computer-songs': { status: 200, body: { recordedSongCount: 1 } } });
+    const song = { localId: 'youtube:abc', title: 'Low Tide', artistName: 'Marla Quinn', generatorName: 'Groove Lab', difficulties: ['Easy', 'Hard'], madeAt: '2026-10-24T10:00:00.000Z' };
+    await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' }).reportComputerSongs([song]);
+    expect(api.requests[0]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer device-token' }, jsonBody: { songs: [song] } });
+  });
+
+  it('throws the site’s sentence when the report is refused', async () => {
+    const api = new RecordedApi({ 'POST https://stepsvault.com/api/computer-songs': { status: 403, body: { message: 'Only the Sync app reports the songs made on its computer.' } } });
+    await expect(new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null }).reportComputerSongs([])).rejects.toThrow(StepsVaultApiError);
+  });
+});
+
+describe('buildComputerSongReports', () => {
+  it('lists the generated songs newest first, with the facts the site shows, and at most 500', () => {
+    const older = { songKey: 'song:a', song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null }, generatorId: 'tap', generatorVersion: '1.0.0', generatorName: 'Tap Forge', difficulties: ['Easy' as const], installId: 'i1', folderPath: buildSongsPath('My generated songs', 'Night Drive'), inPlaceOfVaultSongId: null, generatedAt: '2026-10-21T10:00:00.000Z' };
+    const newer = { ...older, songKey: 'song:b', song: { ...older.song, title: 'Low Tide' }, generatedAt: '2026-10-24T10:00:00.000Z' };
+    expect(buildComputerSongReports([older, newer])).toEqual([
+      { localId: 'song:b', title: 'Low Tide', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-24T10:00:00.000Z' },
+      { localId: 'song:a', title: 'Night Drive', artistName: 'Lumen Park', generatorName: 'Tap Forge', difficulties: ['Easy'], madeAt: '2026-10-21T10:00:00.000Z' },
+    ]);
+    const many = Array.from({ length: 501 }, (_, index) => ({ ...older, songKey: `song:${String(index)}` }));
+    expect(buildComputerSongReports(many)).toHaveLength(MAX_COMPUTER_SONGS_PER_REPORT);
   });
 });
 

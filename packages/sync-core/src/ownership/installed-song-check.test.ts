@@ -13,7 +13,7 @@ function buildInstalledSong(overrides: Partial<InstalledSong> = {}): InstalledSo
     vaultSongId: 'song-1',
     chartVersion: 'v3',
     installId: 'install-a',
-    folderPath: buildSongsPath('StepsVault', 'Cheap Thrills'),
+    folderPath: buildSongsPath('dancedance.studio', 'Cheap Thrills'),
     chartHashesByFileName: { 'Cheap Thrills.ssc': getChartHash(CHART_TEXT) },
     music: { fileName: 'Cheap Thrills.ogg', shiftSeconds: 0 },
     installedAt: '2026-10-24T10:00:00Z',
@@ -37,7 +37,7 @@ describe('checkInstalledSong', () => {
   it('finds the folder whatever the case of its name, as Windows does', async () => {
     const songsFolder = new MemorySongsFolder();
     const installedSong = buildInstalledSong();
-    await writeSongFolder({ songsFolder, installedSong: { ...installedSong, folderPath: buildSongsPath('stepsvault', 'CHEAP THRILLS') } });
+    await writeSongFolder({ songsFolder, installedSong: { ...installedSong, folderPath: buildSongsPath('DANCEDANCE.STUDIO', 'CHEAP THRILLS') } });
     expect((await checkInstalledSong({ songsFolder, installedSong })).state).toBe('intact');
   });
 

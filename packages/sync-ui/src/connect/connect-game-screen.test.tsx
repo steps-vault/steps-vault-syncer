@@ -11,7 +11,7 @@ describe('ConnectGameScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: /CHOOSE MY SONGS FOLDER/ }));
     expect(onChooseSongsFolder).toHaveBeenCalledOnce();
     expect(screen.getByRole('img', { name: /browser asking for permission/ })).toBeDefined();
-    expect(screen.getByText(/Your browser will ask again if you close it/)).toBeDefined();
+    expect(screen.getByText(/Your browser asks again after a restart/)).toBeDefined();
   });
 
   it('in Firefox or Safari, blocks calmly and explains how to open Edge', () => {
@@ -48,9 +48,9 @@ describe('ConnectGameScreen', () => {
 describe('SongsFolderPreview', () => {
   it('shows every group of the player locked, and where StepsVault songs will go', () => {
     render(<SongsFolderPreview songsFolderPath="C:\\Games\\StepMania 5\\Songs" playerGroups={FAKE_PLAYER_GROUPS} layoutText="by genre" onChangeLayout={vi.fn()} onChooseAnotherFolder={vi.fn()} onContinue={vi.fn()} />);
-    expect(screen.getByText('1,312 songs in 7 groups — all yours. We\'ll never touch them.')).toBeDefined();
+    expect(screen.getByText('1,312 songs in 7 groups. We never touch them.')).toBeDefined();
     const groups = within(screen.getByRole('list', { name: 'Groups in your Songs folder' })).getAllByRole('listitem');
     expect(groups.filter((group) => group.textContent.includes('Yours — never touched'))).toHaveLength(FAKE_PLAYER_GROUPS.length);
-    expect(groups.at(-1)?.textContent).toContain('StepsVault songs go here');
+    expect(groups.at(-1)?.textContent).toContain('New dancedance.studio groups');
   });
 });

@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { Icon } from '../icons/icon';
+import { joinClassNames } from '../shared/class-names';
 import { LifeBar } from '../shared/life-bar';
-import { Note } from '../shared/small-parts';
 import type { GeneratorJobView, VaultChoiceAnswer } from '../sync-ui-types';
 
 export interface GeneratorJobActions {
@@ -9,40 +9,53 @@ export interface GeneratorJobActions {
   onAnswerVaultChoice: (answer: VaultChoiceAnswer) => void;
 }
 
-/** Where one song stands: the generator's stage, the question about the vault song, or how it ended. */
-export function GeneratorJobProgress({ job, onCancelJob, onAnswerVaultChoice }: { job: GeneratorJobView } & GeneratorJobActions): ReactElement {
-  if (job.state === 'working') return <WorkingJob job={job} onCancelJob={onCancelJob} />;
+export const LIBRARY_SONG_QUESTION = 'Already in the library. Keep the library song, or the generated one?';
+
+/** Where one song stands: the generator's stage, the question about the library song, or how it ended. */
+export function GeneratorJobProgress({ job, onAnswerVaultChoice, isPercentOnStageLine = false }: { job: GeneratorJobView; isPercentOnStageLine?: boolean } & GeneratorJobActions): ReactElement {
+  if (job.state === 'working') return <WorkingJob job={job} isPercentOnStageLine={isPercentOnStageLine} />;
   if (job.state === 'needs-vault-choice') return <VaultChoice job={job} onAnswerVaultChoice={onAnswerVaultChoice} />;
-  if (job.state === 'done') return <div className="sv-sync-row sv-sync-good-text sv-sync-small" role="status"><Icon name="check" size={14} strokeWidth={2.6} />{job.doneText}</div>;
-  if (job.state === 'failed') return <div className="sv-sync-row sv-sync-error-text sv-sync-small" role="alert"><Icon name="warning" size={14} />{job.message}</div>;
-  return <div className="sv-sync-row sv-sync-muted sv-sync-small" role="status"><Icon name="none" size={14} />{job.message ?? 'Cancelled.'}</div>;
+  return <JobEnding job={job} />;
 }
 
-function WorkingJob({ job, onCancelJob }: { job: GeneratorJobView; onCancelJob: (jobKey: string) => void }): ReactElement {
+/** How a job ended, in one line: done, failed (with why) or cancelled. */
+export function JobEnding({ job }: { job: GeneratorJobView }): ReactElement {
+  if (job.state === 'done') return <div className="sv-sync-job-end sv-sync-good-text" role="status">{job.doneText}</div>;
+  if (job.state === 'failed') return <div className="sv-sync-job-end sv-sync-error-text" role="alert">Failed: {job.message}</div>;
+  return <div className="sv-sync-job-end sv-sync-muted" role="status">{job.message ?? 'Cancelled.'}</div>;
+}
+
+function WorkingJob({ job, isPercentOnStageLine }: { job: GeneratorJobView; isPercentOnStageLine: boolean }): ReactElement {
   return (
     <div className="sv-sync-stack-small" aria-live="polite">
       <div className="sv-sync-row sv-sync-space-between">
         <span className="sv-sync-stage-line"><Icon name="spin" size={18} strokeWidth={2.4} className="sv-sync-spin" />{job.stageText}</span>
-        {job.progressPercent !== null && <span className="sv-sync-tabular sv-sync-muted sv-sync-small">{job.progressPercent}%</span>}
+        {isPercentOnStageLine && <JobPercent job={job} />}
       </div>
       <LifeBar label={`Making the steps for ${job.songTitle}`} value={job.progressPercent ?? 0} maximum={100} />
-      {job.message !== null && <Note iconName="warning">{job.message}</Note>}
-      <div className="sv-sync-dialog-buttons">
-        <button className="sv-sync-button sv-sync-button--danger sv-sync-button--small" type="button" onClick={() => { onCancelJob(job.jobKey); }} aria-label={`Cancel ${job.songTitle}`}>Cancel</button>
-      </div>
+      {job.message !== null && <span className="sv-sync-small sv-sync-muted">{job.message}</span>}
     </div>
   );
 }
 
+function JobPercent({ job }: { job: GeneratorJobView }): ReactElement | null {
+  if (job.progressPercent === null) return null;
+  return <span className="sv-sync-tabular sv-sync-muted sv-sync-small">{job.progressPercent}%</span>;
+}
+
+/** Stops the song being made: next to the song's name in the list, at the bottom of the Make a song dialog. */
+export function CancelJobButton({ job, onCancelJob, isDanger = false }: { job: GeneratorJobView; onCancelJob: (jobKey: string) => void; isDanger?: boolean }): ReactElement {
+  return <button className={joinClassNames('sv-sync-button', isDanger ? 'sv-sync-button--danger' : 'sv-sync-button--ghost sv-sync-button--small')} type="button" onClick={() => { onCancelJob(job.jobKey); }} aria-label={`Cancel ${job.songTitle}`}>Cancel</button>;
+}
+
 function VaultChoice({ job, onAnswerVaultChoice }: { job: GeneratorJobView; onAnswerVaultChoice: (answer: VaultChoiceAnswer) => void }): ReactElement {
   return (
-    <div className="sv-sync-stack-small" role="group" aria-label="Keep the vault song, or the generated one?">
-      <span className="sv-sync-strong">Keep the vault song, or the generated one?</span>
-      {job.vaultChoiceQuestion !== null && <span className="sv-sync-small sv-sync-muted">{job.vaultChoiceQuestion}</span>}
-      <div className="sv-sync-row sv-sync-wrap">
-        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-vault-song' }); }}>Keep the vault song</button>
-        <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-generated-song' }); }}>Keep the one I made</button>
-      </div>
+    <div className="sv-sync-job-question" role="group" aria-label={LIBRARY_SONG_QUESTION}>
+      <span>{job.vaultChoiceQuestion ?? LIBRARY_SONG_QUESTION}</span>
+      <span className="sv-sync-row sv-sync-wrap">
+        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-vault-song' }); }}>Keep library song</button>
+        <button className="sv-sync-button sv-sync-button--small" type="button" onClick={() => { onAnswerVaultChoice({ jobKey: job.jobKey, choice: 'keep-generated-song' }); }}>Use generated</button>
+      </span>
     </div>
   );
 }
@@ -59,20 +72,24 @@ export function GeneratorJobList({ jobs, onDismissJob, ...actions }: GeneratorJo
     <section className="sv-sync-stack" aria-labelledby="sv-sync-generator-jobs-heading">
       <h2 id="sv-sync-generator-jobs-heading" className="sv-sync-heading-2">Songs being made</h2>
       <ul className="sv-sync-generator-jobs">
-        {jobs.map((job) => (
-          <li key={job.jobKey} className="sv-sync-generator-job" aria-label={job.songTitle}>
-            <div className="sv-sync-row sv-sync-space-between">
-              <span className="sv-sync-min-width-0">
-                <b className="sv-sync-strong" dir="auto">{job.songTitle}</b> <span className="sv-sync-muted" dir="auto">— {job.songArtist}</span>
-                <span className="sv-sync-small sv-sync-subtle"> · with {job.generatorName}</span>
-              </span>
-              {job.state !== 'working' && job.state !== 'needs-vault-choice' && (
-                <button className="sv-sync-close-button" type="button" aria-label={`Hide ${job.songTitle}`} onClick={() => { onDismissJob(job.jobKey); }}><Icon name="close" size={14} strokeWidth={2.6} /></button>
-              )}
-            </div>
-            <GeneratorJobProgress job={job} {...actions} />
-          </li>
-        ))}
+        {jobs.map((job) => {
+          const hasEnded = job.state !== 'working' && job.state !== 'needs-vault-choice';
+          return (
+            <li key={job.jobKey} className={joinClassNames('sv-sync-generator-job', hasEnded && 'sv-sync-generator-job--ended')} aria-label={job.songTitle}>
+              <div className="sv-sync-row sv-sync-space-between">
+                <span className="sv-sync-min-width-0">
+                  <b className="sv-sync-strong" dir="auto">{job.songTitle}</b>
+                  <span className="sv-sync-small sv-sync-subtle"> · {job.generatorName}</span>
+                </span>
+                {job.state === 'working' && <span className="sv-sync-row"><JobPercent job={job} /><CancelJobButton job={job} onCancelJob={actions.onCancelJob} /></span>}
+                {hasEnded && (
+                  <button className="sv-sync-close-button" type="button" aria-label={`Hide ${job.songTitle}`} onClick={() => { onDismissJob(job.jobKey); }}><Icon name="close" size={14} strokeWidth={2.6} /></button>
+                )}
+              </div>
+              <GeneratorJobProgress job={job} {...actions} />
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

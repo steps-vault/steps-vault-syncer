@@ -5,11 +5,33 @@ import { joinClassNames } from './class-names';
 /** Says calmly, every time, that Sync never touches the player's own folders. */
 export function LockedBadge(): ReactElement {
   return (
-    <span className="sv-sync-lock">
+    <span className="sv-sync-lock" title="Yours — never touched">
       <Icon name="lock" size={12} strokeWidth={2.6} />
-      Yours — never touched
+      <span className="sv-sync-visually-hidden">Yours — never touched</span>
     </span>
   );
+}
+
+export interface InfoToggleButtonProps {
+  /** Says what the hidden text is about, for example "How matching works". */
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  controlsId: string;
+}
+
+/** The small "?" next to a heading: details stay one press away instead of filling the screen. */
+export function InfoToggleButton({ label, isOpen, onToggle, controlsId }: InfoToggleButtonProps): ReactElement {
+  return (
+    <button className="sv-sync-info-button" type="button" aria-expanded={isOpen} aria-controls={controlsId} aria-label={label} title={label} onClick={onToggle}>
+      <Icon name="info" size={14} strokeWidth={2.4} />
+    </button>
+  );
+}
+
+/** The text an InfoToggleButton opens. */
+export function InfoPanel({ id, children }: { id: string; children: ReactNode }): ReactElement {
+  return <p id={id} className="sv-sync-info-panel">{children}</p>;
 }
 
 export function Note({ iconName = 'info', className, children }: { iconName?: IconName; className?: string; children: ReactNode }): ReactElement {

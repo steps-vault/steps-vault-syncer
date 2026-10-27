@@ -40,14 +40,33 @@ export function getSongCountsByStatus(rows: readonly SongRowView[]): Map<SongSyn
   return countsByStatus;
 }
 
+export interface NameCount {
+  name: string;
+  songCount: number;
+}
+
 export function getGenreNames(rows: readonly SongRowView[]): string[] {
-  return getSortedUniqueNames(rows.map((row) => row.genre));
+  return getGenreNameCounts(rows).map((nameCount) => nameCount.name);
 }
 
 export function getArtistNames(rows: readonly SongRowView[]): string[] {
-  return getSortedUniqueNames(rows.map((row) => row.artist));
+  return getArtistNameCounts(rows).map((nameCount) => nameCount.name);
 }
 
-function getSortedUniqueNames(names: readonly (string | null)[]): string[] {
-  return [...new Set(names.filter((name): name is string => name !== null && name !== ''))].sort((first, second) => first.localeCompare(second));
+/** Each genre once, A to Z, with how many songs have it. */
+export function getGenreNameCounts(rows: readonly SongRowView[]): NameCount[] {
+  return getSortedNameCounts(rows.map((row) => row.genre));
+}
+
+export function getArtistNameCounts(rows: readonly SongRowView[]): NameCount[] {
+  return getSortedNameCounts(rows.map((row) => row.artist));
+}
+
+function getSortedNameCounts(names: readonly (string | null)[]): NameCount[] {
+  const songCountsByName = new Map<string, number>();
+  for (const name of names) {
+    if (name === null || name === '') continue;
+    songCountsByName.set(name, (songCountsByName.get(name) ?? 0) + 1);
+  }
+  return [...songCountsByName].map(([name, songCount]) => ({ name, songCount })).sort((first, second) => first.name.localeCompare(second.name));
 }

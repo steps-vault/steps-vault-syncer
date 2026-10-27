@@ -1,30 +1,36 @@
 import { useState, type ReactElement } from 'react';
-import { Icon } from '../icons/icon';
+import { DifficultyLevelBadges } from '../shared/difficulty-levels';
+import { EmptyBox } from '../shared/miss-line';
+import { ReceptorLoader } from '../shared/receptor-loader';
 import type { GeneratedSongView } from '../sync-ui-types';
 
 export interface GeneratedSongListProps {
   songs: readonly GeneratedSongView[];
   /** The generator's own words on how it made the song (Markdown, shown as plain text); null when there are none. */
   onFetchSongReport: (songKey: string) => Promise<string | null>;
+  /** Offered on the empty list; without it the empty list says nothing. */
+  onMakeSong?: () => void;
 }
 
 /** The songs in "My generated songs" in the game; each can show "How it was made". */
-export function GeneratedSongList({ songs, onFetchSongReport }: GeneratedSongListProps): ReactElement | null {
-  if (songs.length === 0) return null;
+export function GeneratedSongList({ songs, onFetchSongReport, onMakeSong }: GeneratedSongListProps): ReactElement | null {
+  if (songs.length === 0 && !onMakeSong) return null;
   return (
     <section className="sv-sync-stack" aria-labelledby="sv-sync-generated-songs-heading">
-      <div className="sv-sync-stack-tiny">
-        <h2 id="sv-sync-generated-songs-heading" className="sv-sync-heading-2">My generated songs</h2>
-        <span className="sv-sync-text sv-sync-small">Songs you made with community generators. They are yours alone and stay on this computer.</span>
-      </div>
-      <ul className="sv-sync-generator-jobs">
-        {songs.map((song) => <GeneratedSongRow key={song.songKey} song={song} onFetchSongReport={onFetchSongReport} />)}
-      </ul>
+      <h2 id="sv-sync-generated-songs-heading" className="sv-sync-heading-2">My generated songs</h2>
+      {songs.length === 0 && onMakeSong && (
+        <EmptyBox action={<button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={onMakeSong}>Make a song</button>}>No generated songs yet.</EmptyBox>
+      )}
+      {songs.length > 0 && (
+        <ul className="sv-sync-generator-jobs">
+          {songs.map((song) => <GeneratedSongRow key={song.songKey} song={song} onFetchSongReport={onFetchSongReport} />)}
+        </ul>
+      )}
     </section>
   );
 }
 
-type ReportState = { kind: 'closed' } | { kind: 'loading' } | { kind: 'shown'; text: string };
+type ReportState = { kind: 'closed' } | { kind: 'loading' } | { kind: 'shown'; text: string } | { kind: 'missing' };
 
 function GeneratedSongRow({ song, onFetchSongReport }: { song: GeneratedSongView; onFetchSongReport: (songKey: string) => Promise<string | null> }): ReactElement {
   const [report, setReport] = useState<ReportState>({ kind: 'closed' });
@@ -35,24 +41,29 @@ function GeneratedSongRow({ song, onFetchSongReport }: { song: GeneratedSongView
     }
     setReport({ kind: 'loading' });
     const text = await onFetchSongReport(song.songKey).catch(() => null);
-    setReport({ kind: 'shown', text: text ?? 'Sync can’t find how this song was made any more.' });
+    setReport(text === null ? { kind: 'missing' } : { kind: 'shown', text });
   };
   return (
-    <li className="sv-sync-generator-job" aria-label={song.title}>
-      <div className="sv-sync-row sv-sync-space-between sv-sync-wrap">
-        <span className="sv-sync-min-width-0">
-          <b className="sv-sync-strong" dir="auto">{song.title}</b> <span className="sv-sync-muted" dir="auto">— {song.artist}</span>
-          <span className="sv-sync-small sv-sync-subtle"> · {song.difficultiesText} · with {song.generatorName} · {song.madeAtText}</span>
+    <li className="sv-sync-generator-job sv-sync-generated-song" aria-label={song.title}>
+      <div className="sv-sync-generated-song-top">
+        <span className="sv-sync-stack-tiny sv-sync-min-width-0">
+          <b className="sv-sync-strong" dir="auto">{song.title}</b>
+          <span className="sv-sync-small sv-sync-muted" dir="auto">{song.artist}</span>
         </span>
+        {song.levels ? <DifficultyLevelBadges levels={song.levels} /> : <span className="sv-sync-small sv-sync-muted">{song.difficultiesText}</span>}
+        <span className="sv-sync-small sv-sync-subtle">{song.generatorName} · {song.madeAtText}</span>
         {song.hasReport && (
-          <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" aria-expanded={report.kind !== 'closed'} onClick={() => void toggleReport()}>
-            <Icon name="info" size={14} />How it was made
-          </button>
+          <button className="sv-sync-link-button" type="button" aria-expanded={report.kind !== 'closed'} onClick={() => void toggleReport()}>How it was made</button>
         )}
       </div>
-      <span className="sv-sync-mono sv-sync-subtle sv-sync-break-all">{song.folderText}</span>
-      {report.kind === 'loading' && <span className="sv-sync-small sv-sync-muted">Loading…</span>}
-      {report.kind === 'shown' && <pre className="sv-sync-report" aria-label={`How ${song.title} was made`}>{report.text}</pre>}
+      <span className="sv-sync-mono sv-sync-subtle sv-sync-break-all" dir="auto">{song.folderText}</span>
+      {report.kind !== 'closed' && (
+        <div className="sv-sync-report" aria-label={`How ${song.title} was made`}>
+          {report.kind === 'loading' && <ReceptorLoader label="Loading…" isSmall />}
+          {report.kind === 'shown' && <span className="sv-sync-report-text">{report.text}</span>}
+          {report.kind === 'missing' && <span className="sv-sync-muted">We can&apos;t find the report for this song.</span>}
+        </div>
+      )}
     </li>
   );
 }

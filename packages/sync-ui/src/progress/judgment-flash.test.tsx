@@ -22,8 +22,8 @@ describe('JudgmentFlash', () => {
     const onDismiss = vi.fn();
     render(<JudgmentFlash syncedCount={19} needsYouCount={4} onSeeActivity={onSeeActivity} onDismiss={onDismiss} />);
     expect(screen.getByRole('status').textContent).toContain('PERFECT!');
-    expect(screen.getByText('19 songs synced. 4 need you.')).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: 'See what happened' }));
+    expect(screen.getByText('19 synced · 4 need you')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'View activity' }));
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onSeeActivity).toHaveBeenCalledOnce();
     expect(onDismiss).toHaveBeenCalledOnce();

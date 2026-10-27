@@ -2,6 +2,7 @@ import type { SongSyncStatus } from '@stepsvault/sync-core';
 import type { ReactElement } from 'react';
 import { ArrowReceptor } from '../icons/arrow-receptor';
 import { Icon } from '../icons/icon';
+import { APP_NAME, SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import { CoverArt } from '../shared/cover-art';
 import { getStatusToneClassName } from '../status/song-status';
@@ -45,9 +46,9 @@ export function PhoneStatusView(props: PhoneStatusViewProps): ReactElement {
         </div>
         <div className="sv-sync-note sv-sync-small">
           <Icon name="computer" />
-          <span>Syncing needs a computer. Open StepsVault Sync on {props.computerName}, or stepsvault.com in Chrome or Edge.</span>
+          <span>Syncing needs a computer. Open {APP_NAME} on {props.computerName}, or {SITE_NAME} in Chrome or Edge.</span>
         </div>
-        <ul className="sv-sync-phone-songs" aria-label="Your StepsVault songs">
+        <ul className="sv-sync-phone-songs" aria-label={`Your ${SITE_NAME} songs`}>
           {props.songs.map((song) => (
             <li key={song.vaultSongId} className="sv-sync-phone-song">
               <CoverArt coverArtUrl={song.coverArtUrl} className="sv-sync-cover--small" />

@@ -9,6 +9,8 @@ export interface SscChart {
   stepsType: string;
   /** Like `Hard`; empty when the block has none. */
   difficulty: string;
+  /** The chart's level (`#METER`), 1 to 99; null when it has none or a broken one. */
+  meter: number | null;
   hasNotes: boolean;
   text: string;
 }
@@ -58,9 +60,16 @@ function readSscChart(text: string): SscChart {
   return {
     stepsType: getSscTagValue({ text, tagName: 'STEPSTYPE' }) ?? '',
     difficulty: getSscTagValue({ text, tagName: 'DIFFICULTY' }) ?? '',
+    meter: getMeterOrNull(getSscTagValue({ text, tagName: 'METER' })),
     hasNotes: NOTES_TAG_PATTERN.test(text),
     text,
   };
+}
+
+function getMeterOrNull(value: string | null): number | null {
+  if (value === null || !/^\d{1,2}$/.test(value)) return null;
+  const meter = Number(value);
+  return meter >= 1 ? meter : null;
 }
 
 function buildTagPattern({ tagName, flags }: { tagName: string; flags: string }): RegExp {

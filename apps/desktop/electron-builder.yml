@@ -23,7 +23,7 @@ nsis:
   allowToChangeInstallationDirectory: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: StepsVault Sync
+  shortcutName: DanceDance Sync
 publish:
   provider: github
   owner: steps-vault

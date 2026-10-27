@@ -66,7 +66,7 @@ export async function waitForSongSource(options: WaitForSongSourceOptions): Prom
 /** When the player chose "Music only", a video the addon sends anyway is dropped, as for /audio-links. */
 function withoutUnwantedVideo({ addon, answer }: { addon: InstalledAddon; answer: SongSourceAnswer }): SongSourceAnswer {
   if (answer.kind !== 'found' || !isAddonSetToMusicOnly(addon)) return answer;
-  return { ...answer, videoLink: null };
+  return { ...answer, choices: answer.choices.map((choice) => ({ ...choice, videoLink: null })) };
 }
 
 function describeSongSourceProblem({ addon, error }: { addon: InstalledAddon; error: HttpRequestError | InvalidAddonAnswerError }): string {

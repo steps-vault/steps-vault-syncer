@@ -5,7 +5,7 @@ import {
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
-import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
+import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
 type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone';
 type SyncPhase = 'idle' | 'syncing' | 'finished';
@@ -42,7 +42,7 @@ export function PreviewApp(): ReactElement {
   return (
     <>
       <div className="preview-controls">
-        <b>StepsVault Sync preview</b>
+        <b>DanceDance Sync preview</b>
         <label>Screen <select value={screen} onChange={(event) => { setScreen(event.target.value as PreviewScreen); }}>{PREVIEW_SCREENS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         <label>Frame <select value={platform} onChange={(event) => { setPlatform(event.target.value as SyncPlatform); }}><option value="website">Website</option><option value="desktop">Desktop app</option></select></label>
         <label>Sync <select value={syncPhase} onChange={(event) => { setSyncPhase(event.target.value as SyncPhase); }}><option value="idle">Idle</option><option value="syncing">Syncing</option><option value="finished">Finished</option></select></label>
@@ -59,7 +59,7 @@ function PreviewFrame({ platform, screen, children }: { platform: SyncPlatform; 
   if (platform === 'website') return <>{children}</>;
   return (
     <div className="preview-window">
-      <div className="preview-window-bar">StepsVault Sync</div>
+      <div className="preview-window-bar">DanceDance Sync</div>
       {children}
     </div>
   );
@@ -160,13 +160,14 @@ function GeneratorsPreview(): ReactElement {
       onSetGeneratorOption={noop}
       onChooseMusicFile={() => Promise.resolve({ musicId: 'picked-file', title: 'my new song', artist: 'Unknown artist', sourceText: 'my_new_song.mp3', lengthText: '3:05', hasVideo: false })}
       onSearchMusic={() => Promise.resolve(FAKE_MUSIC_CHOICES)}
-      onFindSong={() => Promise.resolve({ kind: 'found', music: { musicId: 'found-song', title: 'Low Tide', artist: 'Marla Quinn', sourceText: 'From Tube Songs', lengthText: '4:02', hasVideo: true } })}
+      onFindSong={() => Promise.resolve({ kind: 'found', musics: FAKE_FOUND_MUSICS })}
       onStopFindingSong={noop}
       onMakeSong={() => Promise.resolve({ kind: 'started', jobKey: 'job-night-drive' })}
       onCancelJob={noop}
       onAnswerVaultChoice={noop}
       onDismissJob={noop}
       onFetchSongReport={() => Promise.resolve('# How it was made\n\nOnsets found with a simple energy rule, arrows by flow.')}
+      mySongsHref="#my-songs"
     />
   );
 }

@@ -10,10 +10,10 @@ const COLORS_BY_STATUS: Readonly<Record<TrayStatus, readonly [number, number, nu
   paused: [200, 200, 200],
 };
 const TOOLTIPS_BY_STATUS: Readonly<Record<TrayStatus, string>> = {
-  synced: 'StepsVault Sync · everything is in your game',
-  syncing: 'StepsVault Sync · syncing…',
-  'needs-attention': 'StepsVault Sync · some songs need you',
-  paused: 'StepsVault Sync · paused',
+  synced: 'DanceDance Sync · everything is in your game',
+  syncing: 'DanceDance Sync · syncing…',
+  'needs-attention': 'DanceDance Sync · some songs need you',
+  paused: 'DanceDance Sync · paused',
 };
 
 /** A small up-arrow, drawn in code so the app ships no icon files that could go missing. */

@@ -4,9 +4,10 @@ import { getSafeFolderName } from './safe-folder-name';
 
 export type FolderLayout = 'one-group' | 'by-genre' | 'by-artist';
 
-export const ONE_GROUP_NAME = 'StepsVault';
-/** Plain ASCII, like every folder name Sync writes (see getSafeFolderName). */
-export const CLASH_PREFIX = 'StepsVault - ';
+/** Plain ASCII, like every folder name Sync writes (see getSafeFolderName): v3 draws "dancedance.studio · Pop", but a
+ * middle dot is missing from some Windows code pages StepMania opens folders through. */
+export const ONE_GROUP_NAME = 'dancedance.studio';
+export const CLASH_PREFIX = 'dancedance.studio - ';
 const UNKNOWN_GENRE_NAME = 'Other';
 const UNKNOWN_ARTIST_NAME = 'Unknown artist';
 const UNKNOWN_TITLE_NAME = 'Untitled';
@@ -41,7 +42,7 @@ export function getGroupBaseName({ layout, song }: { layout: FolderLayout; song:
 
 /**
  * Our group keeps its plain name unless the player already has a folder called that (compared without case); then
- * it becomes "StepsVault - <name>", so the player's folder and ours never mix.
+ * it becomes "dancedance.studio - <name>", so the player's folder and ours never mix.
  */
 export function getGroupName({ baseName, playerGroupNames }: { baseName: string; playerGroupNames: readonly string[] }): string {
   const playerNameKeys = new Set(playerGroupNames.map(getNameKey));

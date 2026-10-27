@@ -112,7 +112,7 @@ export class GeneratorJobRunner {
     const { manifest } = jobGenerator.generator;
     const now = this.dependencies.getNow();
     await this.saveJob({
-      jobKey: start.jobKey, generatorBaseUrl: start.generatorBaseUrl, generatorId: manifest.id, generatorName: jobGenerator.isStepsVault ? 'StepsVault generator' : manifest.name, generatorVersion: manifest.version, isStepsVault: jobGenerator.isStepsVault,
+      jobKey: start.jobKey, generatorBaseUrl: start.generatorBaseUrl, generatorId: manifest.id, generatorName: jobGenerator.isStepsVault ? 'dancedance.studio generator' : manifest.name, generatorVersion: manifest.version, isStepsVault: jobGenerator.isStepsVault,
       jobId: null, song: start.song, difficulties: [...start.difficulties], state: 'sending', progress: null, stage: null, retryAfterSeconds: 10, message: null, vaultChoice: null, result: null,
       playerMusicLocation: start.playerMusicLocation, playerVideoLocation: start.playerVideoLocation, collectedFilesLocation: null, startedAt: now, updatedAt: now,
     });

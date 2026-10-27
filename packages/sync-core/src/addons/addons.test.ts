@@ -312,21 +312,39 @@ describe('fetchSongSource', () => {
     const result = await fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: { link: ' https://youtu.be/dQw4w9WgXcQ ', other: 'never sent' } });
     expect(httpClient.requests[0]).toMatchObject({ url: 'https://tube.example.org/song-source', method: 'POST', timeoutMilliseconds: 20_000, maxResponseBytes: 65_536 });
     expect(httpClient.requests[0]?.jsonBody).toEqual({ protocol: 1, inputs: PLAYER_LINK });
-    expect(result).toEqual({ kind: 'found', song: FOUND_SONG, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK });
+    expect(result).toEqual({ kind: 'found', choices: [{ song: FOUND_SONG, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK }] });
   });
 
   it('keeps title and artist when the other facts are missing or broken', async () => {
     const httpClient = new RecordedHttpClient([{ status: 200, body: { song: { title: ' Pulse Garden ', artist: 'Kairo Lights', lengthSeconds: -3, youtubeId: 'not an id' }, links: [{ ...MUSIC_LINK, media: undefined }] } }]);
     const result = await fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK });
-    expect(result).toMatchObject({ kind: 'found', song: { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: null, youtubeId: null }, videoLink: null });
+    expect(result).toMatchObject({ kind: 'found', choices: [{ song: { title: 'Pulse Garden', artist: 'Kairo Lights', album: null, genre: null, lengthSeconds: null, youtubeId: null }, videoLink: null }] });
   });
 
   it('sends the options, and drops the video when the player chose music only', async () => {
     const manifest: AddonManifest = { ...SONG_SOURCE_ADDON.manifest, provides: ['video-links', 'song-source'], options: [MEDIA_OPTION] };
     const addon = buildInstalledAddon({ baseUrl: 'https://tube.example.org', manifest, consentedAt: '', optionValues: { media: 'audio' } });
     const httpClient = new RecordedHttpClient([{ status: 200, body: { song: FOUND_SONG, links: [MUSIC_LINK, VIDEO_LINK] } }]);
-    expect(await fetchSongSource({ httpClient, addon, valuesByInputId: PLAYER_LINK })).toMatchObject({ kind: 'found', videoLink: null });
+    expect(await fetchSongSource({ httpClient, addon, valuesByInputId: PLAYER_LINK })).toMatchObject({ kind: 'found', choices: [{ videoLink: null }] });
     expect(httpClient.requests[0]?.jsonBody).toEqual({ protocol: 1, inputs: PLAYER_LINK, options: { media: 'audio' } });
+  });
+
+  it('reads a few songs for the player to pick from, dropping the ones it can’t use', async () => {
+    const live = { ...FOUND_SONG, title: 'Pulse Garden (Live)' };
+    const choices = [{ song: FOUND_SONG, links: [MUSIC_LINK, VIDEO_LINK] }, { song: { artist: 'no title' }, links: [MUSIC_LINK] }, 'not a choice', { song: live, links: [MUSIC_LINK] }];
+    const httpClient = new RecordedHttpClient([{ status: 200, body: { choices } }]);
+    const result = await fetchSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK });
+    expect(result).toEqual({ kind: 'found', choices: [{ song: FOUND_SONG, musicLink: MUSIC_LINK, videoLink: VIDEO_LINK }, { song: live, musicLink: MUSIC_LINK, videoLink: null }] });
+  });
+
+  it('keeps at most ten choices, says not found for none, and not answering when none is usable', async () => {
+    const many = Array.from({ length: 12 }, () => ({ song: FOUND_SONG, links: [MUSIC_LINK] }));
+    const manyResult = await fetchSongSource({ httpClient: new RecordedHttpClient([{ status: 200, body: { choices: many } }]), addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK });
+    expect(manyResult.kind === 'found' && manyResult.choices).toHaveLength(10);
+    const noneResult = await fetchSongSource({ httpClient: new RecordedHttpClient([{ status: 200, body: { choices: [], error: 'Nothing like that.' } }]), addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK });
+    expect(noneResult).toEqual({ kind: 'not-found', addonError: 'Nothing like that.' });
+    const brokenResult = await fetchSongSource({ httpClient: new RecordedHttpClient([{ status: 200, body: { choices: [{ song: FOUND_SONG, links: [] }] } }]), addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK });
+    expect(brokenResult.kind === 'not-answering' && brokenResult.message).toContain('none with a title, an artist and a music file');
   });
 
   it('says the addon is still working, within sane limits', async () => {
@@ -379,7 +397,7 @@ describe('waitForSongSource', () => {
     };
     const result = await waitForSongSource({ httpClient, addon: SONG_SOURCE_ADDON, valuesByInputId: PLAYER_LINK, waitSeconds });
     expect(waitedSeconds).toEqual([5, 600]);
-    expect(result).toMatchObject({ kind: 'found', musicLink: MUSIC_LINK });
+    expect(result).toMatchObject({ kind: 'found', choices: [{ musicLink: MUSIC_LINK }] });
   });
 
   it('stops when the player cancels while waiting', async () => {

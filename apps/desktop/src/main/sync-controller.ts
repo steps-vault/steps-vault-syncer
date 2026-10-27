@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
+  buildComputerSongReports,
   buildEmptyInstalledSongsRecord,
   buildInstalledAddon,
   fetchAddonManifest,
@@ -201,7 +202,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     const device = { deviceName: this.options.computerName, operatingSystem: this.options.systemName, appVersion: this.options.appVersion };
     const deviceCode = await startDeviceSignIn({ httpClient: this.httpClient, siteUrl: this.options.siteUrl, device }).catch(() => null);
     if (!deviceCode) {
-      this.problem = 'StepsVault can’t be reached right now. Check your internet connection, then choose "Get a new code".';
+      this.problem = 'dancedance.studio can’t be reached right now. Check your internet connection, then choose "Get a new code".';
       this.publish();
       return;
     }
@@ -251,7 +252,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       this.publish();
       return;
     }
-    this.syncRun = { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your vault…' };
+    this.syncRun = { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your library…' };
     this.problem = null;
     this.publish();
     try {
@@ -400,7 +401,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   copyActivityDetails(): Promise<void> {
     const lines = this.settings.activity.slice(-MAX_ACTIVITY_IN_COPY).map((event) => `${event.at} ${describeActivityKind(event)} ${event.folderPath.join('/')}${event.message ? ` — ${event.message}` : ''}`);
-    this.options.services.writeClipboard([`StepsVault Sync ${this.options.appVersion}`, ...lines].join('\n'));
+    this.options.services.writeClipboard([`DanceDance Sync ${this.options.appVersion}`, ...lines].join('\n'));
     return Promise.resolve();
   }
 
@@ -455,6 +456,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     if (result.kind === 'needs-vault-choice') return result;
     this.record = result.record;
     await this.recordStore.save(result.record);
+    if (result.kind === 'written') void this.reportComputerSongs();
     const replacedVaultSongId = result.kind === 'written' ? result.generatedSong.inPlaceOfVaultSongId : null;
     // The vault song the player chose to replace leaves the game on the next sync, like a song removed from the vault.
     if (replacedVaultSongId !== null) await this.saveSettings(withSongChoice({ settings: this.settings, vaultSongId: replacedVaultSongId, action: 'remove-from-game' }));
@@ -504,7 +506,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private async runOneSync(): Promise<void> {
     const outcome = await runSync({ ports: this.buildPorts(), settings: this.buildSyncSettings(), onPhase: (phase) => {
       this.syncRun = phase.kind === 'reading-vault'
-        ? { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your vault…' }
+        ? { currentSongNumber: 0, totalSongCount: 0, currentStepText: 'Reading your library…' }
         : phase.kind === 'finding-audio'
           ? { currentSongNumber: phase.doneSongCount + 1, totalSongCount: phase.totalSongCount, currentStepText: 'Finding audio and checking it’s the same edit' }
           : { currentSongNumber: phase.progress.doneSongCount, totalSongCount: phase.progress.totalSongCount, currentStepText: 'Writing to your game' };
@@ -517,6 +519,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.finishedSync = { syncedCount: songPlans.filter((songPlan) => songPlan.status === 'synced').length, needsYouCount: songPlans.filter((songPlan) => songPlan.status !== 'synced').length };
     await this.saveSettings(withSettledChoices({ settings: withActivity({ settings: { ...this.settings, lastSyncAt: new Date().toISOString() }, events: outcome.events }), outcome }));
     await this.reportSeen(outcome);
+    await this.reportComputerSongs();
   }
 
   private async handleSyncError(error: unknown): Promise<void> {
@@ -534,6 +537,12 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     await this.buildClient().reportSeen({ songCountsByStatus, gameName: this.settings.game?.gameName ?? null }).catch(() => undefined);
   }
 
+  /** Keeps My songs on the site ("This PC") in step with the songs generators made here; the site keeps no music. */
+  private async reportComputerSongs(): Promise<void> {
+    if (this.deviceToken === null) return;
+    await this.buildClient().reportComputerSongs(buildComputerSongReports(getGeneratedSongs(this.record))).catch(() => undefined);
+  }
+
   private async waitForSignIn({ pollingId, intervalSeconds }: { pollingId: string; intervalSeconds: number }): Promise<void> {
     while (this.signIn.kind === 'waiting-for-code') {
       await delay(intervalSeconds * 1000);
@@ -541,7 +550,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       if (poll.status === 'waiting') continue;
       if (poll.status === 'expired') {
         this.signIn = { kind: 'signed-out' };
-        this.problem = 'The code expired. Choose "Get a new code" and type it on stepsvault.com/link.';
+        this.problem = 'The code expired. Choose "Get a new code" and type it on dancedance.studio/link.';
       } else {
         this.deviceToken = poll.deviceToken;
         await this.options.tokenStore.save(poll.deviceToken);

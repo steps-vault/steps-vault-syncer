@@ -1,11 +1,13 @@
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import { Icon, type IconName } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import { LifeBar } from '../shared/life-bar';
-import { Note } from '../shared/small-parts';
+import { EmptyBox } from '../shared/miss-line';
+import { InfoPanel, InfoToggleButton } from '../shared/small-parts';
 import { StatusChip } from '../status/status-chip';
 import type { AddonInstallPreview, AddonLookupResult, AddonView, MusicFolderScanState, MusicFolderView, PickedFileView, ServiceLookupRequest } from '../sync-ui-types';
-import { AddAddonDialog } from './add-addon-dialog';
+import { AddAddonDialog, ADDON_TRUST_NOTE } from './add-addon-dialog';
 import { AddonCard } from './addon-card';
 
 const NUMBER_FORMAT = new Intl.NumberFormat('en-US');
@@ -43,11 +45,12 @@ export interface AudioSourcesScreenProps {
 /** Screen 4: where Sync looks for the player's own copy of each song. */
 export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement {
   const [isAddingAddon, setIsAddingAddon] = useState(false);
+  const [isExplainingAddons, setIsExplainingAddons] = useState(false);
   return (
     <div className="sv-sync-screen">
       <div className="sv-sync-stack-small">
         <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Audio sources</h2>
-        <p className="sv-sync-text">Every song needs your own copy of the music. Tell Sync where to look. Syncing your songs never uploads your music anywhere.</p>
+        <p className="sv-sync-text sv-sync-text--medium">{SITE_NAME} never sends anyone music.</p>
       </div>
       <div className="sv-sync-two-columns">
         <MusicFolderSource {...props} />
@@ -55,17 +58,20 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
       </div>
       <section className="sv-sync-stack" aria-labelledby="sv-sync-addons-heading">
         <div className="sv-sync-row sv-sync-space-between sv-sync-wrap sv-sync-align-end">
-          <div className="sv-sync-stack-tiny">
-            <h2 id="sv-sync-addons-heading" className="sv-sync-heading-2">Addons</h2>
-            <span className="sv-sync-text sv-sync-small">Links to other places your audio can come from, made by the community.</span>
+          <div className="sv-sync-stack-small">
+            <div className="sv-sync-row">
+              <h2 id="sv-sync-addons-heading" className="sv-sync-heading-2">Addons</h2>
+              <InfoToggleButton label="What are addons?" isOpen={isExplainingAddons} onToggle={() => { setIsExplainingAddons(!isExplainingAddons); }} controlsId="sv-sync-addons-explained" />
+            </div>
+            <span className="sv-sync-text sv-sync-small">{ADDON_TRUST_NOTE}</span>
+            {isExplainingAddons && <InfoPanel id="sv-sync-addons-explained">An addon links Sync to another place your audio can come from. Turn one off or remove it any time; songs keep the audio they already have.</InfoPanel>}
           </div>
-          <button className="sv-sync-button" type="button" onClick={() => { setIsAddingAddon(true); }}><Icon name="plus" strokeWidth={2.6} />Add addon</button>
+          {props.addons.length > 0 && <button className="sv-sync-button" type="button" onClick={() => { setIsAddingAddon(true); }}><Icon name="plus" strokeWidth={2.6} />Add addon</button>}
         </div>
         <div className="sv-sync-addon-list">
           {props.addons.map((addon) => <AddonCard key={addon.addonId} addon={addon} onToggle={props.onToggleAddon} onRemove={props.onRemoveAddon} onSetOption={props.onSetAddonOption} />)}
-          {props.addons.length === 0 && <p className="sv-sync-text sv-sync-small sv-sync-muted">No addons yet. Sync works without them.</p>}
+          {props.addons.length === 0 && <EmptyBox action={<button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={() => { setIsAddingAddon(true); }}>Add addon</button>}>No addons yet. Sync works without them.</EmptyBox>}
         </div>
-        <Note>Addons are made by other people, not StepsVault. Only install ones you trust. You can turn one off or remove it any time — songs keep the audio they already have.</Note>
       </section>
       {isAddingAddon && (
         <AddAddonDialog onLookUpAddon={props.onLookUpAddon} canUseStartCommand={props.canUseStartCommand} onInstall={(addon) => { setIsAddingAddon(false); props.onInstallAddon(addon); }} onClose={() => { setIsAddingAddon(false); }} />
@@ -75,10 +81,12 @@ export function AudioSourcesScreen(props: AudioSourcesScreenProps): ReactElement
 }
 
 function MusicFolderSource(props: AudioSourcesScreenProps): ReactElement {
+  const [isExplainingMatching, setIsExplainingMatching] = useState(false);
+  const infoButton = <InfoToggleButton label="How matching works" isOpen={isExplainingMatching} onToggle={() => { setIsExplainingMatching(!isExplainingMatching); }} controlsId="sv-sync-matching-explained" />;
   return (
     <section className="sv-sync-panel sv-sync-source-card" aria-labelledby="sv-sync-music-folder-heading">
-      <SourceCardHead headingId="sv-sync-music-folder-heading" iconName="folder" title="My music folder" subtitle="Built in · used first" />
-      <p className="sv-sync-text sv-sync-small">Pick one or more folders where you keep music. We match by name, then check the actual sound, so a different version won&apos;t be used by mistake.</p>
+      <SourceCardHead headingId="sv-sync-music-folder-heading" iconName="folder" title="My music folder" subtitle="Built in · used first" extra={infoButton} />
+      {isExplainingMatching && <InfoPanel id="sv-sync-matching-explained">Add the folders where you keep music. We match by name, then check the actual sound, so a different version is never used by mistake.</InfoPanel>}
       <ul className="sv-sync-music-folders" aria-label="Music folders">
         {props.musicFolders.map((folder) => <MusicFolderRow key={folder.folderPath} folder={folder} onRemove={props.onRemoveMusicFolder} />)}
       </ul>
@@ -92,7 +100,7 @@ function MusicFolderSource(props: AudioSourcesScreenProps): ReactElement {
           <span className="sv-sync-small sv-sync-muted">You can keep using Sync while we look.</span>
         </div>
       )}
-      <div className="sv-sync-big-stat"><b className="sv-sync-tabular">{props.matchedSongCount}</b><span>of {props.vaultSongCount} vault songs found in your folders</span></div>
+      <div className="sv-sync-big-stat"><b className="sv-sync-tabular">{props.matchedSongCount}</b><span>of {props.vaultSongCount} songs found</span></div>
       <div className="sv-sync-row sv-sync-wrap">
         <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={props.onAddMusicFolder}><Icon name="plus" size={14} strokeWidth={2.6} />Add folder…</button>
         <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" type="button" onClick={props.onScanAgain} disabled={props.scan !== null}><Icon name="spin" size={14} />Scan again</button>
@@ -125,8 +133,8 @@ function PickFileSource({ pickedFiles, onGoToSongs }: { pickedFiles: readonly Pi
   return (
     <section className="sv-sync-panel sv-sync-source-card" aria-labelledby="sv-sync-pick-file-heading">
       <SourceCardHead headingId="sv-sync-pick-file-heading" iconName="file" title="Pick a file" subtitle="Built in · for one song at a time" />
-      <p className="sv-sync-text sv-sync-small">Got a song somewhere else? Use <b className="sv-sync-strong">Choose audio…</b> on its row or in its details. We still check it&apos;s the same version.</p>
-      {pickedFiles.length > 0 && <span className="sv-sync-small sv-sync-muted">Picked files right now</span>}
+      <p className="sv-sync-text sv-sync-text--medium">Use <b className="sv-sync-strong">Choose audio…</b> on any song. We still check it&apos;s the same version.</p>
+      {pickedFiles.length > 0 && <span className="sv-sync-small sv-sync-muted">Picked files</span>}
       <ul className="sv-sync-picked-files">
         {pickedFiles.map((pickedFile) => (
           <li key={pickedFile.vaultSongId}>
@@ -140,7 +148,7 @@ function PickFileSource({ pickedFiles, onGoToSongs }: { pickedFiles: readonly Pi
   );
 }
 
-function SourceCardHead({ headingId, iconName, title, subtitle }: { headingId: string; iconName: IconName; title: string; subtitle: string }): ReactElement {
+function SourceCardHead({ headingId, iconName, title, subtitle, extra }: { headingId: string; iconName: IconName; title: string; subtitle: string; extra?: ReactNode }): ReactElement {
   return (
     <div className="sv-sync-source-head">
       <span className="sv-sync-source-icon"><Icon name={iconName} size={22} /></span>
@@ -148,6 +156,7 @@ function SourceCardHead({ headingId, iconName, title, subtitle }: { headingId: s
         <h3 id={headingId} className="sv-sync-heading-2 sv-sync-heading-2--small">{title}</h3>
         <span className="sv-sync-small sv-sync-muted">{subtitle}</span>
       </div>
+      {extra}
       <span className="sv-sync-badge sv-sync-badge--on">On</span>
     </div>
   );

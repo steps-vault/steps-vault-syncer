@@ -35,9 +35,26 @@ describe('ActivityScreen', () => {
   it('copies the details for support and says so', () => {
     const onCopyDetails = vi.fn();
     const { rerender } = render(<ActivityScreen entries={FAKE_ACTIVITY_ENTRIES} wasCopied={false} onCopyDetails={onCopyDetails} hasOlderEntries={false} onShowOlder={vi.fn()} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Copy details' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy log for support' }));
     expect(onCopyDetails).toHaveBeenCalledOnce();
     rerender(<ActivityScreen entries={FAKE_ACTIVITY_ENTRIES} wasCopied onCopyDetails={onCopyDetails} hasOlderEntries={false} onShowOlder={vi.fn()} />);
     expect(screen.getByRole('status').textContent).toContain('Copied');
+  });
+});
+
+describe('ActivityScreen made songs and empty', () => {
+  it('shows only generator entries under Made songs', () => {
+    const madeEntry = { entryId: 'made-1', kind: 'generated' as const, dayText: 'Today', timeText: '17:58', textBefore: 'Made ', highlightedText: 'Low Tide', textAfter: ' with Groove Lab', summaryText: 'In My generated songs', details: [] };
+    render(<ActivityScreen entries={[madeEntry, ...FAKE_ACTIVITY_ENTRIES]} wasCopied={false} onCopyDetails={vi.fn()} hasOlderEntries={false} onShowOlder={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Made songs' }));
+    expect(getEntryButtons().map((button) => button.textContent)).toEqual([expect.stringContaining('Made Low Tide with Groove Lab') as string]);
+  });
+
+  it('says there is nothing yet and offers the songs', () => {
+    const onGoToSongs = vi.fn();
+    render(<ActivityScreen entries={[]} wasCopied={false} onCopyDetails={vi.fn()} hasOlderEntries={false} onShowOlder={vi.fn()} onGoToSongs={onGoToSongs} />);
+    expect(screen.getByRole('status').textContent).toContain('Nothing here yet.');
+    fireEvent.click(screen.getByRole('button', { name: 'Go to my songs' }));
+    expect(onGoToSongs).toHaveBeenCalledOnce();
   });
 });

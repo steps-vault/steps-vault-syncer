@@ -1,17 +1,19 @@
 import { useState, type FormEvent, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
+import { DialogHeading } from '../dialog/dialog-heading';
 import { Icon } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { Note } from '../shared/small-parts';
 import { getAddonInitials } from '../sources/addon-card';
 import { AddonOptionFields } from '../sources/addon-option-fields';
-import { AddressError, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote } from '../sources/start-command-field';
+import { AddressError, EMPTY_SERVICE_ADDRESS_DRAFT, getStartCommandOrNull, isServiceAddress, isThisComputerAddress, StartCommandField, StartCommandNote, type ServiceAddressDraft } from '../sources/start-command-field';
 import type { AddonOptionView, GeneratorInstallPreview, GeneratorLookupResult, ServiceLookupRequest } from '../sync-ui-types';
 import { ServiceLocation } from './generator-card';
 
 /** Everything a generator ever gets, for each song (generators.md, "What a generator gets"). */
 export const GENERATOR_GETS = ['the music file you pick.', 'the song’s facts: title, artist, album, genre, length and YouTube link.', 'the difficulties you pick.'] as const;
 export const GENERATOR_NEVER_GETS = 'your account, your tokens, or anything else on your computer.';
-export const GENERATOR_TRUST_NOTE = 'Generators are made by other people, not StepsVault. Only add ones you trust.';
+export const GENERATOR_TRUST_NOTE = `Made by other people, not ${SITE_NAME}. Only add ones you trust.`;
 const LOOKUP_FAILED_MESSAGE = 'We couldn’t reach that generator. Check the address with whoever made it, then try again.';
 
 /** The sentence the player agrees to before their music goes over the internet. */
@@ -34,11 +36,12 @@ type DialogStep = { kind: 'address' } | { kind: 'confirm'; generator: GeneratorI
 /** Step 1: the address. Step 2: exactly what the generator gets, and where the music goes, before anything is added. */
 export function AddGeneratorDialog({ onLookUpGenerator, canUseStartCommand, onAdd, onClose }: AddGeneratorDialogProps): ReactElement {
   const [step, setStep] = useState<DialogStep>({ kind: 'address' });
+  const [draft, setDraft] = useState<ServiceAddressDraft>(EMPTY_SERVICE_ADDRESS_DRAFT);
   return (
     <SyncDialog titleId="sv-sync-add-generator-title" onClose={onClose} focusKey={step.kind}>
       {step.kind === 'address'
-        ? <AddressStep onLookUpGenerator={onLookUpGenerator} canUseStartCommand={canUseStartCommand} onFound={(generator) => { setStep({ kind: 'confirm', generator }); }} onCancel={onClose} />
-        : <ConfirmStep generator={step.generator} onAdd={onAdd} onCancel={onClose} />}
+        ? <AddressStep onLookUpGenerator={onLookUpGenerator} canUseStartCommand={canUseStartCommand} draft={draft} onChangeDraft={setDraft} onFound={(generator) => { setStep({ kind: 'confirm', generator }); }} onCancel={onClose} />
+        : <ConfirmStep generator={step.generator} onAdd={onAdd} onBack={() => { setStep({ kind: 'address' }); }} />}
     </SyncDialog>
   );
 }
@@ -47,18 +50,21 @@ interface AddressStepProps {
   onLookUpGenerator: (request: ServiceLookupRequest) => Promise<GeneratorLookupResult>;
   canUseStartCommand: boolean;
   onFound: (generator: GeneratorInstallPreview) => void;
+  draft: ServiceAddressDraft;
+  onChangeDraft: (draft: ServiceAddressDraft) => void;
   onCancel: () => void;
 }
 
-function AddressStep({ onLookUpGenerator, canUseStartCommand, onFound, onCancel }: AddressStepProps): ReactElement {
-  const [address, setAddress] = useState('https://');
-  const [startCommandText, setStartCommandText] = useState('');
+function AddressStep({ onLookUpGenerator, canUseStartCommand, draft, onChangeDraft, onFound, onCancel }: AddressStepProps): ReactElement {
+  const { address, startCommandText } = draft;
+  const setAddress = (nextAddress: string): void => { onChangeDraft({ ...draft, address: nextAddress }); };
+  const setStartCommandText = (nextText: string): void => { onChangeDraft({ ...draft, startCommandText: nextText }); };
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLookingUp, setIsLookingUp] = useState(false);
   const isOnThisComputer = canUseStartCommand && isThisComputerAddress(address);
   const lookUp = async (): Promise<void> => {
     if (!isServiceAddress(address)) {
-      setErrorMessage('That doesn’t look like a generator address. It should start with https:// or http://localhost');
+      setErrorMessage('Enter an address that starts with https:// or http://localhost');
       return;
     }
     setIsLookingUp(true);
@@ -74,16 +80,13 @@ function AddressStep({ onLookUpGenerator, canUseStartCommand, onFound, onCancel 
   };
   return (
     <form className="sv-sync-dialog-form" onSubmit={handleSubmit} noValidate>
-      <div className="sv-sync-eyebrow">Add a generator · step 1 of 2</div>
-      <h2 id="sv-sync-add-generator-title" className="sv-sync-heading-2">Add a generator</h2>
-      <p className="sv-sync-text sv-sync-small">Paste the generator&apos;s address. Whoever made it can give it to you.</p>
+      <DialogHeading titleId="sv-sync-add-generator-title" title="Add a generator" stepText="Step 1 of 2" />
       <label className="sv-sync-field-label">
         Generator address
         <input className="sv-sync-field sv-sync-mono" type="url" value={address} placeholder="https:// or http://localhost" data-autofocus aria-invalid={errorMessage !== null} aria-describedby={errorMessage === null ? undefined : 'sv-sync-generator-address-error'} onChange={(event) => { setAddress(event.target.value); setErrorMessage(null); }} />
       </label>
       {errorMessage !== null && <AddressError id="sv-sync-generator-address-error" message={errorMessage} />}
       {isOnThisComputer && <StartCommandField serviceName="generator" value={startCommandText} onChange={setStartCommandText} />}
-      <Note className="sv-sync-small">{GENERATOR_TRUST_NOTE}</Note>
       <div className="sv-sync-dialog-buttons">
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel}>Cancel</button>
         <button className="sv-sync-button" type="submit" disabled={isLookingUp}>{isLookingUp ? 'Checking…' : 'Continue'}</button>
@@ -92,15 +95,14 @@ function AddressStep({ onLookUpGenerator, canUseStartCommand, onFound, onCancel 
   );
 }
 
-function ConfirmStep({ generator, onAdd, onCancel }: { generator: GeneratorInstallPreview; onAdd: (generator: GeneratorInstallPreview) => void; onCancel: () => void }): ReactElement {
+function ConfirmStep({ generator, onAdd, onBack }: { generator: GeneratorInstallPreview; onAdd: (generator: GeneratorInstallPreview) => void; onBack: () => void }): ReactElement {
   const [options, setOptions] = useState<readonly AddonOptionView[]>(generator.options);
   const handleOptionChange = ({ optionId, value }: { optionId: string; value: string }): void => {
     setOptions((current) => current.map((option) => (option.optionId === optionId ? { ...option, value } : option)));
   };
   return (
     <>
-      <div className="sv-sync-eyebrow">Add a generator · step 2 of 2</div>
-      <h2 id="sv-sync-add-generator-title" className="sv-sync-heading-2">Add “{generator.name}”?</h2>
+      <DialogHeading titleId="sv-sync-add-generator-title" title={`Add “${generator.name}”?`} stepText="Step 2 of 2" />
       <div className="sv-sync-addon-who">
         <span className="sv-sync-addon-icon" aria-hidden="true">{getAddonInitials(generator.name)}</span>
         <div className="sv-sync-stack-small sv-sync-min-width-0">
@@ -116,18 +118,17 @@ function ConfirmStep({ generator, onAdd, onCancel }: { generator: GeneratorInsta
       </div>
       {generator.location.kind === 'internet'
         ? <MusicUploadWarning address={generator.location.address} />
-        : <Note iconName="computer">It runs on this computer. Your music file stays here.</Note>}
-      {generator.startCommand !== null && <StartCommandNote startCommand={generator.startCommand} />}
+        : <Note iconName="computer">It runs on this computer. Your music file stays here.{generator.startCommand !== null && <> Sync starts it with <b className="sv-sync-mono sv-sync-break-all">{generator.startCommand}</b>, and stops it after 10 minutes without use.</>}</Note>}
+      {generator.location.kind === 'internet' && generator.startCommand !== null && <StartCommandNote startCommand={generator.startCommand} />}
       {options.length > 0 && (
         <div className="sv-sync-addon-setup">
           <b>Choose how it works</b>
-          <span className="sv-sync-small sv-sync-muted">You can change this any time on the generator&apos;s card.</span>
           <AddonOptionFields addonName={generator.name} options={options} onChange={handleOptionChange} />
         </div>
       )}
-      <Note className="sv-sync-small">Songs it makes stay on this computer and never go to the vault.</Note>
+      <Note className="sv-sync-small">Songs it makes stay on this computer and never go to the library.</Note>
       <div className="sv-sync-dialog-buttons">
-        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onCancel} data-autofocus>Cancel</button>
+        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={onBack} data-autofocus>Back</button>
         <button className="sv-sync-button sv-sync-button--go" type="button" onClick={() => { onAdd({ ...generator, options }); }}>Add</button>
       </div>
     </>

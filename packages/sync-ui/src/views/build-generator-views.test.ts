@@ -37,8 +37,8 @@ describe('generator views', () => {
     [{}, { state: 'working', stageText: 'Placing the steps', progressPercent: 46 }],
     [{ stage: null, progress: null }, { state: 'working', stageText: 'Waiting for Tap Forge', progressPercent: null }],
     [{ state: 'needs-vault-choice', vaultChoice: { vaultSongId: 'v1', question: 'Which one?' } }, { state: 'needs-vault-choice', vaultChoiceQuestion: 'Which one?' }],
-    [{ state: 'done', result: 'written' }, { state: 'done', doneText: 'Added to My generated songs in your game.' }],
-    [{ state: 'done', result: 'added-to-vault', isStepsVault: true }, { state: 'done', doneText: 'Added to the vault. Sync puts it in your game with your music.' }],
+    [{ state: 'done', result: 'written' }, { state: 'done', doneText: 'Done. It’s in My generated songs.' }],
+    [{ state: 'done', result: 'added-to-vault', isStepsVault: true }, { state: 'done', doneText: 'Added to the library. It comes to your game, with your music, on your next sync.' }],
     [{ state: 'failed', message: 'Tap Forge couldn’t make this song.' }, { state: 'failed', stageText: 'Not made', message: 'Tap Forge couldn’t make this song.' }],
   ] as [Partial<SavedGeneratorJob>, object][])('shows a job %j as %j', (overrides, expected) => {
     expect(buildGeneratorJobView({ ...JOB, ...overrides })).toMatchObject(expected);
@@ -46,10 +46,11 @@ describe('generator views', () => {
 
   it('lists generated songs newest first, with their folder and whether they say how they were made', () => {
     const generatedSong: GeneratedSong = { songKey: 'song:a', song: JOB.song, generatorId: 'stepcat.tap-forge', generatorVersion: '1.2.0', generatorName: 'Tap Forge', difficulties: ['Easy', 'Medium', 'Hard'], installId: 'i1', folderPath: ['My generated songs', 'Night Drive'], inPlaceOfVaultSongId: null, generatedAt: '2026-10-24T10:00:00.000Z' };
-    const newerSong = { ...generatedSong, songKey: 'song:b', song: { ...JOB.song, title: 'Low Tide' }, generatedAt: '2026-10-25T10:00:00.000Z' };
+    const newerSong: GeneratedSong = { ...generatedSong, songKey: 'song:b', song: { ...JOB.song, title: 'Low Tide' }, levelsByDifficulty: { Easy: 3, Hard: 9 }, generatedAt: '2026-10-25T10:00:00.000Z' };
     const views = buildGeneratedSongViews({ generatedSongs: [generatedSong, newerSong], reportSongKeys: new Set(['song:a']) });
     expect(views.map((view) => [view.title, view.hasReport])).toEqual([['Low Tide', false], ['Night Drive', true]]);
-    expect(views[1]).toMatchObject({ difficultiesText: 'Easy, Medium, and Hard', folderText: 'Songs/My generated songs/Night Drive' });
+    expect(views[1]).toMatchObject({ difficultiesText: 'Easy, Medium, and Hard', folderText: 'Songs/My generated songs/Night Drive', levels: null });
+    expect(views[0]?.levels).toEqual([null, 3, null, 9, null]);
   });
 
   it('tells each step of making a song in the Activity log', () => {
@@ -57,12 +58,12 @@ describe('generator views', () => {
       { kind: 'generated-song', step: 'started', at: '2026-10-25T10:00:00.000Z', songTitle: 'Night Drive', generatorName: 'Tap Forge', folderPath: [] },
       { kind: 'generated-song', step: 'written', at: '2026-10-25T10:05:00.000Z', songTitle: 'Night Drive', generatorName: 'Tap Forge', folderPath: ['My generated songs', 'Night Drive'] },
       { kind: 'generated-song', step: 'failed', at: '2026-10-25T10:06:00.000Z', songTitle: 'Low Tide', generatorName: 'Tap Forge', folderPath: [], message: 'Tap Forge isn’t answering.' },
-      { vaultSongId: 'v1', kind: 'added', at: '2026-10-25T10:07:00.000Z', folderPath: ['StepsVault', 'Paris'] },
+      { vaultSongId: 'v1', kind: 'added', at: '2026-10-25T10:07:00.000Z', folderPath: ['dancedance.studio', 'Paris'] },
     ] });
     expect(entries.map((entry) => [entry.kind, `${entry.textBefore}${entry.highlightedText}${entry.textAfter}`, entry.summaryText])).toEqual([
-      ['added', 'Added Paris in StepsVault', 'Songs/StepsVault/Paris'],
+      ['added', 'Added Paris to dancedance.studio', 'Songs/dancedance.studio/Paris'],
       ['generate-failed', 'Couldn’t make Low Tide with Tap Forge', 'Tap Forge isn’t answering.'],
-      ['generated', 'Made Night Drive in My generated songs', 'Songs/My generated songs/Night Drive'],
+      ['generated', 'Made Night Drive with Tap Forge', 'In My generated songs'],
       ['generating', 'Started making Night Drive with Tap Forge', 'With Tap Forge'],
     ]);
   });

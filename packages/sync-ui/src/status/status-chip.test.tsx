@@ -14,7 +14,7 @@ describe('StatusChip', () => {
 
   it('has exactly the seven statuses of the plan, each with its own word', () => {
     const labels = SONG_STATUSES.map((status) => SONG_STATUS_DISPLAYS[status].label);
-    expect(labels).toEqual(['Synced', 'Syncing…', 'Needs audio', 'Different edit', 'Update available', 'You edited this', 'Removed from vault']);
+    expect(labels).toEqual(['Synced', 'Syncing…', 'Needs audio', 'Different edit', 'Update available', 'You edited this', 'Removed from library']);
   });
 
   it('spins only the Syncing… icon', () => {

@@ -9,12 +9,12 @@ The written spec lives with the website and is summarised here.
 
 ## Two ways to run it, one core
 
-| | Website (stepsvault.com/sync) | Desktop app (this repo, open source) |
+| | Website (dancedance.studio/sync) | Desktop app (this repo, open source) |
 |---|---|---|
 | Runs in | Chrome or Edge on a computer | Windows first (Electron), later macOS and Linux |
 | Songs folder | File System Access API; the browser asks for permission once per visit | Node `fs` |
 | Music decoding | Chromium's own decoder (`decodeAudioData`) | the same, in a hidden app window (both are Chromium, so both hear a file the same way) |
-| Signs in | the website's own session | "sign in by code" on stepsvault.com/link |
+| Signs in | the website's own session | "sign in by code" on dancedance.studio/link |
 | Background sync | no (the tab must stay open) | yes, from the tray |
 
 Both use the same packages from this repo:
@@ -69,8 +69,8 @@ The website (a private repo) installs `sync-core` and `sync-ui` from npm under t
 
 ## Folder layout
 
-The player chooses one: **One group** (`StepsVault`), **By genre** (`Pop`, `Rock`…) or **By artist**. A group name
-the player already uses (compared without case, as Windows does) gets the prefix `StepsVault - ` instead. Changing
+The player chooses one: **One group** (`dancedance.studio`), **By genre** (`Pop`, `Rock`…) or **By artist**. A group name
+the player already uses (compared without case, as Windows does) gets the prefix `dancedance.studio - ` instead. Changing
 the layout moves only our folders. Folder names use English letters only, because StepMania 5 on Windows can't open
 Hebrew or Japanese names: a song in another script is named by the English-letter spelling StepsVault sends. StepMania keeps scores by folder path, so moved songs start with fresh scores,
 and Sync says so before moving anything.

@@ -41,7 +41,7 @@ export function ConnectGameScreen(props: ConnectGameScreenProps): ReactElement {
       <SetupSteps currentStepIndex={0} />
       <div className="sv-sync-stack-small">
         <h2 className="sv-sync-heading-1">Connect your game</h2>
-        <p className="sv-sync-text sv-sync-text--large">Pick your StepMania Songs folder. StepsVault only adds its own songs there.</p>
+        <p className="sv-sync-text sv-sync-text--large">Pick your StepMania Songs folder. We only touch the songs we add.</p>
       </div>
       {props.platform === 'website' ? <WebsiteFolderPicker {...props} /> : <FoundGamesPicker {...props} />}
     </div>
@@ -50,14 +50,16 @@ export function ConnectGameScreen(props: ConnectGameScreenProps): ReactElement {
 
 function WebsiteFolderPicker({ onChooseSongsFolder, desktopAppHref }: WebsiteConnectGameProps): ReactElement {
   return (
-    <section className="sv-sync-panel sv-sync-big-pick" aria-label="Choose your Songs folder">
-      <button className="sv-sync-pick-button" type="button" onClick={onChooseSongsFolder}>
-        <span className="sv-sync-pick-icon"><Icon name="folder" size={24} strokeWidth={2.4} /></span>
-        CHOOSE MY SONGS FOLDER
-      </button>
-      <span className="sv-sync-small sv-sync-muted">Usually inside your StepMania folder, for example <span className="sv-sync-mono sv-sync-strong">C:\Games\StepMania 5\Songs</span></span>
+    <>
+      <section className="sv-sync-panel sv-sync-big-pick" aria-label="Choose your Songs folder">
+        <button className="sv-sync-pick-button" type="button" onClick={onChooseSongsFolder}>
+          <span className="sv-sync-pick-icon"><Icon name="folder" size={24} strokeWidth={2.4} /></span>
+          CHOOSE MY SONGS FOLDER
+        </button>
+        <span className="sv-sync-small sv-sync-muted">Usually <span className="sv-sync-mono sv-sync-soft">C:\Games\StepMania 5\Songs</span></span>
+      </section>
       <BrowserPermissionExplainer desktopAppHref={desktopAppHref} />
-    </section>
+    </>
   );
 }
 
@@ -69,7 +71,7 @@ function FoundGamesPicker(props: DesktopConnectGameProps): ReactElement {
   return (
     <>
       <div className="sv-sync-row sv-sync-space-between">
-        <h3 className="sv-sync-heading-3">Games we found on this computer</h3>
+        <h3 className="sv-sync-heading-2 sv-sync-heading-2--tiny">Found on this computer</h3>
         <span className="sv-sync-small sv-sync-muted">Found {props.foundGames.length} · {props.searchedPlacesText}</span>
       </div>
       <div className="sv-sync-game-cards" role="radiogroup" aria-label="Games found">
@@ -91,7 +93,7 @@ function FoundGamesPicker(props: DesktopConnectGameProps): ReactElement {
         <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onChooseAnotherFolder}><Icon name="folder" />Choose another folder…</button>
         <button className="sv-sync-button sv-sync-button--go sv-sync-button--large" type="button" onClick={props.onUseSelectedGame} disabled={selectedIndex < 0}>Use this folder<Icon name="chevron" strokeWidth={2.6} /></button>
       </div>
-      <Note iconName="lock">StepsVault only adds, updates, moves or removes the songs it added itself.</Note>
+      <Note iconName="lock">We only add, update, move or remove the songs we added.</Note>
     </>
   );
 }

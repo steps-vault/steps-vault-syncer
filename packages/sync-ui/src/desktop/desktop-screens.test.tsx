@@ -21,7 +21,7 @@ describe('DesktopSignInScreen', () => {
     render(<DesktopSignInScreen signIn={{ kind: 'waiting-for-code', code: 'K7Q4ZP', expiresInText: '9:12', computerName: 'LIVING-ROOM-PC', systemName: 'Windows 11' }} onOpenLinkPage={vi.fn()} onGetNewCode={vi.fn()} onConnectGame={vi.fn()} />);
     expect(formatLinkCode('K7Q4ZP')).toBe('K7Q·4ZP');
     expect(screen.getByLabelText('Code K 7 Q 4 Z P').textContent).toBe('K7Q·4ZP');
-    expect(screen.getByRole('status').textContent).toContain('Waiting for you to type the code');
+    expect(screen.getByRole('status').textContent).toContain('Waiting for the code');
   });
 
   it('says GREAT once signed in and leads on to connecting the game', () => {
@@ -54,7 +54,7 @@ describe('LinkCodeForm', () => {
 
   it('asks before linking the computer', () => {
     const props = renderLinkCodeForm({ state: 'great' });
-    const question = screen.getByRole('region', { name: 'Link this computer to your vault?' });
+    const question = screen.getByRole('region', { name: 'Link this computer to your library?' });
     fireEvent.click(within(question).getByRole('button', { name: 'Link this computer' }));
     expect(props.onLinkComputer).toHaveBeenCalledOnce();
   });
@@ -67,7 +67,7 @@ describe('LinkedComputersTable', () => {
     expect(screen.getAllByRole('row')).toHaveLength(FAKE_LINKED_COMPUTERS.length + 1);
     expect(screen.getByText('Online')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Remove ARCADE-CAB' }));
-    const confirm = screen.getByRole('group', { name: 'Sign ARCADE-CAB out?' });
+    const confirm = screen.getByRole('group', { name: 'Remove ARCADE-CAB?' });
     expect(document.activeElement).toBe(within(confirm).getByRole('button', { name: 'Remove' }));
     expect(onRemoveComputer).not.toHaveBeenCalled();
     fireEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
@@ -80,10 +80,30 @@ describe('UpdateBanner', () => {
     const onRestart = vi.fn();
     const onLater = vi.fn();
     render(<UpdateBanner version="1.3" onRestart={onRestart} onLater={onLater} />);
-    expect(screen.getByRole('status').textContent).toContain('StepsVault Sync 1.3 is ready.');
+    expect(screen.getByRole('status').textContent).toContain('DanceDance Sync 1.3 is ready.');
     fireEvent.click(screen.getByRole('button', { name: 'Restart to update' }));
     fireEvent.click(screen.getByRole('button', { name: 'Later' }));
     expect(onRestart).toHaveBeenCalledOnce();
     expect(onLater).toHaveBeenCalledOnce();
+  });
+});
+
+describe('LinkCodeForm Continue', () => {
+  it('sends the code with Continue once all six characters are typed, and still sends it by itself', () => {
+    const props = renderLinkCodeForm({ characters: ['K', '7', 'Q', '4', 'Z', ''] });
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveProperty('disabled', true);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Character 6' }), { target: { value: 'P' } });
+    expect(props.onSubmitCode).toHaveBeenCalledWith('K7Q4ZP');
+  });
+
+  it('sends a full code from Continue', () => {
+    const props = renderLinkCodeForm({ characters: ['K', '7', 'Q', '4', 'Z', 'P'] });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(props.onSubmitCode).toHaveBeenCalledWith('K7Q4ZP');
+  });
+
+  it('hides Continue once the code is answered', () => {
+    renderLinkCodeForm({ characters: ['K', '7', 'Q', '4', 'Z', 'B'], state: 'miss' });
+    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
   });
 });

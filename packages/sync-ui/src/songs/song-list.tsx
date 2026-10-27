@@ -1,9 +1,11 @@
 import { useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { Icon } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
+import { ComboBox } from '../shared/combo-box';
 import { SegmentedControl, type SegmentedOption } from '../shared/small-parts';
 import type { SongRowView } from '../sync-ui-types';
-import { getArtistNames, getGenreNames, getSongCountsByStatus, getVisibleSongRows, hasActiveFilters, NO_SONG_FILTERS, type SongFilters, type SongSortOrder } from './song-filters';
+import { getArtistNameCounts, getGenreNameCounts, getSongCountsByStatus, getVisibleSongRows, hasActiveFilters, NO_SONG_FILTERS, type SongFilters, type SongSortOrder } from './song-filters';
 import { SongRow, type SongActionRequest } from './song-row';
 import { StatusCounterTiles } from './status-counter-tiles';
 
@@ -43,7 +45,7 @@ export function SongList(props: SongListProps): ReactElement {
       <div className={joinClassNames('sv-sync-home-grid', hasDrawer && 'sv-sync-home-grid--with-drawer')}>
         <div className="sv-sync-song-table">
           <SongListHead />
-          <ul className="sv-sync-song-list" aria-label="Your StepsVault songs">
+          <ul className="sv-sync-song-list" aria-label={`Your ${SITE_NAME} songs`}>
             {shownRows.map((row) => (
               <SongRow key={row.vaultSongId} row={row} isSelected={row.vaultSongId === props.selectedSongId} isSyncing={props.isSyncing} onOpenDetails={props.onOpenSongDetails} onSongAction={props.onSongAction} />
             ))}
@@ -91,8 +93,8 @@ function SongFilterBar({ rows, filters, onChange, onClear }: SongFilterBarProps)
           <input className="sv-sync-field" type="search" placeholder="Title or artist" value={filters.searchText} onChange={(event) => { onChange({ searchText: event.target.value }); }} />
         </span>
       </label>
-      <NameFilter label="Genre" anyLabel="All genres" names={getGenreNames(rows)} selectedName={filters.genre} onSelect={(genre) => { onChange({ genre }); }} />
-      <NameFilter label="Artist" anyLabel="All artists" names={getArtistNames(rows)} selectedName={filters.artist} onSelect={(artist) => { onChange({ artist }); }} />
+      <NameFilter label="Genre" anyLabel="All genres" noun="genre" nameCounts={getGenreNameCounts(rows)} selectedName={filters.genre} onSelect={(genre) => { onChange({ genre }); }} />
+      <NameFilter label="Artist" anyLabel="All artists" noun="artist" nameCounts={getArtistNameCounts(rows)} selectedName={filters.artist} onSelect={(artist) => { onChange({ artist }); }} />
       <div className="sv-sync-field-label">
         Sort
         <SegmentedControl label="Sort" options={SORT_OPTIONS} selectedValue={filters.sortOrder} onSelect={(sortOrder) => { onChange({ sortOrder }); }} />
@@ -105,20 +107,17 @@ function SongFilterBar({ rows, filters, onChange, onClear }: SongFilterBarProps)
 interface NameFilterProps {
   label: string;
   anyLabel: string;
-  names: readonly string[];
+  noun: string;
+  nameCounts: readonly { name: string; songCount: number }[];
   selectedName: string | null;
   onSelect: (name: string | null) => void;
 }
 
 /** The empty value means "any", since no genre or artist is called "". */
-function NameFilter({ label, anyLabel, names, selectedName, onSelect }: NameFilterProps): ReactElement {
+function NameFilter({ label, anyLabel, noun, nameCounts, selectedName, onSelect }: NameFilterProps): ReactElement {
   return (
-    <label className="sv-sync-field-label sv-sync-name-filter">
-      {label}
-      <select className="sv-sync-field" value={selectedName ?? ''} onChange={(event) => { onSelect(event.target.value === '' ? null : event.target.value); }}>
-        <option value="">{anyLabel}</option>
-        {names.map((name) => <option key={name} value={name}>{name}</option>)}
-      </select>
-    </label>
+    <div className="sv-sync-name-filter">
+      <ComboBox label={label} anyLabel={anyLabel} noun={noun} options={nameCounts.map(({ name, songCount }) => ({ value: name, label: name, count: songCount }))} value={selectedName ?? ''} onChange={(value) => { onSelect(value === '' ? null : value); }} />
+    </div>
   );
 }

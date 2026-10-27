@@ -163,7 +163,7 @@ describe('GeneratorJobRunner', () => {
     await runner.initialize();
     await runner.startJob(buildStart({ generatorBaseUrl: STEPSVAULT_ADDRESS }));
     await waitUntil(() => runner.jobs[0]?.state === 'done');
-    expect(runner.jobs[0]).toMatchObject({ isStepsVault: true, generatorName: 'StepsVault generator', result: 'added-to-vault' });
+    expect(runner.jobs[0]).toMatchObject({ isStepsVault: true, generatorName: 'dancedance.studio generator', result: 'added-to-vault' });
     expect(app.vaultSongsAddedForJobs).toEqual([['job-1', 'song_9']]);
     expect(app.songsAddedToVault).toEqual(['song_9']);
     expect(getGeneratedSongs(app.record)).toEqual([]);
@@ -218,7 +218,7 @@ describe('GeneratorJobRunner', () => {
     const runner = app.buildRunner();
     await runner.startJob(buildStart());
     await waitUntil(() => runner.jobs[0]?.state === 'needs-vault-choice');
-    expect(runner.jobs[0]?.vaultChoice).toEqual({ vaultSongId: 'song_7', question: '“Night Drive” is also in your vault. Which one do you want in your game: the vault song or the one you made?' });
+    expect(runner.jobs[0]?.vaultChoice).toEqual({ vaultSongId: 'song_7', question: '“Night Drive” is already in the library. Keep the library song, or the one you made?' });
     expect(getGeneratedSongs(app.record)).toEqual([]);
     await runner.answerVaultChoice({ jobKey: 'job-1', choice: 'keep-generated-song' });
     expect(runner.jobs[0]).toMatchObject({ state: 'done', result: 'written', vaultChoice: null });

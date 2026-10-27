@@ -22,6 +22,14 @@ export function getStartCommandOrNull(text: string): string | null {
   return command === '' ? null : command;
 }
 
+/** What the player typed on step 1 of adding an addon or a generator, kept for Back from step 2. */
+export interface ServiceAddressDraft {
+  address: string;
+  startCommandText: string;
+}
+
+export const EMPTY_SERVICE_ADDRESS_DRAFT: ServiceAddressDraft = { address: 'https://', startCommandText: '' };
+
 export interface StartCommandFieldProps {
   serviceName: 'addon' | 'generator';
   value: string;
@@ -33,11 +41,11 @@ export function StartCommandField({ serviceName, value, onChange }: StartCommand
   return (
     <div className="sv-sync-stack-tiny">
       <label className="sv-sync-field-label">
-        Start command (optional)
+        Start command
         <input className="sv-sync-field sv-sync-mono" type="text" value={value} placeholder="C:/addons/my-program/start.cmd" spellCheck={false} onChange={(event) => { onChange(event.target.value); }} />
       </label>
       <span className="sv-sync-small sv-sync-muted">
-        If the {serviceName} is a program on this computer, Sync can start it when needed and stop it after 10 minutes without use. Sync only ever runs exactly what you type here.
+        Optional. Sync runs this to start the {serviceName} on this computer {serviceName === 'generator' ? 'when you make a song' : 'when it’s needed'}, and stops it after 10 minutes without use. It runs exactly what you type.
       </span>
     </div>
   );

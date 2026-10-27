@@ -24,7 +24,7 @@ function renderHomeScreen(overrides: Partial<SyncHomeScreenProps> = {}): SyncHom
 }
 
 function getVisibleTitles(): string[] {
-  const list = screen.getByRole('list', { name: 'Your StepsVault songs' });
+  const list = screen.getByRole('list', { name: 'Your dancedance.studio songs' });
   return within(list).getAllByRole('button', { name: /— details$/ }).map((button) => button.textContent);
 }
 
@@ -72,8 +72,8 @@ describe('SyncHomeScreen', () => {
     renderHomeScreen();
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'kairo' } });
     expect(getVisibleTitles()).toEqual(['Paris', 'Neon Overdrive', 'Pulse Garden', 'Afterimage']);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Genre' }), { target: { value: 'Electronic' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Artist' }), { target: { value: 'Kairo Lights' } });
+    pickComboBoxOption({ label: 'Genre', optionText: 'Electronic' });
+    pickComboBoxOption({ label: 'Artist', optionText: 'Kairo Lights' });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'garden' } });
     expect(getVisibleTitles()).toEqual(['Pulse Garden']);
     fireEvent.click(screen.getAllByRole('button', { name: 'Clear filters' })[0] as HTMLElement);
@@ -94,7 +94,7 @@ describe('SyncHomeScreen', () => {
 
   it('passes the status choices of a row to the caller', () => {
     const props = renderHomeScreen();
-    fireEvent.click(screen.getByRole('button', { name: 'Replace with StepsVault’s' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use library version' }));
     expect(props.onSongAction).toHaveBeenCalledWith({ vaultSongId: 'neon-overdrive', action: 'replace-with-stepsvault' });
   });
 
@@ -113,7 +113,7 @@ describe('SyncHomeScreen', () => {
   it('flashes FLAWLESS!! when every song synced and PERFECT! when some need the player', () => {
     renderHomeScreen({ finishedSync: { syncedCount: 23, needsYouCount: 0 } });
     expect(screen.getByText('FLAWLESS!!')).toBeDefined();
-    expect(screen.getByText('All 23 songs synced.')).toBeDefined();
+    expect(screen.getByText('All 23 songs synced')).toBeDefined();
   });
 
   it('opens the details drawer, closes it on Escape and gives focus back to the song', () => {
@@ -135,7 +135,7 @@ describe('SyncHomeScreen', () => {
     renderHomeScreen({ selectedSongDetails: getFakeSongDetails('paper-thrills'), onSongAction });
     fireEvent.click(screen.getByRole('button', { name: 'Remove from my game' }));
     const confirm = screen.getByRole('alertdialog', { name: 'Remove Paper Thrills from your game?' });
-    expect(within(confirm).getByText('Songs/StepsVault - Pop/Paper Thrills')).toBeDefined();
+    expect(within(confirm).getByText('Songs/dancedance.studio - Pop/Paper Thrills')).toBeDefined();
     expect(onSongAction).not.toHaveBeenCalled();
     fireEvent.click(within(confirm).getByRole('button', { name: 'Remove' }));
     expect(onSongAction).toHaveBeenCalledWith({ vaultSongId: 'paper-thrills', action: 'remove-from-game' });
@@ -152,3 +152,10 @@ describe('SyncHomeScreen', () => {
     expect(screen.queryByRole('list')).toBeNull();
   });
 });
+
+function pickComboBoxOption({ label, optionText }: { label: string; optionText: string }): void {
+  const comboBox = screen.getByRole('combobox', { name: label });
+  fireEvent.focus(comboBox);
+  fireEvent.change(comboBox, { target: { value: optionText } });
+  fireEvent.keyDown(comboBox, { key: 'Enter' });
+}

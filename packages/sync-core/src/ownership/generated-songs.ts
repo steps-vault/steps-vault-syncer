@@ -11,6 +11,8 @@ export interface GeneratedSong {
   generatorVersion: string;
   generatorName: string;
   difficulties: readonly GeneratorDifficulty[];
+  /** Each made chart's level, from the song file; missing for songs written before Sync kept them. */
+  levelsByDifficulty?: Partial<Record<GeneratorDifficulty, number>>;
   /** New for every write, so a marker copied into another folder never matches. */
   installId: string;
   /** `[group, song folder]` inside the Songs folder. */

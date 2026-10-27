@@ -1,7 +1,8 @@
-import type { FolderLayout } from '@stepsvault/sync-core';
+import { CLASH_PREFIX, ONE_GROUP_NAME, type FolderLayout } from '@stepsvault/sync-core';
 import { useState, type ReactElement } from 'react';
 import { JudgmentText } from '../progress/judgment-flash';
 import { Icon } from '../icons/icon';
+import { SITE_NAME } from '../shared/brand-names';
 import { handleRadioKeyDown } from '../shared/radio-group';
 import { Note } from '../shared/small-parts';
 import type { LayoutPreview, LayoutPreviewsByLayout } from '../sync-ui-types';
@@ -10,12 +11,11 @@ import { FOLDER_LAYOUT_NAMES, LayoutChangeDialog } from './layout-change-dialog'
 
 const FOLDER_LAYOUTS: readonly FolderLayout[] = ['one-group', 'by-genre', 'by-artist'];
 const LAYOUT_DESCRIPTIONS: Readonly<Record<FolderLayout, string>> = {
-  'one-group': 'Everything in a single StepsVault group.',
+  'one-group': `Everything in a single ${ONE_GROUP_NAME} group.`,
   'by-genre': 'Pop, Rock, Electronic… one group per genre.',
   'by-artist': 'Mergui, Sia… one group per artist.',
 };
-const PREVIEW_PLAYER_GROUP_COUNT = 2;
-const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: 'StepsVault - Pop', tagText: 'ours', songTitles: ['Pop songs from your vault'] }] };
+const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: `${CLASH_PREFIX}Pop`, tagText: 'ours', songTitles: ['Pop songs from the library'] }] };
 
 export interface FolderLayoutScreenProps {
   currentLayout: FolderLayout;
@@ -29,7 +29,7 @@ export interface FolderLayoutScreenProps {
   lastMove?: { layout: FolderLayout; movedSongCount: number } | null;
 }
 
-/** Screen 5: how StepsVault songs are grouped in the game. Changing it asks first, because scores start fresh. */
+/** Screen 5: how the library's songs are grouped in the game. Changing it asks first, because scores start fresh. */
 export function FolderLayoutScreen(props: FolderLayoutScreenProps): ReactElement {
   const [pendingLayout, setPendingLayout] = useState<FolderLayout | null>(null);
   const shownLayout = pendingLayout ?? props.currentLayout;
@@ -48,12 +48,12 @@ export function FolderLayoutScreen(props: FolderLayoutScreenProps): ReactElement
     <div className="sv-sync-screen">
       <div className="sv-sync-stack-small">
         <h2 className="sv-sync-heading-1 sv-sync-heading-1--medium">Folder layout</h2>
-        <p className="sv-sync-text">Choose how StepsVault songs are grouped in your game&apos;s song list. Your own groups stay exactly as they are.</p>
+        <p className="sv-sync-text sv-sync-text--medium">Your own groups never change.</p>
       </div>
       {props.lastMove && (
         <section className="sv-sync-panel sv-sync-moved-toast" role="status">
           <JudgmentText word="GREAT" size="medium" />
-          <span className="sv-sync-strong">Moved {props.lastMove.movedSongCount} StepsVault songs into “{FOLDER_LAYOUT_NAMES[props.lastMove.layout]}”.</span>
+          <span className="sv-sync-strong">Moved {props.lastMove.movedSongCount} {SITE_NAME} songs into “{FOLDER_LAYOUT_NAMES[props.lastMove.layout]}”.</span>
           <span className="sv-sync-small sv-sync-muted">Your own songs were not touched.</span>
         </section>
       )}
@@ -65,12 +65,12 @@ export function FolderLayoutScreen(props: FolderLayoutScreenProps): ReactElement
               {layout === props.currentLayout && <span className="sv-sync-current-badge"><Icon name="check" size={12} strokeWidth={3} />Current</span>}
             </span>
             <span className="sv-sync-small sv-sync-text">{LAYOUT_DESCRIPTIONS[layout]}</span>
-            <FolderTreePreview playerGroupNames={props.playerGroupNames.slice(0, PREVIEW_PLAYER_GROUP_COUNT)} morePlayerGroupCount={Math.max(0, props.playerGroupNames.length - PREVIEW_PLAYER_GROUP_COUNT)} preview={props.previewsByLayout[layout]} />
+            <FolderTreePreview playerGroupNames={[]} collapsedPlayerGroupCount={props.playerGroupNames.length} preview={props.previewsByLayout[layout]} />
           </button>
         ))}
       </div>
       <NameRuleExplainer />
-      <Note>StepMania keeps scores by folder. Moving StepsVault songs to a new layout means their scores start fresh. Your own songs and their scores are never touched.</Note>
+      <Note>StepMania keeps scores by folder. Moving {SITE_NAME} songs to a new layout means their scores start fresh. Your own songs and their scores are never touched.</Note>
       {pendingLayout !== null && (
         <LayoutChangeDialog nextLayout={pendingLayout} movingSongCount={props.movingSongCountsByLayout[pendingLayout]} onCancel={() => { setPendingLayout(null); }} onConfirm={() => { setPendingLayout(null); props.onChangeLayout(pendingLayout); }} />
       )}
@@ -83,10 +83,10 @@ function NameRuleExplainer(): ReactElement {
     <section className="sv-sync-name-rule" aria-labelledby="sv-sync-name-rule-heading">
       <div className="sv-sync-stack-small">
         <h3 id="sv-sync-name-rule-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">When a name is already yours</h3>
-        <p className="sv-sync-text">If you already have a folder with that name — for example your own <b className="sv-sync-strong">Pop</b> — StepsVault uses <b className="sv-sync-light-blue-text">StepsVault - Pop</b> instead. Your folder is never mixed with ours.</p>
-        <span className="sv-sync-small sv-sync-muted">This works the same for genres, artists and the single group.</span>
+        <p className="sv-sync-text sv-sync-text--medium">Already have a folder with that name, like your own <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-light-blue-text">{CLASH_PREFIX}Pop</b>. The two never mix.</p>
+        <span className="sv-sync-small sv-sync-muted">Same for genres, artists and the single group.</span>
       </div>
-      <FolderTreePreview playerGroupNames={['Pop']} morePlayerGroupCount={0} preview={NAME_RULE_PREVIEW} />
+      <FolderTreePreview playerGroupNames={['Pop']} playerSongText="Your own Pop songs" preview={NAME_RULE_PREVIEW} />
     </section>
   );
 }

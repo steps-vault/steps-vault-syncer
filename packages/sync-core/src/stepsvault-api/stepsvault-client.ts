@@ -3,6 +3,7 @@ import type { AudioFingerprint } from '../audio-matching/audio-match';
 import { ENVELOPE_RATE_HERTZ } from '../audio-matching/onset-envelope';
 import type { HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
 import type { SongFiles, VaultFiles } from '../writing/song-writer';
+import type { ComputerSongReport } from './computer-songs';
 import { SignedOutError, StepsVaultApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type VaultSongDetails } from './stepsvault-api-types';
 
 const TIMEOUT_MILLISECONDS = 30_000;
@@ -21,13 +22,15 @@ const DEFAULT_IMAGE_KINDS = ['banner', 'background', 'jacket'];
  */
 export class StepsVaultClient implements VaultFiles {
   private readonly httpClient: HttpClient;
+  private readonly siteApiUrl: string;
   private readonly apiUrl: string;
   private readonly deviceToken: string | null;
   private readonly imageKindsBySongId = new Map<string, string[]>();
 
   constructor({ httpClient, siteUrl, deviceToken }: { httpClient: HttpClient; siteUrl: string; deviceToken: string | null }) {
     this.httpClient = httpClient;
-    this.apiUrl = `${siteUrl.replace(/\/+$/, '')}/api/sync`;
+    this.siteApiUrl = `${siteUrl.replace(/\/+$/, '')}/api`;
+    this.apiUrl = `${this.siteApiUrl}/sync`;
     this.deviceToken = deviceToken;
   }
 
@@ -78,6 +81,13 @@ export class StepsVaultClient implements VaultFiles {
   /** For the phone status view on the site. Only the app reports; the website never calls this. */
   async reportSeen({ songCountsByStatus, gameName }: { songCountsByStatus: Readonly<Record<string, number>>; gameName: string | null }): Promise<void> {
     const response = await this.httpClient.requestJson(this.buildRequest({ path: '/devices/me/seen', method: 'POST', jsonBody: { songCountsByStatus, gameName: gameName ?? undefined }, maxResponseBytes: MAX_JSON_BYTES }));
+    assertOk(response);
+  }
+
+  /** The songs generators made on this computer, for My songs on the site. Only the app reports, with its device token. */
+  async reportComputerSongs(songs: readonly ComputerSongReport[]): Promise<void> {
+    const request = this.buildRequest({ path: '', method: 'POST', jsonBody: { songs }, maxResponseBytes: MAX_JSON_BYTES });
+    const response = await this.httpClient.requestJson({ ...request, url: `${this.siteApiUrl}/computer-songs` });
     assertOk(response);
   }
 

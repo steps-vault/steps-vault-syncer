@@ -21,7 +21,7 @@ import type { JobGenerator } from './generator-job-runner';
 import { getStartCommandFolder, type LocalProgramStarter } from './local-program-starter';
 
 const STEPSVAULT_GENERATOR_PATH = '/api/generator';
-const STEPSVAULT_GENERATOR_NAME = 'StepsVault generator';
+const STEPSVAULT_GENERATOR_NAME = 'dancedance.studio generator';
 
 /** What the player sees in the app's own dialog before Sync may run a command. */
 export interface StartCommandConfirmation {
@@ -69,7 +69,7 @@ export class GeneratorSettings {
 
   buildStepsVaultGeneratorView(): StepsVaultGeneratorView {
     const hasConsent = this.options.getSettings().stepsVaultMusicUploadConsentedAt !== null;
-    return { tokenCount: this.options.getTokenBalance(), tokensHref: `${this.options.siteUrl}/tokens`, difficulties: this.stepsVaultManifest?.difficulties ?? null, musicUploadWarning: hasConsent ? null : `Your music file will be sent to StepsVault (${this.stepsVaultBaseUrl}).` };
+    return { tokenCount: this.options.getTokenBalance(), tokensHref: `${this.options.siteUrl}/tokens`, difficulties: this.stepsVaultManifest?.difficulties ?? null, musicUploadWarning: hasConsent ? null : `Your music file will be sent to dancedance.studio (${this.stepsVaultBaseUrl}).` };
   }
 
   /** The generator a job was started with. The sign-in goes to StepsVault's own generator only. */
@@ -96,7 +96,7 @@ export class GeneratorSettings {
     try {
       const confirmedCommand = startCommand === null ? null : await this.confirmStartCommand({ baseUrl: getServiceBaseUrl({ address, serviceName: 'generator' }), command: startCommand });
       const { baseUrl, manifest } = await fetchGeneratorManifest({ httpClient: this.options.httpClient, address });
-      if (baseUrl === this.stepsVaultBaseUrl) throw new Error('This is StepsVault’s own generator. It is always there, at the top of Generators.');
+      if (baseUrl === this.stepsVaultBaseUrl) throw new Error('This is dancedance.studio’s own generator. It is always there, at the top of Generators.');
       this.lookedUpGeneratorsByAddress.set(address, { baseUrl, manifest, startCommand: confirmedCommand });
       return { kind: 'found', generator: buildGeneratorInstallPreview({ address, baseUrl, manifest, startCommand: confirmedCommand }) };
     } catch (error) {
@@ -159,13 +159,13 @@ export class GeneratorSettings {
 
   private async getStepsVaultGeneratorForNewSong(hasAgreedToMusicUpload: boolean): Promise<JobGenerator> {
     const signIn = this.getStepsVaultSignIn();
-    if (!signIn) throw new Error('Sign in to StepsVault first, so the song can go to your vault.');
-    if (this.options.getTokenBalance() === 0) throw new Error('You have no tokens left. Buy tokens on StepsVault, or pick a community generator.');
+    if (!signIn) throw new Error('Sign in to dancedance.studio first, so the song can go to your library.');
+    if (this.options.getTokenBalance() === 0) throw new Error('You have no tokens left. Buy tokens on dancedance.studio, or pick a community generator.');
     if (!this.stepsVaultManifest) await this.loadStepsVaultGenerator();
-    if (!this.stepsVaultManifest) throw new Error('StepsVault can’t be reached right now. Check your internet connection, then try again.');
+    if (!this.stepsVaultManifest) throw new Error('dancedance.studio can’t be reached right now. Check your internet connection, then try again.');
     const settings = this.options.getSettings();
     if (settings.stepsVaultMusicUploadConsentedAt === null) {
-      if (!hasAgreedToMusicUpload) throw new Error('Agree to send your music to StepsVault first, or use a generator on this computer.');
+      if (!hasAgreedToMusicUpload) throw new Error('Agree to send your music to dancedance.studio first, or use a generator on this computer.');
       await this.options.saveSettings({ ...settings, stepsVaultMusicUploadConsentedAt: this.options.getNow() });
     }
     return { generator: this.buildStepsVaultGenerator(this.stepsVaultManifest), signIn, isStepsVault: true };
