@@ -127,7 +127,7 @@
 .sv-sync-stack-tiny { display: flex; flex-direction: column; gap: 3px; }
 .sv-sync-screen { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .sv-sync-narrow { width: 100%; max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; padding: 18px 0 10px; }
-.sv-sync-two-columns { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.sv-sync-two-columns { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
 
 /* ---------- Stage, shell and navigation ---------- */
 /* The cyan grid drifts up one square every 4 seconds, as a layer moved with transform so the window is not repainted
@@ -144,7 +144,8 @@
 .sv-sync-shell { display: flex; flex-direction: column; min-height: 640px; }
 .sv-sync-shell-body { flex: 1; min-width: 0; }
 .sv-sync-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-.sv-sync-shell--website { max-width: 1320px; width: 100%; margin: 0 auto; padding: 36px 28px 72px; gap: 22px; }
+/* On the website the page around Sync sets the column width and the gutters, so Sync lines up with the site's footer. */
+.sv-sync-shell--website { width: 100%; gap: 22px; }
 .sv-sync-shell--website .sv-sync-shell-body { display: flex; flex-direction: column; gap: 22px; }
 .sv-sync-shell--desktop .sv-sync-shell-body { display: grid; grid-template-columns: 232px minmax(0, 1fr); }
 .sv-sync-shell--desktop.sv-sync-shell--bare .sv-sync-shell-body { display: block; }
@@ -285,7 +286,8 @@
 .sv-sync-numbered-steps li::before { counter-increment: sv-sync-step; content: counter(sv-sync-step); flex: 0 0 26px; display: grid; place-items: center; height: 26px; border-radius: 6px; transform: skewX(-12deg); background: #1d2232; border: 1.5px solid var(--sv-sync-border-strong); color: #fff; font: italic 900 13px/1 var(--sv-sync-font-display); }
 
 /* ---------- Top bar and Sync now ---------- */
-.sv-sync-top-bar { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .8fr) auto; gap: 18px; align-items: center; padding: 16px 18px; background: linear-gradient(180deg, #171c2a, #131722); }
+.sv-sync-top-bar { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .8fr) auto; gap: 18px; align-items: start; padding: 16px 18px; background: linear-gradient(180deg, #171c2a, #131722); }
+.sv-sync-top-bar .sv-sync-now-button { align-self: center; }
 .sv-sync-top-bar--desktop .sv-sync-now-button { grid-column: 4; grid-row: 1 / 3; }
 .sv-sync-top-bar-block { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13px; color: var(--sv-sync-text-muted); }
 .sv-sync-top-bar-block b { color: #fff; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -321,7 +323,7 @@
 /* ---------- Counters, filters and song list ---------- */
 .sv-sync-counter-tiles { display: flex; flex-wrap: wrap; gap: 8px; }
 .sv-sync-counter-tile {
-  position: relative; display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; padding: 6px 14px 6px 12px; border-radius: 10px; cursor: pointer; text-align: left; font: inherit; color: var(--sv-sync-text-soft);
+  position: relative; display: flex; flex: 1 1 auto; flex-direction: row; align-items: center; gap: 10px; min-height: 44px; padding: 6px 14px 6px 12px; border-radius: 10px; cursor: pointer; text-align: left; font: inherit; color: var(--sv-sync-text-soft);
   border: 1.5px solid color-mix(in srgb, var(--sv-sync-tone) 38%, #283044); background: linear-gradient(180deg, color-mix(in srgb, var(--sv-sync-tone) 9%, #141824), #121521);
 }
 .sv-sync-counter-tile:hover { border-color: color-mix(in srgb, var(--sv-sync-tone) 70%, #283044); }
@@ -337,8 +339,7 @@
 .sv-sync-name-filter { width: 200px; }
 .sv-sync-name-filter .sv-sync-field { text-transform: none; letter-spacing: 0; }
 /* Genre and artist: a field you type into, with a list under it (design: V3Combo). */
-.sv-sync-combo { position: relative; display: flex; flex-direction: column; gap: 6px; }
-.sv-sync-combo .sv-sync-field-label { font: 600 12px/1 var(--sv-sync-font-body); letter-spacing: .04em; color: var(--sv-sync-text-muted); }
+.sv-sync-combo { position: relative; display: flex; flex-direction: column; gap: 8px; }
 .sv-sync-combo-field { position: relative; display: flex; align-items: center; }
 .sv-sync-combo-field > svg { position: absolute; left: 12px; color: var(--sv-sync-text-subtle); pointer-events: none; }
 .sv-sync-combo-input { padding: 0 64px 0 36px; text-overflow: ellipsis; }
@@ -367,35 +368,48 @@
 .sv-sync-combo-hint { display: flex; gap: 12px; margin-top: 4px; padding: 8px 8px 2px; border-top: 1px solid var(--sv-sync-border); color: var(--sv-sync-text-subtle); font-size: 11px; }
 .sv-sync-combo-hint span { white-space: nowrap; }
 .sv-sync-combo-hint kbd { padding: 3px 5px; border-radius: 4px; border: 1px solid var(--sv-sync-border-strong); background: var(--sv-sync-field-background); color: var(--sv-sync-text-soft); font: 600 11px/1 var(--sv-sync-font-body); }
+.sv-sync-filters .sv-sync-segmented { padding: 3px; }
 .sv-sync-clear-filters { margin-bottom: 4px; }
 .sv-sync-home-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
 .sv-sync-home-grid--with-drawer { grid-template-columns: minmax(0, 1fr) 430px; }
 .sv-sync-song-table { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .sv-sync-song-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.sv-sync-song-list-head, .sv-sync-song-row { display: grid; grid-template-columns: 52px minmax(170px, 1.3fr) 168px 200px minmax(130px, 1fr) 236px; gap: 14px; align-items: center; }
-.sv-sync-song-browser--compact .sv-sync-song-list-head, .sv-sync-song-browser--compact .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1fr) 168px 190px; }
+.sv-sync-song-list-head, .sv-sync-song-row { display: grid; grid-template-columns: 52px minmax(150px, 1.3fr) 168px 220px minmax(120px, 1fr) 300px; gap: 14px; align-items: center; }
+.sv-sync-song-browser--compact .sv-sync-song-list-head, .sv-sync-song-browser--compact .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1fr) 168px 220px; }
 .sv-sync-song-browser--compact .sv-sync-song-column--source, .sv-sync-song-browser--compact .sv-sync-song-column--actions { display: none; }
-/* The list measures its own width, not the window's: next to the desktop app's sidebar a full row doesn't fit, so the
-   hover actions fold away (Details still opens from the song title) instead of the page scrolling sideways. */
+/* The list measures its own width, not the window's: next to the desktop app's sidebar, on tablets and on phones the
+   columns fold away one by one (Details still opens from the song title) instead of the rows running past their edge.
+   Each step needs the width of its fixed columns, so the steps are 1120, 800 and 660. */
 .sv-sync-song-browser { container-type: inline-size; }
-@container (max-width: 1060px) {
-  .sv-sync-song-browser:not(.sv-sync-song-browser--compact) .sv-sync-song-list-head, .sv-sync-song-browser:not(.sv-sync-song-browser--compact) .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1.3fr) 168px 190px minmax(110px, 1fr); }
-  .sv-sync-song-column--actions { display: none; }
+@container (max-width: 1120px) {
+  .sv-sync-song-list-head, .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1.3fr) 168px 220px minmax(110px, 1fr); }
+  .sv-sync-song-row > .sv-sync-song-column--actions, .sv-sync-song-list-head > .sv-sync-song-column--actions { display: none; }
+}
+@container (max-width: 800px) {
+  .sv-sync-song-list-head, .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1fr) 168px 220px; }
+  .sv-sync-song-row > .sv-sync-song-column--source, .sv-sync-song-list-head > .sv-sync-song-column--source { display: none; }
+}
+@container (max-width: 660px) {
+  .sv-sync-song-browser .sv-sync-song-list-head, .sv-sync-song-browser .sv-sync-song-row { grid-template-columns: 52px minmax(0, 1fr); }
+  .sv-sync-song-row > .sv-sync-levels, .sv-sync-song-row > .sv-sync-song-status { grid-column: 2; }
+  .sv-sync-song-list-head > :nth-child(n + 3) { display: none; }
 }
 .sv-sync-song-list-head { padding: 0 12px; font: italic 800 11px/1 var(--sv-sync-font-display); font-stretch: 120%; letter-spacing: .14em; color: var(--sv-sync-text-subtle); text-transform: uppercase; }
-.sv-sync-song-row { position: relative; min-height: 72px; padding: 10px 12px; border-radius: 12px; background: var(--sv-sync-panel-deep); border: 1px solid var(--sv-sync-border-soft); }
+.sv-sync-song-row { position: relative; min-height: 80px; padding: 10px 12px; border-radius: 12px; background: var(--sv-sync-panel-deep); border: 1px solid var(--sv-sync-border-soft); }
 .sv-sync-song-row:hover { background: #141826; border-color: #33405e; }
 .sv-sync-song-row--selected { background: #141a28; border-color: #2f3a55; }
 .sv-sync-song-row--gone > :not(.sv-sync-song-status):not(.sv-sync-song-column--actions) { opacity: .6; }
 .sv-sync-song-title-block { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.sv-sync-song-title { padding: 0; border: 0; background: none; text-align: start; cursor: pointer; font: italic 800 17px/1.15 var(--sv-sync-font-display); font-stretch: 112%; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sv-sync-song-title { padding: 0; border: 0; background: none; cursor: pointer; font: italic 800 17px/1.15 var(--sv-sync-font-display); font-stretch: 112%; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Right-to-left titles (Hebrew) keep dir="auto" for their words but start at the same left edge as every other row. */
+.sv-sync-song-title, .sv-sync-song-artist, .sv-sync-phone-song-title { text-align: left; }
 .sv-sync-song-title:hover { color: var(--sv-sync-link-hover); text-decoration: underline; text-underline-offset: 3px; }
 .sv-sync-song-artist { font-size: 13px; color: var(--sv-sync-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sv-sync-levels { display: flex; gap: 4px; }
 .sv-sync-level { display: inline-grid; place-items: center; width: 28px; height: 24px; border-radius: 6px; border: 1.5px solid var(--sv-sync-difficulty); background: #0d0f17; color: #fff; font: italic 800 12px/1 var(--sv-sync-font-display); font-variant-numeric: tabular-nums; }
 .sv-sync-level--missing { border: 1.5px dashed var(--sv-sync-border-strong); color: #7a85a6; background: transparent; }
 .sv-sync-song-status { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
-.sv-sync-status-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.sv-sync-status-actions { display: flex; flex-wrap: wrap; gap: 4px 10px; }
 .sv-sync-song-step { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: #9fdcff; font-weight: 600; }
 .sv-sync-step-dots { display: flex; gap: 4px; }
 .sv-sync-step-dots i { width: 22px; height: 5px; border-radius: 2px; transform: skewX(-14deg); background: #222838; border: 1px solid #2e3650; }
@@ -406,11 +420,16 @@
 .sv-sync-source svg { flex: 0 0 16px; color: var(--sv-sync-link); }
 .sv-sync-source--addon svg { color: var(--sv-sync-addon); }
 .sv-sync-source--none, .sv-sync-source--none svg { color: var(--sv-sync-text-subtle); }
-.sv-sync-song-hover-actions { display: flex; justify-content: flex-end; gap: 6px; opacity: 0; transition: opacity .12s; }
-.sv-sync-song-row:hover .sv-sync-song-hover-actions, .sv-sync-song-row:focus-within .sv-sync-song-hover-actions { opacity: 1; }
+/* Shown at rest as quiet ghost buttons, so the column is never an empty strip and touch screens can reach them. */
+.sv-sync-song-hover-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.sv-sync-song-hover-actions .sv-sync-icon-button { background: transparent; border-color: var(--sv-sync-border); color: var(--sv-sync-text-soft); transition: background .12s, border-color .12s, color .12s; }
+.sv-sync-song-row:hover .sv-sync-song-hover-actions .sv-sync-icon-button, .sv-sync-song-row:focus-within .sv-sync-song-hover-actions .sv-sync-icon-button { background: #1d2232; border-color: var(--sv-sync-border-strong); color: var(--sv-sync-text); }
+.sv-sync-song-hover-actions .sv-sync-icon-button:hover { border-color: var(--sv-sync-border-hover); color: #fff; }
 .sv-sync-list-footer { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px 0; font-size: 13px; color: var(--sv-sync-text-subtle); }
 
 /* ---------- Song details drawer ---------- */
+/* The margin skips the column titles (11px line + 6px gap) so the drawer starts level with the first song. */
+.sv-sync-home-grid--with-drawer .sv-sync-drawer { margin-top: 17px; }
 .sv-sync-drawer { position: sticky; top: 16px; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--sv-sync-panel-raised); border: 1px solid #33405e; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
 .sv-sync-drawer-head { position: relative; padding: 20px 20px 18px; overflow: hidden; }
 .sv-sync-drawer-backdrop { position: absolute; inset: -30px; width: calc(100% + 60px); height: calc(100% + 60px); object-fit: cover; filter: blur(26px) brightness(.36) saturate(1.3); }
@@ -462,7 +481,8 @@
 .sv-sync-state-card > .sv-sync-text { font-size: 15px; line-height: 1.5; }
 .sv-sync-state-card h3 { margin: 0; font: italic 800 21px/1.15 var(--sv-sync-font-display); font-stretch: 118%; color: #fff; }
 .sv-sync-state-card b { color: #fff; }
-.sv-sync-state-card--centered { align-items: center; text-align: center; }
+.sv-sync-state-picture { display: flex; align-items: center; height: 48px; }
+.sv-sync-state-card > :last-child { margin-top: auto; }
 .sv-sync-state-card--warning { border-color: rgba(255, 198, 0, .4); }
 .sv-sync-state-card--error { border-color: rgba(255, 60, 60, .45); }
 .sv-sync-error-icon { color: #ff8a8a; }
@@ -488,8 +508,8 @@
 }
 .sv-sync-pick-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: #0b0f18; color: var(--sv-sync-great); }
 .sv-sync-permission-explainer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: center; width: 100%; text-align: start; }
-.sv-sync-browser-prompt-frame { padding: 10px 10px 44px; }
-.sv-sync-browser-prompt { position: relative; width: 100%; max-width: 440px; margin: 0 auto; border-radius: 12px; background: #f3f5f9; color: #202124; font: 13px/1.45 'Segoe UI', Rubik, sans-serif; box-shadow: 0 20px 50px rgba(0, 0, 0, .6); }
+.sv-sync-browser-prompt-frame { padding: 10px 0 44px; }
+.sv-sync-browser-prompt { position: relative; width: 100%; max-width: 440px; margin: 0 0 0 auto; border-radius: 12px; background: #f3f5f9; color: #202124; font: 13px/1.45 'Segoe UI', Rubik, sans-serif; box-shadow: 0 20px 50px rgba(0, 0, 0, .6); }
 .sv-sync-browser-prompt-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px 12px 0 0; background: #dfe3ea; color: #5f6368; font-size: 11.5px; }
 .sv-sync-browser-prompt-title { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; font-weight: 600; font-size: 14px; }
 .sv-sync-browser-prompt-logo { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 5px; background: var(--sv-sync-stage); color: var(--sv-sync-light-blue); }
@@ -497,7 +517,7 @@
 .sv-sync-browser-prompt-buttons { display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px 16px; }
 .sv-sync-browser-prompt-buttons span { display: inline-flex; align-items: center; min-height: 32px; padding: 0 16px; border-radius: 16px; border: 1px solid #c4c9d4; background: #fff; color: #1a56d6; font-weight: 600; }
 .sv-sync-browser-prompt-buttons .sv-sync-browser-prompt-allow { background: #1a56d6; color: #fff; border-color: #1a56d6; box-shadow: 0 0 0 4px rgba(164, 255, 0, .55); }
-.sv-sync-browser-prompt-pointer { position: absolute; right: -6px; bottom: -34px; display: flex; align-items: center; gap: 6px; color: var(--sv-sync-great); font: italic 900 14px/1 var(--sv-sync-font-display); font-stretch: 120%; letter-spacing: .06em; }
+.sv-sync-browser-prompt-pointer { position: absolute; right: 0; bottom: -34px; display: flex; align-items: center; gap: 6px; color: var(--sv-sync-great); font: italic 900 14px/1 var(--sv-sync-font-display); font-stretch: 120%; letter-spacing: .06em; }
 .sv-sync-blocking-card { display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 640px; margin: 20px auto; padding: 36px 32px; text-align: center; border-color: rgba(255, 198, 0, .45); }
 .sv-sync-blocking-card .sv-sync-note { width: 100%; }
 .sv-sync-game-cards { display: flex; flex-direction: column; gap: 10px; }
@@ -521,6 +541,7 @@
 /* ---------- Audio sources ---------- */
 .sv-sync-source-card { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
 .sv-sync-source-head { display: flex; align-items: center; gap: 12px; }
+.sv-sync-source-card-foot { margin-top: auto; }
 .sv-sync-source-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #0b0e16; border: 1px solid #2c3550; color: var(--sv-sync-link); }
 .sv-sync-music-folders { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .sv-sync-music-folders li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto 36px; gap: 10px; align-items: center; min-height: 52px; padding: 6px 8px 6px 12px; border-radius: 10px; background: var(--sv-sync-panel-deep); border: 1px solid var(--sv-sync-border-soft); }
@@ -529,7 +550,7 @@
 .sv-sync-big-stat { display: flex; align-items: baseline; gap: 8px; }
 .sv-sync-big-stat b { font: italic 900 30px/1 var(--sv-sync-font-display); font-stretch: 125%; color: var(--sv-sync-great); }
 .sv-sync-picked-files { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; }
-.sv-sync-picked-files li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 8px; background: var(--sv-sync-panel-deep); border: 1px solid var(--sv-sync-border-soft); }
+.sv-sync-picked-files li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; padding: 6px 10px; border-radius: 8px; background: var(--sv-sync-panel-deep); border: 1px solid var(--sv-sync-border-soft); }
 .sv-sync-addon-list { display: flex; flex-direction: column; gap: 10px; }
 .sv-sync-addon-card { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 16px 18px; border-radius: 14px; background: var(--sv-sync-panel-raised); border: 1px solid var(--sv-sync-border); }
 .sv-sync-addon-card--off .sv-sync-addon-icon, .sv-sync-addon-card--off .sv-sync-addon-name { opacity: .72; }
@@ -561,9 +582,10 @@
 .sv-sync-layout-option { position: relative; display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 16px; border: 1.5px solid var(--sv-sync-border); background: #131722; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .sv-sync-layout-option:hover { border-color: #3d4a6c; }
 .sv-sync-layout-option[aria-checked="true"] { border-color: var(--sv-sync-light-blue); background: linear-gradient(180deg, rgba(28, 216, 255, .09), transparent 40%), #131a27; }
-.sv-sync-layout-option-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sv-sync-layout-option-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 24px; }
 .sv-sync-layout-option-name { font: italic 800 21px/1 var(--sv-sync-font-display); font-stretch: 120%; color: #fff; }
 .sv-sync-current-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 9px; border-radius: 999px; background: var(--sv-sync-light-blue); color: #04131a; font: 700 11px/1 var(--sv-sync-font-body); }
+.sv-sync-layout-option .sv-sync-mini-tree { flex: 1; }
 .sv-sync-mini-tree { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 10px; list-style: none; border-radius: 12px; background: #0b0e16; border: 1px solid var(--sv-sync-border-soft); font-size: 13px; }
 .sv-sync-mini-tree li { display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 6px; border-radius: 6px; color: var(--sv-sync-text-soft); white-space: nowrap; }
 .sv-sync-mini-tree li.sv-sync-mini-tree-song { padding-left: 28px; color: var(--sv-sync-text-muted); font-size: 12.5px; }
@@ -653,7 +675,8 @@
 .sv-sync-stage-line svg { color: var(--sv-sync-good); }
 .sv-sync-report { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow: auto; margin: 0; padding: 12px 14px; border-radius: 10px; background: #0b0e16; border: 1px solid var(--sv-sync-border-soft); color: var(--sv-sync-text-body); font-size: 14.5px; line-height: 1.5; }
 .sv-sync-report-text { white-space: pre-wrap; word-break: break-word; }
-.sv-sync-generated-song-top { display: grid; grid-template-columns: minmax(160px, 1fr) auto auto auto; gap: 10px 20px; align-items: center; }
+.sv-sync-generated-song-top { display: grid; grid-template-columns: minmax(160px, 1fr) 160px 240px 130px; gap: 10px 20px; align-items: center; }
+.sv-sync-generated-song-top > .sv-sync-link-button { justify-self: end; }
 .sv-sync-generated-song-top .sv-sync-strong { font-size: 16px; }
 .sv-sync-generator-job--ended { background: var(--sv-sync-panel-deep); }
 .sv-sync-job-end { font-size: 15px; }
@@ -771,8 +794,6 @@
   .sv-sync-top-bar--desktop .sv-sync-now-button { grid-column: auto; grid-row: auto; }
   .sv-sync-background-sync { grid-column: 1 / -1; }
   .sv-sync-home-grid--with-drawer { grid-template-columns: minmax(0, 1fr); }
-  .sv-sync-song-list-head, .sv-sync-song-row { grid-template-columns: 52px minmax(150px, 1fr) 168px 190px; }
-  .sv-sync-song-column--source, .sv-sync-song-column--actions { display: none; }
 }
 @media (max-width: 900px) {
   .sv-sync-two-columns, .sv-sync-layout-options, .sv-sync-name-rule, .sv-sync-permission-explainer { grid-template-columns: minmax(0, 1fr); }
@@ -780,13 +801,9 @@
 }
 @media (max-width: 640px) {
   .sv-sync-top-bar { grid-template-columns: minmax(0, 1fr); }
-  .sv-sync-shell--website { padding: 24px 16px 56px; }
   .sv-sync-display-title { font-size: 36px; }
   .sv-sync-search-box .sv-sync-field, .sv-sync-name-filter { width: 100%; }
   .sv-sync-filters > * { flex: 1 1 100%; }
-  .sv-sync-song-list-head, .sv-sync-song-row { grid-template-columns: 52px minmax(0, 1fr); }
-  .sv-sync-song-row > .sv-sync-levels, .sv-sync-song-row > .sv-sync-song-status { grid-column: 2; }
-  .sv-sync-song-list-head > :nth-child(n + 3) { display: none; }
   .sv-sync-code-box { width: 42px; height: 54px; font-size: 24px; }
   .sv-sync-big-code { font-size: 44px; }
 }

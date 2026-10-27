@@ -50,7 +50,7 @@ export function SongsFolderPreview(props: SongsFolderPreviewProps): ReactElement
       </ul>
       {props.playerGroups.length > 0 && <Note iconName="lock">Already have a group like <b className="sv-sync-strong">Pop</b>? Ours is named <b className="sv-sync-strong">{CLASH_PREFIX}Pop</b>, so the two never mix.</Note>}
       <div className="sv-sync-row sv-sync-space-between sv-sync-wrap">
-        <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onChooseAnotherFolder}>Choose another folder</button>
+        <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--large" type="button" onClick={props.onChooseAnotherFolder}>Choose another folder</button>
         <button className="sv-sync-button sv-sync-button--go sv-sync-button--large" type="button" onClick={props.onContinue}>Continue<Icon name="chevron" strokeWidth={2.6} /></button>
       </div>
     </div>

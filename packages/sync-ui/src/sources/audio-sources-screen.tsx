@@ -143,7 +143,7 @@ function PickFileSource({ pickedFiles, onGoToSongs }: { pickedFiles: readonly Pi
           </li>
         ))}
       </ul>
-      <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small sv-sync-align-start" type="button" onClick={onGoToSongs}>Go to my songs</button>
+      <button className="sv-sync-button sv-sync-button--ghost sv-sync-button--small sv-sync-align-start sv-sync-source-card-foot" type="button" onClick={onGoToSongs}>Go to my songs</button>
     </section>
   );
 }
