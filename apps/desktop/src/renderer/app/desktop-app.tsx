@@ -106,7 +106,7 @@ function renderScreen(options: ScreenOptions): ReactNode {
   if (options.currentScreen === 'audio-sources') return renderAudioSources(options);
   if (options.currentScreen === 'generators') return renderGenerators(options);
   if (options.currentScreen === 'folder-layout') {
-    return <FolderLayoutScreen currentLayout={state.layout} previewsByLayout={state.previewsByLayout} movingSongCountsByLayout={state.movingSongCountsByLayout} playerGroupNames={state.playerGroupNames} onChangeLayout={(layout) => void bridge.setLayout(layout)} lastMove={state.lastLayoutMove} editGroupsHref={`${state.siteUrl}/library?tab=groups`} />;
+    return <FolderLayoutScreen currentLayout={state.layout} previewsByLayout={state.previewsByLayout} movingSongCountsByLayout={state.movingSongCountsByLayout} playerGroupNames={state.playerGroupNames} onChangeLayout={(layout) => void bridge.setLayout(layout)} lastMove={state.lastLayoutMove} editGroupsHref={`${state.siteUrl}/library?tab=groups`} partyFolderPreview={state.partyFolderPreview} partyListsHref={`${state.siteUrl}/library?tab=party-lists`} />;
   }
   if (options.currentScreen === 'activity') {
     return (
@@ -153,6 +153,8 @@ function renderSongs({ state, bridge, selectedSongId, setSelectedSongId, setCurr
       onDismissFinishedSync={() => void bridge.dismissFinishedSync()}
       needsAudioBanner={needsAudioCount >= 3 && state.musicFolders.length === 0 ? { songCount: needsAudioCount, onAddMusicFolder: () => void bridge.addMusicFolder(), onDismiss: () => undefined } : null}
       songs={state.songs}
+      partyFolders={state.partyFolders}
+      partyListsHref={`${state.siteUrl}/library?tab=party-lists`}
       emptyState={state.songs.length === 0 && !state.syncRun ? <EmptyVaultState vaultHref={state.siteUrl} /> : undefined}
       selectedSongDetails={selectedSongId ? (state.songDetailsById[selectedSongId] ?? null) : null}
       onOpenSongDetails={setSelectedSongId}

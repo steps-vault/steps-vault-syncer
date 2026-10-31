@@ -172,7 +172,7 @@ function buildGeneratedSongEntry({ event, entryId }: { event: GeneratedSongActiv
 
 function getSyncEntryTextAfter({ event, groupName }: { event: ActivityEvent; groupName: string }): string {
   if (event.kind === 'failed' || event.kind === 'updated') return '';
-  if (event.kind === 'removed') return ' from your game';
+  if (event.kind === 'removed') return event.partyListId === undefined ? ' from your game' : ` from ${groupName}`;
   return ` to ${groupName}`;
 }
 

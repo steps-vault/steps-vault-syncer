@@ -1,4 +1,4 @@
-import { CLASH_PREFIX, FOLDER_LAYOUTS, ONE_GROUP_NAME, type FolderLayout } from '@stepsvault/sync-core';
+import { CLASH_PREFIX, FOLDER_LAYOUTS, ONE_GROUP_NAME, PARTY_FOLDER_PREFIX, type FolderLayout } from '@stepsvault/sync-core';
 import { useState, type ReactElement } from 'react';
 import { JudgmentText } from '../progress/judgment-flash';
 import { Icon } from '../icons/icon';
@@ -18,6 +18,13 @@ const LAYOUT_DESCRIPTIONS: Readonly<Record<FolderLayout, string>> = {
 /** The layout that arrived last, marked NEW until the player picks it. */
 const NEW_LAYOUT: FolderLayout = 'my-groups';
 const NAME_RULE_PREVIEW: LayoutPreview = { groups: [{ groupName: `${CLASH_PREFIX}Pop`, tagText: 'ours', songTitles: ['Pop songs from the library'] }] };
+/** Shown until the player syncs a party list of their own. */
+const SAMPLE_PARTY_FOLDER_PREVIEW: LayoutPreview = {
+  groups: [
+    { groupName: `${PARTY_FOLDER_PREFIX}Maya's birthday`, isPartyFolder: true, tagText: 'ends in 2d', songTitles: ['桜ドライブ', 'Neon Overdrive'], songTagText: 'copy' },
+    { groupName: `${PARTY_FOLDER_PREFIX}Friday arcade night`, isPartyFolder: true, tagText: 'ends in 5h', songTitles: [] },
+  ],
+};
 
 export interface FolderLayoutScreenProps {
   currentLayout: FolderLayout;
@@ -31,6 +38,10 @@ export interface FolderLayoutScreenProps {
   lastMove?: { layout: FolderLayout; movedSongCount: number } | null;
   /** The site's page where the player makes and fills their groups (My library › Groups). */
   editGroupsHref?: string;
+  /** The player's own party folders (buildPartyFolderPreview); a sample tree is shown without them. */
+  partyFolderPreview?: LayoutPreview | null;
+  /** The site's list of the player's party lists (My library › Party lists). */
+  partyListsHref?: string;
 }
 
 /** Screen 5: how the library's songs are grouped in the game. Changing it asks first, because scores start fresh. */
@@ -76,6 +87,7 @@ export function FolderLayoutScreen(props: FolderLayoutScreenProps): ReactElement
       </div>
       <MyGroupsSource editGroupsHref={props.editGroupsHref} />
       <NameRuleExplainer />
+      <PartyListsExplainer preview={props.partyFolderPreview ?? SAMPLE_PARTY_FOLDER_PREVIEW} partyListsHref={props.partyListsHref} />
       <Note>StepMania keeps scores by folder. Moving {SITE_NAME} songs to a new layout means their scores start fresh. Your own songs and their scores are never touched.</Note>
       {pendingLayout !== null && (
         <LayoutChangeDialog nextLayout={pendingLayout} movingSongCount={props.movingSongCountsByLayout[pendingLayout]} onCancel={() => { setPendingLayout(null); }} onConfirm={() => { setPendingLayout(null); props.onChangeLayout(pendingLayout); }} />
@@ -93,6 +105,20 @@ function MyGroupsSource({ editGroupsHref }: { editGroupsHref: string | undefined
       <span>My groups come from <a className="sv-sync-link" href={editGroupsHref}>My library › Groups</a>. A song is in one group, so it lands in one folder.</span>
       <a className="sv-sync-button sv-sync-button--ghost sv-sync-button--small" href={editGroupsHref}>Edit my groups</a>
     </div>
+  );
+}
+
+/** Party folders sit beside whichever layout the player picks, so this explains them on every layout. */
+function PartyListsExplainer({ preview, partyListsHref }: { preview: LayoutPreview; partyListsHref: string | undefined }): ReactElement {
+  return (
+    <section className="sv-sync-name-rule sv-sync-name-rule--party" aria-labelledby="sv-sync-party-folders-heading">
+      <div className="sv-sync-stack-small">
+        <h3 id="sv-sync-party-folders-heading" className="sv-sync-heading-2 sv-sync-heading-2--small">Party lists get their own folder</h3>
+        <p className="sv-sync-text sv-sync-text--medium">Every party list you sync becomes one folder with <b className="sv-sync-strong">copies</b> of its songs, whatever layout you pick. When the list ends, the folder is removed. Songs you kept with ♥ stay in your library.</p>
+        {partyListsHref !== undefined && <a className="sv-sync-small sv-sync-link" href={partyListsHref}>See your party lists</a>}
+      </div>
+      <FolderTreePreview playerGroupNames={[]} preview={preview} />
+    </section>
   );
 }
 

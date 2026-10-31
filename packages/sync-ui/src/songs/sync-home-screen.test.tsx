@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useState, type ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { FAKE_GAME, FAKE_SONG_ROWS, getFakeSongDetails } from '../fake-data/fake-sync-data';
+import { FAKE_GAME, FAKE_PARTY_FOLDERS, FAKE_SONG_ROWS, getFakeSongDetails } from '../fake-data/fake-sync-data';
 import { SyncHomeScreen, type SyncHomeScreenProps } from './sync-home-screen';
 
 function renderHomeScreen(overrides: Partial<SyncHomeScreenProps> = {}): SyncHomeScreenProps {
@@ -159,3 +159,26 @@ function pickComboBoxOption({ label, optionText }: { label: string; optionText: 
   fireEvent.change(comboBox, { target: { value: optionText } });
   fireEvent.keyDown(comboBox, { key: 'Enter' });
 }
+
+describe('SyncHomeScreen party lists', () => {
+  it('lists each party list’s folder with its songs, what needs audio and when it ends', () => {
+    renderHomeScreen({ partyFolders: FAKE_PARTY_FOLDERS, partyListsHref: 'https://dancedance.studio/library?tab=party-lists' });
+    const section = screen.getByRole('region', { name: 'Party lists' });
+    const rows = within(section).getAllByRole('listitem');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "Maya’s birthdaySongs/Party - Maya's birthday6 songs in your game · 1 needs audioEnds in 2d",
+      'Friday arcade nightSongs/Party - Friday arcade night4 songs in your gameEnds in 5h',
+    ]);
+    expect(within(section).getByRole('link', { name: 'See your party lists' }).getAttribute('href')).toBe('https://dancedance.studio/library?tab=party-lists');
+  });
+
+  it('says a gone list’s folder is being removed', () => {
+    renderHomeScreen({ partyFolders: FAKE_PARTY_FOLDERS.slice(0, 1).map((partyFolder) => ({ ...partyFolder, isLeaving: true, endsText: null })) });
+    expect(screen.getByRole('region', { name: 'Party lists' }).textContent).toContain('The list is gone · removing its folder');
+  });
+
+  it('shows no party list section when the player syncs none', () => {
+    renderHomeScreen({ partyFolders: [] });
+    expect(screen.queryByRole('region', { name: 'Party lists' })).toBeNull();
+  });
+});

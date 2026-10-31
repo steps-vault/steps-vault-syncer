@@ -1,4 +1,4 @@
-import type { VaultSong } from '../planner/sync-plan-types';
+import type { PartyListToSync, VaultSong } from '../planner/sync-plan-types';
 
 /** A song in the player's vault, as GET /api/sync/vault describes it. */
 export interface VaultSongDetails extends VaultSong {
@@ -14,6 +14,15 @@ export interface VaultSongDetails extends VaultSong {
   /** The colour of the player's group on the site (green, pink, cyan, yellow, orange or purple; null: in no group), so
    * Sync draws the group's folder in it. Sites from before group colours leave it out. */
   groupColorKey?: string | null;
+}
+
+/** A party list the player syncs, as GET /api/sync/party-lists describes it. */
+export interface SyncPartyList extends PartyListToSync {
+  slug: string;
+  /** When the list ends and its folder goes; null: no end. */
+  endsAt: string | null;
+  /** Its ready songs, described like vault songs; their files come from the same song routes. */
+  songs: VaultSongDetails[];
 }
 
 /** The signed-in player as GET /api/sync/me describes them. */

@@ -188,3 +188,35 @@ describe('buildAddonSongFacts', () => {
     expect(buildAddonSongFacts(VAULT_SONG)).toEqual({ title: '桜ドライブ', artist: 'Rei Hoshino', album: null, genre: 'J-Pop', lengthSeconds: 212, youtubeId: 'abcdefghijk', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk' });
   });
 });
+
+describe('reading party lists', () => {
+  it('reads the lists the player syncs with their ready songs, and fetches those songs like vault songs', async () => {
+    const partyLists = { partyLists: [{ id: 'party_1', slug: 'maya-bday-7q2xk', name: 'Maya’s birthday', gameFolderName: 'Party - Maya’s birthday', endsAt: '2026-11-02T06:00:00.000Z', songs: [{ ...VAULT_SONG, imageKinds: ['jacket'] }] }] };
+    const api = new RecordedApi({
+      'GET https://stepsvault.com/api/sync/party-lists': { status: 200, body: JSON.stringify(partyLists) },
+      'GET https://stepsvault.com/api/sync/songs/song_7/ssc': { status: 200, body: '#TITLE:Sakura Drive;' },
+      'GET https://stepsvault.com/api/sync/songs/song_7/images/jacket': { status: 200, body: new Uint8Array([7]) },
+    });
+    const client = new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: 'device-token' });
+    const [partyList] = (await client.fetchPartyLists()) ?? [];
+    expect(partyList).toMatchObject({ partyListId: 'party_1', slug: 'maya-bday-7q2xk', name: 'Maya’s birthday', gameFolderName: 'Party - Maya’s birthday', endsAt: '2026-11-02T06:00:00.000Z' });
+    expect(partyList?.songs.map((song) => [song.vaultSongId, song.titleTransliteration])).toEqual([['song_7', 'Sakura Drive']]);
+    expect(api.requests[0]?.headers).toEqual({ Authorization: 'Bearer device-token' });
+    const files = await client.fetchSongFiles({ vaultSongId: 'song_7', chartVersion: VAULT_SONG.chartVersion });
+    expect(files.images.map((image) => image.fileName)).toEqual(['jacket.png']);
+  });
+
+  it('answers null for a site without party lists, so the sync goes on without them', async () => {
+    const notFound = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 404, body: '<!doctype html><title>Not found</title>' } });
+    const webPage = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 200, body: '<!doctype html><title>StepsVault</title>' } });
+    expect(await new StepsVaultClient({ httpClient: notFound, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists()).toBeNull();
+    expect(await new StepsVaultClient({ httpClient: webPage, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists()).toBeNull();
+  });
+
+  it('names the folder from the list name when an older answer has no folder name, and stops when signed out', async () => {
+    const api = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 200, body: JSON.stringify({ partyLists: [{ id: 'party_2', slug: 'game-night-a1b2c', name: 'Game night', endsAt: null, songs: [] }] }) } });
+    expect((await new StepsVaultClient({ httpClient: api, siteUrl: SITE_URL, deviceToken: null }).fetchPartyLists())?.[0]?.gameFolderName).toBe('Party - Game night');
+    const signedOut = new RecordedApi({ 'GET https://stepsvault.com/api/sync/party-lists': { status: 401, body: '{"error":"Sign in again."}' } });
+    await expect(new StepsVaultClient({ httpClient: signedOut, siteUrl: SITE_URL, deviceToken: 'old' }).fetchPartyLists()).rejects.toBeInstanceOf(SignedOutError);
+  });
+});

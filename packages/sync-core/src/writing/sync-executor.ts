@@ -1,5 +1,6 @@
-import { findInstalledSong, withInstalledSong, withOwnedGroup, withoutInstalledSong, type InstalledSongsRecord } from '../ownership/installed-songs';
-import type { SongPlan, SyncAction, SyncPlan } from '../planner/sync-plan-types';
+import { findInstalledSong, withInstalledSong, withOwnedGroup, withoutInstalledSong, type InstalledSong, type InstalledSongsRecord } from '../ownership/installed-songs';
+import { buildPartyFolderSongsRecord, findPartyFolder, getPartyFolders, withPartyFolder, type PartyFolder } from '../ownership/party-folders';
+import type { PartyFolderPlan, SongPlan, SyncAction, SyncPlan } from '../planner/sync-plan-types';
 import { buildSongsPath, getNameKey } from '../songs-folder/songs-path';
 import { addSong, moveSong, removeSong, updateSong, type SongWriterDependencies } from './song-writer';
 import { SongWriteError, toSongWriteError, type SongWriteFailure } from './song-write-error';
@@ -14,6 +15,8 @@ export interface ActivityEvent {
   folderPath: readonly string[];
   failure?: SongWriteFailure;
   message?: string;
+  /** Set for a copy in a party list's folder; the song may also have a folder of its own in the layout. */
+  partyListId?: string;
 }
 
 export interface SyncProgress {
@@ -38,17 +41,60 @@ export async function carryOutSyncPlan(options: {
   onProgress?: (progress: SyncProgress) => void;
   onRecordChange?: (record: InstalledSongsRecord) => Promise<void>;
 }): Promise<SyncResult> {
-  let record = options.plan.forgetActions.reduce((current, action) => withoutInstalledSong({ record: current, vaultSongId: action.vaultSongId }), options.record);
+  const partyFolderPlans = options.plan.partyFolderPlans ?? [];
+  const layoutRecord = options.plan.forgetActions.reduce((current, action) => withoutInstalledSong({ record: current, vaultSongId: action.vaultSongId }), options.record);
+  let record = withPartyFolderForgetActions({ record: layoutRecord, partyFolderPlans });
   const events: ActivityEvent[] = [];
-  const songPlans = options.plan.songPlans.filter((songPlan) => songPlan.actions.length > 0);
-  for (const [index, songPlan] of songPlans.entries()) {
-    const result = await carryOutSongPlan({ songPlan, record, dependencies: options.dependencies });
+  const songWorks = getSongWorks(options.plan);
+  for (const [index, songWork] of songWorks.entries()) {
+    const result = songWork.partyFolderPlan
+      ? await carryOutPartySongPlan({ songPlan: songWork.songPlan, partyFolderPlan: songWork.partyFolderPlan, record, dependencies: options.dependencies })
+      : await carryOutSongPlan({ songPlan: songWork.songPlan, record, dependencies: options.dependencies });
     record = result.record;
     events.push(...result.events);
     await options.onRecordChange?.(record);
-    options.onProgress?.({ doneSongCount: index + 1, totalSongCount: songPlans.length, vaultSongId: songPlan.vaultSongId });
+    options.onProgress?.({ doneSongCount: index + 1, totalSongCount: songWorks.length, vaultSongId: songWork.songPlan.vaultSongId });
   }
   return { record: await removeEmptyOwnedGroups({ record, dependencies: options.dependencies }), events };
+}
+
+interface SongWork {
+  songPlan: SongPlan;
+  /** Set for a copy in a party list's folder. */
+  partyFolderPlan: PartyFolderPlan | null;
+}
+
+/** The layout's songs first, then the party folders' copies, skipping songs with nothing to do. */
+function getSongWorks(plan: SyncPlan): SongWork[] {
+  const layoutWorks = plan.songPlans.map((songPlan) => ({ songPlan, partyFolderPlan: null }));
+  const partyWorks = (plan.partyFolderPlans ?? []).flatMap((partyFolderPlan) => partyFolderPlan.songPlans.map((songPlan) => ({ songPlan, partyFolderPlan })));
+  return [...layoutWorks, ...partyWorks].filter((songWork) => songWork.songPlan.actions.length > 0);
+}
+
+/** Forgets the lost copies and brings each folder's list name up to date, before any copy is written. */
+function withPartyFolderForgetActions({ record, partyFolderPlans }: { record: InstalledSongsRecord; partyFolderPlans: readonly PartyFolderPlan[] }): InstalledSongsRecord {
+  return partyFolderPlans.reduce((current, partyFolderPlan) => {
+    if (!findPartyFolder({ record: current, partyListId: partyFolderPlan.partyListId })) return current;
+    const songsRecord = partyFolderPlan.forgetActions.reduce((songs, action) => withoutInstalledSong({ record: songs, vaultSongId: action.vaultSongId }), buildPartyFolderSongsRecord({ record: current, partyListId: partyFolderPlan.partyListId }));
+    return withPartyFolder({ record: current, partyFolder: buildPartyFolder({ partyFolderPlan, installedSongs: songsRecord.installedSongs }) });
+  }, record);
+}
+
+/** A copy is carried out like a layout song, inside a record of its folder's copies only, then put back. */
+async function carryOutPartySongPlan(options: { songPlan: SongPlan; partyFolderPlan: PartyFolderPlan; record: InstalledSongsRecord; dependencies: SongWriterDependencies }): Promise<SyncResult> {
+  const { partyFolderPlan, record } = options;
+  const songsRecord = buildPartyFolderSongsRecord({ record, partyListId: partyFolderPlan.partyListId });
+  const result = await carryOutSongPlan({ songPlan: options.songPlan, record: songsRecord, dependencies: options.dependencies });
+  const partyFolder = buildPartyFolder({ partyFolderPlan, installedSongs: result.record.installedSongs });
+  return {
+    record: withPartyFolder({ record: { ...record, ownedGroupNames: result.record.ownedGroupNames }, partyFolder }),
+    events: result.events.map((event) => ({ ...event, partyListId: partyFolderPlan.partyListId })),
+  };
+}
+
+function buildPartyFolder({ partyFolderPlan, installedSongs }: { partyFolderPlan: PartyFolderPlan; installedSongs: readonly InstalledSong[] }): PartyFolder {
+  const { partyListId, listName, baseName, groupName } = partyFolderPlan;
+  return { partyListId, listName, baseName, groupName, installedSongs };
 }
 
 async function carryOutSongPlan({ songPlan, record, dependencies }: { songPlan: SongPlan; record: InstalledSongsRecord; dependencies: SongWriterDependencies }): Promise<SyncResult> {
@@ -80,7 +126,7 @@ async function carryOutAction({ action, record, dependencies }: { action: SyncAc
   return withoutInstalledSong({ record, vaultSongId: action.vaultSongId });
 }
 
-function withSongInGroup({ record, installedSong }: { record: InstalledSongsRecord; installedSong: Parameters<typeof withInstalledSong>[0]['installedSong'] }): InstalledSongsRecord {
+function withSongInGroup({ record, installedSong }: { record: InstalledSongsRecord; installedSong: InstalledSong }): InstalledSongsRecord {
   const groupName = installedSong.folderPath[0];
   const withSong = withInstalledSong({ record, installedSong });
   return groupName === undefined ? withSong : withOwnedGroup({ record: withSong, groupName });
@@ -88,7 +134,8 @@ function withSongInGroup({ record, installedSong }: { record: InstalledSongsReco
 
 /** A group Sync created and emptied (after a layout change or removals) goes, so the song list has no empty groups. */
 async function removeEmptyOwnedGroups({ record, dependencies }: { record: InstalledSongsRecord; dependencies: SongWriterDependencies }): Promise<InstalledSongsRecord> {
-  const usedGroupKeys = new Set(record.installedSongs.map((song) => getNameKey(song.folderPath[0] ?? '')));
+  const installedSongs = [...record.installedSongs, ...getPartyFolders(record).flatMap((partyFolder) => partyFolder.installedSongs)];
+  const usedGroupKeys = new Set(installedSongs.map((song) => getNameKey(song.folderPath[0] ?? '')));
   let currentRecord = record;
   for (const groupName of record.ownedGroupNames.filter((name) => !usedGroupKeys.has(getNameKey(name)))) {
     const entries = await dependencies.songsFolder.listEntries(buildSongsPath(groupName));

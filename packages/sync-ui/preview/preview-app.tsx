@@ -5,7 +5,7 @@ import {
   PermissionLostState, PhoneStatusView, SongFolderLockedState, SongsFolderMissingState, SongsFolderPreview, StatusChip, SyncHomeScreen, SyncShell, UpdateBanner, SONG_STATUSES, SONG_STATUS_DISPLAYS,
   type LinkCodeState, type SyncPlatform, type SyncScreen,
 } from '../src/index';
-import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
+import { FAKE_ACTIVITY_ENTRIES, FAKE_ADDON_PREVIEW, FAKE_ADDONS, FAKE_FOUND_GAMES, FAKE_FOUND_MUSICS, FAKE_GAME, FAKE_GENERATED_SONGS, FAKE_GENERATOR_JOBS, FAKE_GENERATOR_PREVIEW, FAKE_GENERATORS, FAKE_MUSIC_CHOICES, FAKE_SONG_SOURCE_TABS, FAKE_STEPSVAULT_GENERATOR, FAKE_LAYOUT_PREVIEWS, FAKE_LINKED_COMPUTERS, FAKE_MOVING_SONG_COUNTS, FAKE_MUSIC_FOLDERS, FAKE_PARTY_FOLDERS, FAKE_PICKED_FILES, FAKE_PLAYER_GROUPS, FAKE_SONG_ROWS, getFakeSongDetails } from '../src/fake-data/fake-sync-data';
 
 type PreviewScreen = 'connect' | 'connect-unsupported' | 'folder-preview' | 'songs' | 'audio-sources' | 'generators' | 'folder-layout' | 'activity' | 'account' | 'states' | 'phone';
 type SyncPhase = 'idle' | 'syncing' | 'finished';
@@ -113,6 +113,8 @@ function SongsPreview({ platform, syncPhase, onNavigate }: { platform: SyncPlatf
       onSeeActivity={() => { onNavigate('activity'); }}
       onDismissFinishedSync={() => { setIsFinishedShown(false); }}
       songs={rows}
+      partyFolders={FAKE_PARTY_FOLDERS}
+      partyListsHref="#library-party-lists"
       selectedSongDetails={selectedSongId === null ? null : getFakeSongDetails(selectedSongId)}
       onOpenSongDetails={setSelectedSongId}
       onCloseSongDetails={() => { setSelectedSongId(null); }}
@@ -184,6 +186,7 @@ function FolderLayoutPreview(): ReactElement {
       onChangeLayout={(layout) => { setLastMove({ layout, movedSongCount: FAKE_MOVING_SONG_COUNTS[layout] }); setCurrentLayout(layout); }}
       lastMove={lastMove}
       editGroupsHref="#library-groups"
+      partyListsHref="#library-party-lists"
     />
   );
 }

@@ -607,6 +607,21 @@
 .sv-sync-mini-tree-lock svg { color: var(--sv-sync-link); }
 .sv-sync-mini-tree-tag { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--sv-sync-light-blue); }
 .sv-sync-mini-tree li.sv-sync-mini-tree-more { color: #7a85a6; font-size: 12px; }
+.sv-sync-mini-tree li.sv-sync-mini-tree--party { --sv-sync-group-color: var(--sv-sync-pink); }
+.sv-sync-mini-tree--party .sv-sync-mini-tree-tag { color: #ffd84a; }
+.sv-sync-mini-tree-tag.sv-sync-mini-tree-tag--quiet { font-weight: 400; color: var(--sv-sync-text-subtle); }
+.sv-sync-party-folders { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-color: rgba(255, 50, 248, 0.35); }
+.sv-sync-party-folders-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; }
+.sv-sync-party-folders-link { margin-left: auto; }
+.sv-sync-party-folder-rows { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.sv-sync-party-folder-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 44px; padding: 6px 10px; border-radius: 10px; background: #0b0e16; border: 1px solid var(--sv-sync-border-soft); }
+.sv-sync-party-folder-row > svg { flex: none; color: var(--sv-sync-pink); }
+.sv-sync-party-folder-name { display: flex; flex-direction: column; flex: 1 1 200px; min-width: 0; }
+.sv-sync-party-folder-name > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sv-sync-party-folder-needs-you { color: var(--sv-sync-gold); }
+.sv-sync-party-folder-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-left: auto; text-align: right; }
+.sv-sync-party-folder-ends { font-size: 12px; font-weight: 600; color: #ffd84a; white-space: nowrap; }
+.sv-sync-name-rule.sv-sync-name-rule--party { border-color: rgba(255, 50, 248, 0.35); }
 .sv-sync-name-rule { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: center; padding: 18px; border-radius: 16px; background: var(--sv-sync-panel-raised); border: 1px solid var(--sv-sync-border); }
 
 /* ---------- Activity ---------- */

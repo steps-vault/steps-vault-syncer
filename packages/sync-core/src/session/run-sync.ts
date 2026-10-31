@@ -6,12 +6,13 @@ import type { FolderLayout } from '../layout/folder-layout';
 import { getPlayerGroupNames } from '../layout/player-groups';
 import { checkInstalledSongs, type InstalledSongCheck } from '../ownership/installed-song-check';
 import type { InstalledSongsRecord } from '../ownership/installed-songs';
+import { checkPartyFolders, getOwnSongFolderKeys, type PartyFolderCheck } from '../ownership/party-folders';
 import type { HttpClient } from '../network/http-client';
 import type { AudioMatch, PlayerChoices, SyncPlan } from '../planner/sync-plan-types';
 import { buildSyncPlan } from '../planner/sync-planner';
 import type { SongsFolder } from '../songs-folder/songs-folder';
 import { buildSongsPath, getNameKey } from '../songs-folder/songs-path';
-import type { VaultSongDetails } from '../stepsvault-api/stepsvault-api-types';
+import { SignedOutError, type SyncPartyList, type VaultSongDetails } from '../stepsvault-api/stepsvault-api-types';
 import { buildAddonSongFacts } from '../stepsvault-api/stepsvault-client';
 import type { VaultFiles } from '../writing/song-writer';
 import { carryOutSyncPlan, type ActivityEvent, type SyncProgress } from '../writing/sync-executor';
@@ -26,6 +27,8 @@ export interface RecordStore {
 export interface SyncVault extends VaultFiles {
   fetchVault(): Promise<VaultSongDetails[]>;
   fetchFingerprint(vaultSongId: string): Promise<AudioFingerprint>;
+  /** The party lists the player syncs; null from a site without party lists. A vault without it syncs no party folders. */
+  fetchPartyLists?(): Promise<SyncPartyList[] | null>;
 }
 
 export interface SyncPorts {
@@ -53,6 +56,8 @@ export type SyncPhase = { kind: 'reading-vault' } | { kind: 'finding-audio'; vau
 
 export interface SyncOutcome {
   vaultSongs: VaultSongDetails[];
+  /** The party lists the player syncs; null when the site didn't say, and the party folders were left as they are. */
+  partyLists: SyncPartyList[] | null;
   /** The plan as it stands after the sync: every song's status now. */
   finalPlan: SyncPlan;
   audioResultsBySongId: ReadonlyMap<string, AudioSearchResult>;
@@ -66,21 +71,57 @@ export interface SyncOutcome {
  */
 export async function runSync({ ports, settings, onPhase }: { ports: SyncPorts; settings: SyncSettings; onPhase?: (phase: SyncPhase) => void }): Promise<SyncOutcome> {
   onPhase?.({ kind: 'reading-vault' });
-  const [record, vaultSongs] = await Promise.all([ports.recordStore.load(), ports.vault.fetchVault()]);
+  const [record, vaultSongs, partyLists] = await Promise.all([ports.recordStore.load(), ports.vault.fetchVault(), fetchPartyListsOrUnknown(ports.vault)]);
+  const songs = { vaultSongs, partyLists };
   const checks = await checkInstalledSongs({ songsFolder: ports.songsFolder, record });
-  const audioResultsBySongId = await findAudioForSongsThatNeedIt({ ports, settings, vaultSongs, checks, onPhase });
-  const plan = await buildPlan({ ports, settings, vaultSongs, record, checks, audioResultsBySongId });
+  const partyFolderChecks = await checkPartyFolders({ songsFolder: ports.songsFolder, record });
+  const songsNeedingAudio = getSongsNeedingAudio({ vaultSongs, partyLists, checks, partyFolderChecks });
+  const audioResultsBySongId = await findAudioForSongsThatNeedIt({ ports, settings, songsNeedingAudio, onPhase });
+  const plan = await buildPlan({ ports, settings, songs, record, checks, partyFolderChecks, audioResultsBySongId });
   const result = await carryOutSyncPlan({ plan, record, dependencies: { songsFolder: ports.songsFolder, vaultFiles: ports.vault, createId: ports.createId, getNow: ports.getNow }, onRecordChange: (changed) => ports.recordStore.save(changed), onProgress: (progress) => onPhase?.({ kind: 'writing', progress }) });
   await ports.recordStore.save(result.record);
   const finalChecks = await checkInstalledSongs({ songsFolder: ports.songsFolder, record: result.record });
-  const finalPlan = await buildPlan({ ports, settings, vaultSongs, record: result.record, checks: finalChecks, audioResultsBySongId });
-  return { vaultSongs, finalPlan, audioResultsBySongId, events: result.events, record: result.record };
+  const finalPartyFolderChecks = await checkPartyFolders({ songsFolder: ports.songsFolder, record: result.record });
+  const finalPlan = await buildPlan({ ports, settings, songs, record: result.record, checks: finalChecks, partyFolderChecks: finalPartyFolderChecks, audioResultsBySongId });
+  return { vaultSongs, partyLists, finalPlan, audioResultsBySongId, events: result.events, record: result.record };
 }
 
-/** Only songs that aren't (still) in the game need audio; installed songs keep the music they have. */
-async function findAudioForSongsThatNeedIt(options: { ports: SyncPorts; settings: SyncSettings; vaultSongs: VaultSongDetails[]; checks: InstalledSongCheck[]; onPhase?: (phase: SyncPhase) => void }): Promise<Map<string, AudioSearchResult>> {
-  const installedSongIds = new Set(options.checks.filter((check) => check.state === 'intact' || check.state === 'edited').map((check) => check.installedSong.vaultSongId));
-  const songsNeedingAudio = options.vaultSongs.filter((song) => !installedSongIds.has(song.vaultSongId));
+/**
+ * A party list Sync couldn't read hasn't ended, so its folder stays until the site says the list is gone; only being
+ * signed out stops the sync, as it does for the vault.
+ */
+async function fetchPartyListsOrUnknown(vault: SyncVault): Promise<SyncPartyList[] | null> {
+  if (!vault.fetchPartyLists) return null;
+  try {
+    return await vault.fetchPartyLists();
+  } catch (error) {
+    if (error instanceof SignedOutError) throw error;
+    return null;
+  }
+}
+
+/**
+ * Only songs that aren't (still) in the game need audio; installed songs keep the music they have. A party song needs
+ * it for each list that has no copy yet, but is searched once, even when it is in the vault and in several lists.
+ */
+function getSongsNeedingAudio(options: { vaultSongs: readonly VaultSongDetails[]; partyLists: readonly SyncPartyList[] | null; checks: readonly InstalledSongCheck[]; partyFolderChecks: readonly PartyFolderCheck[] }): VaultSongDetails[] {
+  const installedSongIds = getInstalledSongIds(options.checks);
+  const installedCopyIdsByPartyListId = new Map(options.partyFolderChecks.map((folderCheck) => [folderCheck.partyListId, getInstalledSongIds(folderCheck.checks)]));
+  const songsById = new Map<string, VaultSongDetails>();
+  for (const song of options.vaultSongs.filter((vaultSong) => !installedSongIds.has(vaultSong.vaultSongId))) songsById.set(song.vaultSongId, song);
+  for (const partyList of options.partyLists ?? []) {
+    const installedCopyIds = installedCopyIdsByPartyListId.get(partyList.partyListId) ?? new Set<string>();
+    for (const song of partyList.songs.filter((partySong) => !installedCopyIds.has(partySong.vaultSongId) && !songsById.has(partySong.vaultSongId))) songsById.set(song.vaultSongId, song);
+  }
+  return [...songsById.values()];
+}
+
+function getInstalledSongIds(checks: readonly InstalledSongCheck[]): Set<string> {
+  return new Set(checks.filter((check) => check.state === 'intact' || check.state === 'edited').map((check) => check.installedSong.vaultSongId));
+}
+
+async function findAudioForSongsThatNeedIt(options: { ports: SyncPorts; settings: SyncSettings; songsNeedingAudio: readonly VaultSongDetails[]; onPhase?: (phase: SyncPhase) => void }): Promise<Map<string, AudioSearchResult>> {
+  const { songsNeedingAudio } = options;
   const resultsBySongId = new Map<string, AudioSearchResult>();
   for (const [index, song] of songsNeedingAudio.entries()) {
     options.onPhase?.({ kind: 'finding-audio', vaultSongId: song.vaultSongId, doneSongCount: index, totalSongCount: songsNeedingAudio.length });
@@ -103,11 +144,21 @@ async function findAudioForVaultSong({ ports, settings, song }: { ports: SyncPor
   });
 }
 
-async function buildPlan(options: { ports: SyncPorts; settings: SyncSettings; vaultSongs: VaultSongDetails[]; record: InstalledSongsRecord; checks: InstalledSongCheck[]; audioResultsBySongId: ReadonlyMap<string, AudioSearchResult> }): Promise<SyncPlan> {
+async function buildPlan(options: {
+  ports: SyncPorts;
+  settings: SyncSettings;
+  songs: { vaultSongs: VaultSongDetails[]; partyLists: SyncPartyList[] | null };
+  record: InstalledSongsRecord;
+  checks: InstalledSongCheck[];
+  partyFolderChecks: PartyFolderCheck[];
+  audioResultsBySongId: ReadonlyMap<string, AudioSearchResult>;
+}): Promise<SyncPlan> {
   return buildSyncPlan({
-    vaultSongs: options.vaultSongs,
+    vaultSongs: options.songs.vaultSongs,
+    partyLists: options.songs.partyLists,
     record: options.record,
     checks: options.checks,
+    partyFolderChecks: options.partyFolderChecks,
     audioMatchesBySongId: new Map([...options.audioResultsBySongId].map(([vaultSongId, result]) => [vaultSongId, result.match])),
     layout: options.settings.layout,
     playerGroupNames: await getPlayerGroupNames({ songsFolder: options.ports.songsFolder, record: options.record }),
@@ -119,7 +170,7 @@ async function buildPlan(options: { ports: SyncPorts; settings: SyncSettings; va
 
 /** Folders inside our groups that aren't ours (the player put them there); new songs never take their names. */
 async function getForeignFolderNamesByGroupKey({ songsFolder, record }: { songsFolder: SongsFolder; record: InstalledSongsRecord }): Promise<Map<string, string[]>> {
-  const ownFolderKeys = new Set(record.installedSongs.map((song) => song.folderPath.map(getNameKey).join('/')));
+  const ownFolderKeys = getOwnSongFolderKeys(record);
   const namesByGroupKey = new Map<string, string[]>();
   for (const groupName of record.ownedGroupNames) {
     const entries = await songsFolder.listEntries(buildSongsPath(groupName));

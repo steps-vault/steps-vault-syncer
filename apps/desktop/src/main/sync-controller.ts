@@ -41,6 +41,8 @@ import {
   buildGeneratorJobView,
   buildGeneratorView,
   buildLayoutViews,
+  buildPartyFolderPreview,
+  buildPartyFolderViews,
   buildSongDetailsById,
   buildSongRows,
   buildSongSourceTabs,
@@ -604,6 +606,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     const replacedVaultSongIds = new Set(getGeneratedSongs(this.record).flatMap((generatedSong) => generatedSong.inPlaceOfVaultSongId ?? []));
     return {
       fetchVault: async () => (await client.fetchVault()).filter((song) => !replacedVaultSongIds.has(song.vaultSongId)),
+      // Party copies stay even for a song the player replaced with their own: the list is shared with other players.
+      fetchPartyLists: () => client.fetchPartyLists(),
       fetchFingerprint: (vaultSongId) => client.fetchFingerprint(vaultSongId),
       fetchSongFiles: (request) => client.fetchSongFiles(request),
     };
@@ -665,6 +669,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     };
     const songs = buildSongRows(songViewInput);
     const layoutViews = buildLayoutViews({ vaultSongs: outcome?.vaultSongs ?? [], record: this.record, playerGroupNames: this.playerGroupNames });
+    const partyFolderInput = { partyFolderPlans: outcome?.finalPlan.partyFolderPlans, partyLists: outcome?.partyLists ?? null, record: this.record, now: new Date() };
     return {
       appVersion: this.options.appVersion,
       siteUrl: this.options.siteUrl,
@@ -685,6 +690,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       ...layoutViews,
       playerGroupNames: this.playerGroupNames,
       lastLayoutMove: this.lastLayoutMove,
+      partyFolders: buildPartyFolderViews(partyFolderInput),
+      partyFolderPreview: buildPartyFolderPreview(partyFolderInput),
       isBackgroundSyncOn: this.settings.isBackgroundSyncOn,
       songs,
       songDetailsById: buildSongDetailsById(songViewInput),

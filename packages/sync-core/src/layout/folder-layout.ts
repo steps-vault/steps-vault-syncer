@@ -83,6 +83,21 @@ export interface TargetFolderOptions {
  */
 export function getTargetFolderPaths(options: TargetFolderOptions): Map<string, SongsPath> {
   const groupNamesBySongId = new Map(options.songs.map((song) => [song.vaultSongId, getGroupName({ baseName: getGroupBaseName({ layout: options.layout, song }), playerGroupNames: options.playerGroupNames })]));
+  return getSongFolderPaths({ songs: options.songs, groupNamesBySongId, record: options.record, foreignFolderNamesByGroupKey: options.foreignFolderNamesByGroupKey });
+}
+
+export interface SongFolderPathOptions {
+  songs: readonly SongFolderFacts[];
+  /** The group each song goes in, already past the "name already yours" rule. */
+  groupNamesBySongId: ReadonlyMap<string, string>;
+  /** The songs already in the game; one that is already in its group keeps its folder. */
+  record: InstalledSongsRecord;
+  foreignFolderNamesByGroupKey?: ReadonlyMap<string, readonly string[]>;
+}
+
+/** Each song's folder inside the group it was given: the layout's groups, or a party list's own folder. */
+export function getSongFolderPaths(options: SongFolderPathOptions): Map<string, SongsPath> {
+  const { groupNamesBySongId } = options;
   const takenNameKeysByGroupKey = getForeignNameKeysByGroupKey(options.foreignFolderNamesByGroupKey);
   const targetPathsBySongId = new Map<string, SongsPath>();
   for (const song of options.songs) {
@@ -113,7 +128,7 @@ export function getNewSongFolderName({ song, takenNameKeys }: { song: SongFolder
   return getUnusedName({ preferredName: withArtist, takenNameKeys });
 }
 
-function getUnusedName({ preferredName, takenNameKeys }: { preferredName: string; takenNameKeys: ReadonlySet<string> }): string {
+export function getUnusedName({ preferredName, takenNameKeys }: { preferredName: string; takenNameKeys: ReadonlySet<string> }): string {
   let candidate = preferredName;
   for (let number = 2; takenNameKeys.has(getNameKey(candidate)); number += 1) candidate = `${preferredName} ${number}`;
   return candidate;

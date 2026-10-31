@@ -1,5 +1,6 @@
 import { getNameKey, getPathKey, type SongsPath } from '../songs-folder/songs-path';
 import type { GeneratedSong } from './generated-songs';
+import type { PartyFolder } from './party-folders';
 
 /** One song folder Sync wrote. The record of these is kept by the website or the app, outside the Songs folder. */
 export interface InstalledSong {
@@ -32,6 +33,8 @@ export interface InstalledSongsRecord {
   ownedGroupNames: readonly string[];
   /** Songs made with a community generator; missing in records written before generators. */
   generatedSongs?: readonly GeneratedSong[];
+  /** The folders of the party lists the player syncs; missing in records written before party lists. */
+  partyFolders?: readonly PartyFolder[];
 }
 
 export function buildEmptyInstalledSongsRecord(): InstalledSongsRecord {
