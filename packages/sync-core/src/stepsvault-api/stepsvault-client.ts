@@ -1,10 +1,11 @@
 import type { AddonSongFacts } from '../addons/addon-protocol';
 import type { AudioFingerprint } from '../audio-matching/audio-match';
 import { ENVELOPE_RATE_HERTZ } from '../audio-matching/onset-envelope';
+import { PARTY_FOLDER_PREFIX } from '../layout/party-folder-names';
 import type { HttpClient, HttpRequest, HttpResponse } from '../network/http-client';
 import type { SongFiles, VaultFiles } from '../writing/song-writer';
 import type { ComputerSongReport } from './computer-songs';
-import { SignedOutError, StepsVaultApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type VaultSongDetails } from './stepsvault-api-types';
+import { SignedOutError, StepsVaultApiError, type DeviceCode, type DeviceDescription, type DeviceSignInPoll, type SyncAccount, type SyncPartyList, type VaultSongDetails } from './stepsvault-api-types';
 
 const TIMEOUT_MILLISECONDS = 30_000;
 const MAX_JSON_BYTES = 4 * 1024 * 1024;
@@ -41,6 +42,23 @@ export class StepsVaultClient implements VaultFiles {
     const songs = response.body.map((song) => parseVaultSong(song));
     for (const song of songs) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
     return songs;
+  }
+
+  /**
+   * The party lists the player syncs, each with its ready songs. null from a site without party lists: it answers 404,
+   * or its web page instead of JSON.
+   */
+  async fetchPartyLists(): Promise<SyncPartyList[] | null> {
+    const response = await this.httpClient.requestText(this.buildRequest({ path: '/party-lists', maxResponseBytes: MAX_JSON_BYTES }));
+    if (response.status === 404) return null;
+    assertOk(response);
+    const body = parseJsonOrNull(response.body);
+    if (body === null) return null;
+    const partyLists = asRecord(body).partyLists;
+    if (!Array.isArray(partyLists)) throw new StepsVaultApiError({ status: response.status, message: 'StepsVault sent party lists Sync can’t read. Update Sync to the latest version.' });
+    const parsedLists = partyLists.map((partyList) => parsePartyList(partyList));
+    for (const song of parsedLists.flatMap((partyList) => partyList.songs)) this.imageKindsBySongId.set(song.vaultSongId, song.imageKinds);
+    return parsedLists;
   }
 
   /**
@@ -170,6 +188,27 @@ function parseVaultSong(value: unknown): VaultSongDetails {
     hasFingerprint: song.hasFingerprint === true,
     groupColorKey: typeof song.groupColorKey === 'string' && song.groupColorKey.trim() !== '' ? song.groupColorKey : null,
   };
+}
+
+function parsePartyList(value: unknown): SyncPartyList {
+  const partyList = asRecord(value);
+  const name = getString(partyList.name);
+  return {
+    partyListId: getString(partyList.id),
+    slug: getString(partyList.slug),
+    name,
+    gameFolderName: typeof partyList.gameFolderName === 'string' && partyList.gameFolderName.trim() !== '' ? partyList.gameFolderName : `${PARTY_FOLDER_PREFIX}${name}`,
+    endsAt: typeof partyList.endsAt === 'string' ? partyList.endsAt : null,
+    songs: Array.isArray(partyList.songs) ? partyList.songs.map((song) => parseVaultSong(song)) : [],
+  };
+}
+
+function parseJsonOrNull(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 function readLittleEndianFloats(bytes: Uint8Array): Float32Array {

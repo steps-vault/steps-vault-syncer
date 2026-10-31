@@ -1,8 +1,10 @@
-import { getTargetFolderPaths, type FolderLayout } from '../layout/folder-layout';
+import { getSongFolderPaths, getTargetFolderPaths, type FolderLayout } from '../layout/folder-layout';
+import { getPartyFolderBaseName, getPartyFolderNames } from '../layout/party-folder-names';
 import type { InstalledSongCheck } from '../ownership/installed-song-check';
 import type { InstalledSongsRecord } from '../ownership/installed-songs';
+import { getPartyFolders, type PartyFolder, type PartyFolderCheck } from '../ownership/party-folders';
 import { getNameKey, isSamePath, type SongsPath } from '../songs-folder/songs-path';
-import type { AudioMatch, PlayerChoices, SongPlan, SyncAction, SyncPlan, VaultSong } from './sync-plan-types';
+import type { AudioMatch, PartyFolderPlan, PartyListToSync, PlayerChoices, SongPlan, SyncAction, SyncPlan, VaultSong } from './sync-plan-types';
 
 export interface SyncPlanInput {
   vaultSongs: readonly VaultSong[];
@@ -15,6 +17,13 @@ export interface SyncPlanInput {
   foreignFolderNamesByGroupKey?: ReadonlyMap<string, readonly string[]>;
   choices: PlayerChoices;
   shouldUpdateAutomatically: boolean;
+  /**
+   * The party lists the player syncs. Missing or null when the site didn't say (an older site without party lists, or
+   * it couldn't be reached): the party folders then stay exactly as they are, since an unknown list hasn't ended.
+   */
+  partyLists?: readonly PartyListToSync[] | null;
+  /** checkPartyFolders() for every party folder in the record. */
+  partyFolderChecks?: readonly PartyFolderCheck[];
 }
 
 /**
@@ -22,6 +31,16 @@ export interface SyncPlanInput {
  * input always gives the same plan, and a plan that has been carried out plans nothing more.
  */
 export function buildSyncPlan(input: SyncPlanInput): SyncPlan {
+  const partyFolders = getPartyFolders(input.record);
+  const partyFolderNamesById = getPartyFolderNames({ partyLists: input.partyLists ?? [], partyFolders, playerGroupNames: input.playerGroupNames, ownedGroupNames: input.record.ownedGroupNames });
+  // The layout never puts a song into a party folder: to it, those names are taken like the player's own.
+  const partyGroupNames = [...partyFolderNamesById.values(), ...partyFolders.map((partyFolder) => partyFolder.groupName)];
+  const layoutPlan = buildLayoutPlan({ ...input, playerGroupNames: [...input.playerGroupNames, ...partyGroupNames] });
+  if (!input.partyLists) return layoutPlan;
+  return { ...layoutPlan, partyFolderPlans: buildPartyFolderPlans({ input, partyLists: input.partyLists, partyFolderNamesById }) };
+}
+
+function buildLayoutPlan(input: SyncPlanInput): SyncPlan {
   const checksBySongId = new Map(input.checks.map((check) => [check.installedSong.vaultSongId, check]));
   const targetPathsBySongId = getTargetFolderPaths({
     songs: input.vaultSongs,
@@ -82,6 +101,76 @@ function planSongLeftTheVault({ check, choices }: { check: InstalledSongCheck; c
   const { vaultSongId, folderPath } = check.installedSong;
   if (!choices.removeFromGameSongIds.has(vaultSongId)) return { vaultSongId, status: 'removed-from-vault', actions: [], isWaitingForAddon: false };
   return { vaultSongId, status: 'syncing', actions: [{ kind: 'remove', vaultSongId, at: folderPath }], isWaitingForAddon: false };
+}
+
+function buildPartyFolderPlans({ input, partyLists, partyFolderNamesById }: { input: SyncPlanInput; partyLists: readonly PartyListToSync[]; partyFolderNamesById: ReadonlyMap<string, string> }): PartyFolderPlan[] {
+  const checksByPartyListId = new Map((input.partyFolderChecks ?? []).map((folderCheck) => [folderCheck.partyListId, folderCheck.checks]));
+  const syncedPartyListIds = new Set(partyLists.map((partyList) => partyList.partyListId));
+  const syncedFolderPlans = partyLists.map((partyList) => planSyncedPartyFolder({
+    partyList,
+    groupName: partyFolderNamesById.get(partyList.partyListId) ?? getPartyFolderBaseName(partyList.gameFolderName),
+    checks: checksByPartyListId.get(partyList.partyListId) ?? [],
+    input,
+  }));
+  const goneFolders = getPartyFolders(input.record).filter((partyFolder) => !syncedPartyListIds.has(partyFolder.partyListId));
+  const goneFolderPlans = goneFolders.map((partyFolder) => planGonePartyFolder({ partyFolder, checks: checksByPartyListId.get(partyFolder.partyListId) ?? [] }));
+  return [...syncedFolderPlans, ...goneFolderPlans];
+}
+
+/** Copies of the list's ready songs, planned like layout songs but all in the list's own folder. */
+function planSyncedPartyFolder({ partyList, groupName, checks, input }: { partyList: PartyListToSync; groupName: string; checks: readonly InstalledSongCheck[]; input: SyncPlanInput }): PartyFolderPlan {
+  const songs = getSongsOnce(partyList.songs);
+  const targetPathsBySongId = getSongFolderPaths({
+    songs,
+    groupNamesBySongId: new Map(songs.map((song) => [song.vaultSongId, groupName])),
+    record: { version: 1, installedSongs: checks.filter(isStillOurs).map((check) => check.installedSong), ownedGroupNames: [] },
+    foreignFolderNamesByGroupKey: withLostFoldersAsForeign({ foreignFolderNamesByGroupKey: input.foreignFolderNamesByGroupKey, checks }),
+  });
+  const checksBySongId = new Map(checks.map((check) => [check.installedSong.vaultSongId, check]));
+  const songIds = new Set(songs.map((song) => song.vaultSongId));
+  const leftChecks = checks.filter((check) => !songIds.has(check.installedSong.vaultSongId));
+  return {
+    partyListId: partyList.partyListId,
+    listName: partyList.name,
+    baseName: getPartyFolderBaseName(partyList.gameFolderName),
+    groupName,
+    isSynced: true,
+    songPlans: [
+      ...songs.map((song) => planVaultSong({ song, check: checksBySongId.get(song.vaultSongId), target: targetPathsBySongId.get(song.vaultSongId), input })),
+      ...leftChecks.filter(isStillOurs).map((check) => planCopyLeftTheList(check)),
+    ],
+    forgetActions: leftChecks.filter((check) => !isStillOurs(check)).map((check) => buildForgetAction(check)),
+  };
+}
+
+/** The list ended, was deleted or isn't synced any more: known from the record alone, so it works after the site forgot it. */
+function planGonePartyFolder({ partyFolder, checks }: { partyFolder: PartyFolder; checks: readonly InstalledSongCheck[] }): PartyFolderPlan {
+  return {
+    partyListId: partyFolder.partyListId,
+    listName: partyFolder.listName,
+    baseName: partyFolder.baseName,
+    groupName: partyFolder.groupName,
+    isSynced: false,
+    songPlans: checks.filter(isStillOurs).map((check) => planCopyLeftTheList(check)),
+    forgetActions: checks.filter((check) => !isStillOurs(check)).map((check) => buildForgetAction(check)),
+  };
+}
+
+/** A copy goes with its list. One the player edited stays in the game as theirs: Sync never deletes the player's edits. */
+function planCopyLeftTheList(check: InstalledSongCheck): SongPlan {
+  const { vaultSongId, folderPath } = check.installedSong;
+  if (check.state === 'edited') return { vaultSongId, status: 'you-edited-this', actions: [buildForgetAction(check)], isWaitingForAddon: false };
+  return { vaultSongId, status: 'syncing', actions: [{ kind: 'remove', vaultSongId, at: folderPath }], isWaitingForAddon: false };
+}
+
+/** A list holds each song once; should the site ever send one twice, the first one counts. */
+function getSongsOnce(songs: readonly VaultSong[]): VaultSong[] {
+  const seenSongIds = new Set<string>();
+  return songs.filter((song) => {
+    if (seenSongIds.has(song.vaultSongId)) return false;
+    seenSongIds.add(song.vaultSongId);
+    return true;
+  });
 }
 
 function getMoveActions({ vaultSongId, from, to }: { vaultSongId: string; from: SongsPath; to: SongsPath }): SyncAction[] {

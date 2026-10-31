@@ -157,6 +157,10 @@ export interface LayoutPreviewGroup {
   isUngrouped?: boolean;
   /** A "My groups" folder's colour as a hex, the group's colour on the site; the folder is cyan without one. */
   folderColorHex?: string;
+  /** A party list's folder: pink, with its end time as the tag ("ends in 2d"). */
+  isPartyFolder?: boolean;
+  /** Shown after each song, for example "copy" in a party folder. */
+  songTagText?: string;
 }
 
 export interface LayoutPreview {
@@ -184,6 +188,22 @@ export interface ActivityEntryView {
   textAfter: string;
   summaryText: string;
   details: readonly { label: string; value: string }[];
+}
+
+/** A party list's folder in the game, as the Songs screen lists it. */
+export interface PartyFolderView {
+  partyListId: string;
+  listName: string;
+  /** For example "Songs/Party - Maya's birthday". */
+  folderText: string;
+  /** For example "5 songs in your game"; copies, so the same songs can be in their layout folders too. */
+  songCountText: string;
+  /** For example "2 need audio"; null when every ready song is in. */
+  needsYouText: string | null;
+  /** For example "Ends in 2d"; null when the list has no end, or has ended. */
+  endsText: string | null;
+  /** The list ended, was deleted or isn't synced any more: the folder goes on this sync or the next. */
+  isLeaving: boolean;
 }
 
 export type TrayStatus = 'synced' | 'syncing' | 'needs-attention' | 'paused';

@@ -51,15 +51,24 @@ function getGroupColorStyle(folderColorHex: string | undefined): GroupColorStyle
   return { '--sv-sync-group-color': folderColorHex };
 }
 
+function getGroupClassName(group: LayoutPreview['groups'][number]): string {
+  if (group.isUngrouped) return 'sv-sync-mini-tree-group sv-sync-mini-tree--ungrouped';
+  if (group.isPartyFolder) return 'sv-sync-mini-tree-group sv-sync-mini-tree--ours sv-sync-mini-tree--party';
+  return 'sv-sync-mini-tree-group sv-sync-mini-tree--ours';
+}
+
 function FolderTreeGroup({ group }: { group: LayoutPreview['groups'][number] }): ReactElement {
   return (
     <>
-      <li className={group.isUngrouped ? 'sv-sync-mini-tree-group sv-sync-mini-tree--ungrouped' : 'sv-sync-mini-tree-group sv-sync-mini-tree--ours'} style={getGroupColorStyle(group.folderColorHex)}>
+      <li className={getGroupClassName(group)} style={getGroupColorStyle(group.folderColorHex)}>
         <Icon name="folder" size={14} /><span>{group.groupName}</span>
         {group.tagText !== undefined && <span className="sv-sync-mini-tree-tag">{group.tagText}</span>}
       </li>
       {group.songTitles.map((songTitle) => (
-        <li key={songTitle} className="sv-sync-mini-tree-song"><Icon name="note" size={12} /><span dir="auto">{songTitle}</span></li>
+        <li key={songTitle} className="sv-sync-mini-tree-song">
+          <Icon name="note" size={12} /><span dir="auto">{songTitle}</span>
+          {group.songTagText !== undefined && <span className="sv-sync-mini-tree-tag sv-sync-mini-tree-tag--quiet">{group.songTagText}</span>}
+        </li>
       ))}
       {group.moreSongCount !== undefined && group.moreSongCount > 0 && <li className="sv-sync-mini-tree-song sv-sync-mini-tree-more">+ {group.moreSongCount} more</li>}
     </>

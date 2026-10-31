@@ -1,5 +1,5 @@
 import type { FolderLayout } from '@stepsvault/sync-core';
-import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, MusicChoiceView, SongSourceTabView, StepsVaultGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
+import type { ActivityEntryView, AddonInstallPreview, AddonView, ConnectedGameView, GeneratedSongView, GeneratorInstallPreview, GeneratorJobView, GeneratorView, MusicChoiceView, SongSourceTabView, StepsVaultGeneratorView, DifficultyLevels, FoundGameView, LayoutPreviewsByLayout, LinkedComputerView, MusicFolderView, PartyFolderView, PickedFileView, PlayerGroupView, SongDetailsView, SongRowView } from '../sync-ui-types';
 
 // Made-up songs and artists for the preview page and the tests; the cover art is drawn here, so nothing loads from the network.
 
@@ -180,4 +180,9 @@ export const FAKE_MUSIC_CHOICES: readonly MusicChoiceView[] = [
 
 export const FAKE_SONG_SOURCE_TABS: readonly SongSourceTabView[] = [
   { addonId: 'tube-songs', name: 'Tube Songs', inputs: [{ id: 'link', kind: 'link', label: 'YouTube link', placeholder: 'https://youtu.be/…', sites: ['youtube.com', 'youtu.be'] }, { id: 'search', kind: 'search', label: 'Or search', placeholder: 'Title and artist' }] },
+];
+
+export const FAKE_PARTY_FOLDERS: readonly PartyFolderView[] = [
+  { partyListId: 'party_maya', listName: 'Maya’s birthday', folderText: "Songs/Party - Maya's birthday", songCountText: '6 songs in your game', needsYouText: '1 needs audio', endsText: 'Ends in 2d', isLeaving: false },
+  { partyListId: 'party_friday', listName: 'Friday arcade night', folderText: 'Songs/Party - Friday arcade night', songCountText: '4 songs in your game', needsYouText: null, endsText: 'Ends in 5h', isLeaving: false },
 ];

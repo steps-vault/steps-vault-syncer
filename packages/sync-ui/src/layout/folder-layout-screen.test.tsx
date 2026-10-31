@@ -95,6 +95,23 @@ describe('FolderLayoutScreen', () => {
     expect(props.onChangeLayout).toHaveBeenCalledWith('my-groups');
   });
 
+  it('explains that party lists get their own folder of copies, with a sample tree until the player syncs one', () => {
+    renderFolderLayout({ partyListsHref: 'https://dancedance.studio/library?tab=party-lists' });
+    const explainer = screen.getByRole('region', { name: 'Party lists get their own folder' });
+    expect(explainer.textContent).toContain('copies of its songs, whatever layout you pick');
+    expect(within(explainer).getByText("Party - Maya's birthday").closest('li')?.className).toContain('sv-sync-mini-tree--party');
+    expect(within(explainer).getAllByText('copy')).toHaveLength(2);
+    expect(within(explainer).getByRole('link', { name: 'See your party lists' }).getAttribute('href')).toBe('https://dancedance.studio/library?tab=party-lists');
+  });
+
+  it('draws the player’s own party folders when they sync some', () => {
+    renderFolderLayout({ partyFolderPreview: { groups: [{ groupName: 'Party - Game night', isPartyFolder: true, tagText: 'ends in 5h', songTitles: ['Levitating'], songTagText: 'copy' }] } });
+    const explainer = screen.getByRole('region', { name: 'Party lists get their own folder' });
+    expect(within(explainer).getByText('Party - Game night')).toBeDefined();
+    expect(within(explainer).getByText('ends in 5h')).toBeDefined();
+    expect(within(explainer).queryByText("Party - Maya's birthday")).toBeNull();
+  });
+
   it('says GREAT after a move', () => {
     renderFolderLayout({ lastMove: { layout: 'by-artist', movedSongCount: 11 } });
     expect(screen.getByRole('status').textContent).toContain('Moved 11 dancedance.studio songs into “By artist”.');

@@ -4,7 +4,8 @@ import { SyncProgressBar } from '../progress/sync-progress-bar';
 import { ReceptorLoader } from '../shared/receptor-loader';
 import { SyncTopBar, type SyncTopBarProps } from '../shell/sync-top-bar';
 import { NeedsAudioBanner, type NeedsAudioBannerProps } from '../states/empty-and-error-states';
-import type { SongDetailsView, SongRowView, SyncPlatform } from '../sync-ui-types';
+import type { PartyFolderView, SongDetailsView, SongRowView, SyncPlatform } from '../sync-ui-types';
+import { PartyFolderList } from './party-folder-list';
 import { SongDetailsDrawer } from './song-details-drawer';
 import { SongList } from './song-list';
 import type { SongActionRequest } from './song-row';
@@ -39,6 +40,10 @@ export interface SyncHomeScreenProps {
   onSongAction: (request: SongActionRequest) => void;
   /** True while Sync reads the songs for the first time: the screen shows only the loader. */
   isLoading?: boolean;
+  /** The folders of the party lists the player syncs (buildPartyFolderViews). */
+  partyFolders?: readonly PartyFolderView[];
+  /** The site's list of the player's party lists (My library › Party lists). */
+  partyListsHref?: string;
 }
 
 /** Screen 2: the top bar, the sync progress or result, the counters, the song list and the details drawer. */
@@ -61,6 +66,7 @@ export function SyncHomeScreen(props: SyncHomeScreenProps): ReactElement {
       {props.syncRun && <SyncProgressBar platform={props.platform} {...props.syncRun} />}
       {!isSyncing && props.finishedSync && <JudgmentFlash {...props.finishedSync} onSeeActivity={props.onSeeActivity} onDismiss={props.onDismissFinishedSync} />}
       {props.needsAudioBanner && <NeedsAudioBanner {...props.needsAudioBanner} />}
+      {props.partyFolders && <PartyFolderList partyFolders={props.partyFolders} partyListsHref={props.partyListsHref} />}
       {props.songs.length === 0 && props.emptyState}
       {props.songs.length > 0 && (
         <SongList

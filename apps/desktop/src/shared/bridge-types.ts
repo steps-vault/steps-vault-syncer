@@ -11,11 +11,13 @@ import type {
   GeneratorJobView,
   GeneratorLookupResult,
   GeneratorView,
+  LayoutPreview,
   LayoutPreviewsByLayout,
   MakeSongRequest,
   MakeSongResult,
   MusicChoiceView,
   MusicFolderView,
+  PartyFolderView,
   PickedFileView,
   PreselectedSongView,
   ServiceLookupRequest,
@@ -62,6 +64,9 @@ export interface DesktopSyncState {
   movingSongCountsByLayout: Record<FolderLayout, number>;
   playerGroupNames: string[];
   lastLayoutMove: { layout: FolderLayout; movedSongCount: number } | null;
+  /** The party lists' folders, beside the layout's; the Folder layout screen draws the first ones. */
+  partyFolders: PartyFolderView[];
+  partyFolderPreview: LayoutPreview | null;
   isBackgroundSyncOn: boolean;
   songs: SongRowView[];
   songDetailsById: Record<string, SongDetailsView>;

@@ -37,6 +37,32 @@ export interface SyncPlan {
   songPlans: SongPlan[];
   /** Record clean-up for songs that are neither in the vault nor in the game any more. */
   forgetActions: SyncAction[];
+  /** The party lists' folders, list by list; missing from plans made without party lists. */
+  partyFolderPlans?: PartyFolderPlan[];
+}
+
+/** A party list the player syncs, as the planner needs it. */
+export interface PartyListToSync {
+  partyListId: string;
+  name: string;
+  /** "Party - <name>" from the site, before Sync's own name cleaning (getPartyFolderBaseName). */
+  gameFolderName: string;
+  /** The list's ready songs, in its order. */
+  songs: readonly VaultSong[];
+}
+
+/** One party folder: copies of the list's songs, whatever the folder layout. */
+export interface PartyFolderPlan {
+  partyListId: string;
+  listName: string;
+  baseName: string;
+  /** Where the copies go; for a list that is gone, the folder they are removed from. */
+  groupName: string;
+  /** False once the list ended, was deleted or the player stopped syncing it: every copy Sync wrote is removed. */
+  isSynced: boolean;
+  /** One per copy, keyed by the song like the layout's plans; a song may also have a plan of its own there. */
+  songPlans: SongPlan[];
+  forgetActions: SyncAction[];
 }
 
 /** What the player chose on a song's row; nothing chosen means the safe default. */

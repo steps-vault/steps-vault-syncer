@@ -187,3 +187,25 @@ describe('carrying out a plan', () => {
     expect(secondPlan.songPlans.map((songPlan) => songPlan.status)).toEqual(['synced', 'synced']);
   });
 });
+
+describe('party list folders', () => {
+  const partyList = { partyListId: 'party_maya', name: 'Maya bday', gameFolderName: 'Party - Maya bday', songs: [CHEAP_THRILLS, WATCH_ME] };
+
+  it('plans copies in the list’s own folder, whatever the layout, besides the layout’s own folders', async () => {
+    for (const layout of ['one-group', 'by-genre', 'by-artist', 'my-groups'] as const) {
+      const plan = await new TestGame().plan({ vaultSongs: [CHEAP_THRILLS], partyLists: [partyList], layout, audioMatchesBySongId: new Map([['a', MATCHED], ['b', MATCHED]]) });
+      expect(plan.songPlans.map((songPlan) => songPlan.vaultSongId)).toEqual(['a']);
+      expect(plan.partyFolderPlans?.map((folderPlan) => ({ ...folderPlan, songPlans: folderPlan.songPlans.map((songPlan) => songPlan.actions) }))).toMatchObject([{
+        partyListId: 'party_maya',
+        groupName: 'Party - Maya bday',
+        isSynced: true,
+        songPlans: [[{ kind: 'add', vaultSongId: 'a', to: ['Party - Maya bday', 'Cheap Thrills'] }], [{ kind: 'add', vaultSongId: 'b', to: ['Party - Maya bday', 'Watch Me'] }]],
+      }]);
+    }
+  });
+
+  it('plans no party folders when the site didn’t say which lists the player syncs', async () => {
+    const plan = await new TestGame().plan({ vaultSongs: [CHEAP_THRILLS], partyLists: null });
+    expect(plan.partyFolderPlans).toBeUndefined();
+  });
+});

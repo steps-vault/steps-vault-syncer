@@ -17,6 +17,14 @@ export function getSafeFolderName({ name, fallback }: { name: string; fallback: 
   return getCleanFolderName(name.normalize('NFKD').replace(NON_ASCII_CHARACTERS_PATTERN, '')) ?? getCleanFolderName(name) ?? fallback;
 }
 
+/**
+ * Like getSafeFolderName, but a name with no English letters at all gets `fallback` instead of keeping its own script:
+ * for names Sync has no English-letter spelling of and that stand on their own, like a party list's folder.
+ */
+export function getEnglishLettersFolderName({ name, fallback }: { name: string; fallback: string }): string {
+  return getCleanFolderName(name.normalize('NFKD').replace(NON_ASCII_CHARACTERS_PATTERN, '')) ?? fallback;
+}
+
 function getCleanFolderName(name: string): string | null {
   const cleaned = name.normalize('NFC').replace(FORBIDDEN_CHARACTERS_PATTERN, ' ').replace(/\s+/g, ' ').trim();
   const shortened = Array.from(cleaned).slice(0, MAX_FOLDER_NAME_LENGTH).join('');
