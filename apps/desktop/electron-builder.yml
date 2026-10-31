@@ -11,6 +11,11 @@ files:
   - package.json
   - "!**/*.map"
 asar: true
+# The website's "Open in Sync app" links (src/main/sync-link.ts). electron-builder writes this into the macOS app; on
+# Windows, build/installer.nsh registers it.
+protocols:
+  - name: DanceDance Sync link
+    schemes: [dancedance-sync]
 win:
   target:
     - target: nsis
@@ -24,6 +29,7 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: DanceDance Sync
+  include: build/installer.nsh
 publish:
   provider: github
   owner: steps-vault

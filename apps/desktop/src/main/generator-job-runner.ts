@@ -21,6 +21,7 @@ import {
   type InstalledGenerator,
   type MultipartHttpClient,
   type SavedGeneratorJob,
+  type SiteSongRequest,
   type VaultSongChoice,
 } from '@stepsvault/sync-core';
 
@@ -74,6 +75,7 @@ export interface GeneratorJobStart {
   video: GeneratorUploadFile | null;
   playerMusicLocation: string;
   playerVideoLocation: string | null;
+  siteRequest: SiteSongRequest | null;
 }
 
 /**
@@ -114,7 +116,7 @@ export class GeneratorJobRunner {
     await this.saveJob({
       jobKey: start.jobKey, generatorBaseUrl: start.generatorBaseUrl, generatorId: manifest.id, generatorName: jobGenerator.isStepsVault ? 'dancedance.studio generator' : manifest.name, generatorVersion: manifest.version, isStepsVault: jobGenerator.isStepsVault,
       jobId: null, song: start.song, difficulties: [...start.difficulties], state: 'sending', progress: null, stage: null, retryAfterSeconds: 10, message: null, vaultChoice: null, result: null,
-      playerMusicLocation: start.playerMusicLocation, playerVideoLocation: start.playerVideoLocation, collectedFilesLocation: null, startedAt: now, updatedAt: now,
+      playerMusicLocation: start.playerMusicLocation, playerVideoLocation: start.playerVideoLocation, collectedFilesLocation: null, siteRequest: start.siteRequest, startedAt: now, updatedAt: now,
     });
     void this.runOrFail({ jobKey: start.jobKey, work: () => this.sendAndFinish({ start, jobGenerator }) });
   }

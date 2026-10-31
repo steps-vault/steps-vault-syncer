@@ -6,7 +6,7 @@ function buildJob(overrides: Partial<SavedGeneratorJob> = {}): SavedGeneratorJob
     jobKey: 'job-1', generatorBaseUrl: 'http://127.0.0.1:7700', generatorId: 'stepcat.tap-forge', generatorName: 'Tap Forge', generatorVersion: '1.2.0', isStepsVault: false, jobId: 'a1b2c3',
     song: { title: 'Night Drive', artist: 'Lumen Park', album: null, genre: null, lengthSeconds: 201, youtubeId: null },
     difficulties: ['Easy', 'Medium'], state: 'waiting', progress: 0.4, stage: 'Placing the steps', retryAfterSeconds: 10, message: null, vaultChoice: null, result: null,
-    playerMusicLocation: 'C:\\Music\\Night Drive.mp3', playerVideoLocation: null, collectedFilesLocation: null, startedAt: '2026-10-25T10:00:00.000Z', updatedAt: '2026-10-25T10:01:00.000Z',
+    playerMusicLocation: 'C:\\Music\\Night Drive.mp3', playerVideoLocation: null, collectedFilesLocation: null, siteRequest: null, startedAt: '2026-10-25T10:00:00.000Z', updatedAt: '2026-10-25T10:01:00.000Z',
     ...overrides,
   };
 }
@@ -17,6 +17,14 @@ describe('saved generator jobs', () => {
     const saved: unknown = JSON.parse(JSON.stringify([job, { jobKey: 'broken' }, buildJob({ jobKey: 'no-difficulties', difficulties: [] }), 'nonsense']));
     expect(loadSavedGeneratorJobs(saved)).toEqual([job]);
     expect(loadSavedGeneratorJobs({ jobs: [] })).toEqual([]);
+  });
+
+  it('keeps the website request a job answers, and reads jobs saved before it existed', () => {
+    const job = buildJob({ siteRequest: { wantedRequestId: 'wanted_7', partySlug: 'noas-dance-night-7q2xk' } });
+    expect(loadSavedGeneratorJobs(JSON.parse(JSON.stringify([job])))).toEqual([job]);
+    const olderJob = Object.fromEntries(Object.entries(job).filter(([key]) => key !== 'siteRequest'));
+    expect(loadSavedGeneratorJobs([olderJob])[0]?.siteRequest).toBeNull();
+    expect(loadSavedGeneratorJobs([{ ...job, siteRequest: { wantedRequestId: 7 } }])[0]?.siteRequest).toBeNull();
   });
 
   it('replaces a job with the same key and keeps only the newest finished jobs', () => {

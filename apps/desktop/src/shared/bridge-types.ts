@@ -19,6 +19,7 @@ import type {
   MusicFolderView,
   PartyFolderView,
   PickedFileView,
+  PreselectedSongView,
   ServiceLookupRequest,
   SongAction,
   SongDetailsView,
@@ -56,6 +57,8 @@ export interface DesktopSyncState {
   songSourceTabs: SongSourceTabView[];
   generatorJobs: GeneratorJobView[];
   generatedSongs: GeneratedSongView[];
+  /** A song a website link asked to make: the window opens Generators › Make a song with it. */
+  preselectedSong: PreselectedSongView | null;
   layout: FolderLayout;
   previewsByLayout: LayoutPreviewsByLayout;
   movingSongCountsByLayout: Record<FolderLayout, number>;
@@ -108,6 +111,7 @@ export interface DesktopSyncBridge {
   findSongWithSource(request: SongSourceSearchRequest): Promise<SongSourceSearchResult>;
   stopFindingSong(): Promise<void>;
   makeSong(request: MakeSongRequest): Promise<MakeSongResult>;
+  dismissPreselectedSong(preselectionKey: string): Promise<void>;
   cancelGeneratorJob(jobKey: string): Promise<void>;
   answerVaultChoice(answer: VaultChoiceAnswer): Promise<void>;
   dismissGeneratorJob(jobKey: string): Promise<void>;
@@ -167,6 +171,7 @@ export const BRIDGE_METHOD_NAMES = [
   'findSongWithSource',
   'stopFindingSong',
   'makeSong',
+  'dismissPreselectedSong',
   'cancelGeneratorJob',
   'answerVaultChoice',
   'dismissGeneratorJob',

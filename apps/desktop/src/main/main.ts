@@ -1,4 +1,5 @@
 import os from 'node:os';
+import path from 'node:path';
 import { app, BrowserWindow, clipboard, dialog, ipcMain, session, shell } from 'electron';
 import { BRIDGE_CHANNEL_PREFIX, BRIDGE_METHOD_NAMES, STATE_CHANNEL, type DesktopSyncState } from '../shared/bridge-types';
 import { AudioBridge } from './audio-bridge';
@@ -7,6 +8,7 @@ import { DEFAULT_SITE_URL } from './desktop-settings';
 import { DeviceTokenStore } from './device-token-store';
 import { isGameRunning } from './game-process';
 import { SyncController } from './sync-controller';
+import { findSyncLinkInArguments, getMakeSongLinkOrNull, SYNC_LINK_SCHEME, type MakeSongLink } from './sync-link';
 import { SyncTray } from './tray';
 import { installUpdateNow, startUpdateChecks } from './updates';
 import { createAudioWindow, createMainWindow } from './windows';
@@ -17,6 +19,9 @@ const AUDIO_FILE_EXTENSIONS = ['mp3', 'ogg', 'oga', 'opus', 'wav', 'flac', 'm4a'
 let mainWindow: BrowserWindow | null = null;
 let audioWindow: BrowserWindow | null = null;
 let isQuitting = false;
+let syncController: SyncController | null = null;
+/** A link that arrived before the controller was ready (a cold start, or macOS's open-url before ready). */
+let waitingMakeSongLink: MakeSongLink | null = null;
 
 /** STEPSVAULT_SITE_URL points the app at a test site (for example the site running on this computer). */
 function getSiteUrl(): string {
@@ -33,8 +38,31 @@ function showMainWindow(): void {
       mainWindow?.hide();
     });
   }
+  if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
   mainWindow.focus();
+}
+
+/** A clicked dancedance-sync link: anything but a valid Make a song link only brings the window forward. */
+function handleSyncLink(link: string | null): void {
+  const makeSongLink = link === null ? null : getMakeSongLinkOrNull(link);
+  if (makeSongLink && syncController) syncController.openMakeSongLink(makeSongLink);
+  else if (makeSongLink) waitingMakeSongLink = makeSongLink;
+  if (app.isReady()) showMainWindow();
+}
+
+/**
+ * The installer registers the link scheme for the installed app; registering again at every start keeps it pointing at
+ * this copy. A development run registers only when asked (STEPSVAULT_REGISTER_LINKS=1), so it never takes the links
+ * away from the installed app by surprise.
+ */
+function registerSyncLinkScheme(): void {
+  if (app.isPackaged) {
+    app.setAsDefaultProtocolClient(SYNC_LINK_SCHEME);
+    return;
+  }
+  const appFolder = process.argv[1];
+  if (process.env.STEPSVAULT_REGISTER_LINKS && appFolder) app.setAsDefaultProtocolClient(SYNC_LINK_SCHEME, process.execPath, [path.resolve(appFolder)]);
 }
 
 function getAudioWindow(): BrowserWindow {
@@ -104,7 +132,8 @@ function logStateSummary(state: DesktopSyncState): void {
   const signIn = state.signIn.kind === 'waiting-for-code' ? `code ${state.signIn.code}` : state.signIn.kind;
   const songs = state.songs.map((song) => `${song.title}=${song.status}`).join(', ');
   const run = state.syncRun ? `syncing ${String(state.syncRun.currentSongNumber)}/${String(state.syncRun.totalSongCount)} ${state.syncRun.currentStepText}` : 'idle';
-  console.log(`[state] ${signIn} | game ${state.game?.songsFolderPath ?? 'none'} | ${run} | songs: ${songs || 'none'} | problem: ${state.problem ?? 'none'}`);
+  const preselectedSong = state.preselectedSong ? `${state.preselectedSong.title} / ${state.preselectedSong.artist ?? 'no artist'}` : 'none';
+  console.log(`[state] ${signIn} | game ${state.game?.songsFolderPath ?? 'none'} | ${run} | songs: ${songs || 'none'} | make a song: ${preselectedSong} | problem: ${state.problem ?? 'none'}`);
 }
 
 /** Each bridge method is one invoke channel; calls are accepted only from the app's own main window. */
@@ -148,6 +177,10 @@ async function start(): Promise<void> {
   });
   const controller = createController(tray);
   controllerHolder.current = controller;
+  syncController = controller;
+  if (waitingMakeSongLink) controller.openMakeSongLink(waitingMakeSongLink);
+  waitingMakeSongLink = null;
+  registerSyncLinkScheme();
   registerBridge(controller);
   app.on('will-quit', () => {
     void controller.shutdown();
@@ -168,7 +201,16 @@ if (process.env.STEPSVAULT_USER_DATA_DIR) app.setPath('userData', process.env.ST
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', showMainWindow);
+  // Windows starts a second copy with the clicked link as an argument; that copy quits at once and hands it over here.
+  app.on('second-instance', (_event, commandLine) => {
+    handleSyncLink(findSyncLinkInArguments(commandLine));
+  });
+  // macOS hands links over with open-url, before the app is ready on a cold start.
+  app.on('open-url', (event, link) => {
+    event.preventDefault();
+    handleSyncLink(link);
+  });
+  handleSyncLink(findSyncLinkInArguments(process.argv));
   app.on('window-all-closed', () => {
     // Stay in the tray: background sync keeps working with every window closed.
   });

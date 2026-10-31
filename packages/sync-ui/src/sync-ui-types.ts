@@ -314,6 +314,19 @@ export interface MakeSongRequest {
   difficulties: readonly GeneratorDifficulty[];
   /** True when the player saw "Your music file will be sent to …" and went on. */
   hasAgreedToMusicUpload: boolean;
+  /** Set when the song was preselected (see PreselectedSongView), so the platform keeps where the request came from. */
+  preselectionKey?: string;
+}
+
+/**
+ * A song Make a song opens with, for example from a link on the website. Only its name is known: the player still picks
+ * the music, so Make a song starts by searching their music folders for it.
+ */
+export interface PreselectedSongView {
+  /** New for every link, so the same song asked for twice opens Make a song twice. */
+  preselectionKey: string;
+  title: string;
+  artist: string | null;
 }
 
 export type MakeSongResult = { kind: 'started'; jobKey: string } | { kind: 'failed'; message: string };

@@ -1,10 +1,10 @@
 import { getCheckedSongSourceInputValue, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
-import { useState, type FormEvent, type KeyboardEvent, type ReactElement } from 'react';
+import { useEffect, useState, type FormEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { MissLine } from '../shared/miss-line';
 import { ReceptorLoader } from '../shared/receptor-loader';
-import type { MusicChoiceView, SongSourceSearchRequest, SongSourceSearchResult, SongSourceTabView } from '../sync-ui-types';
+import type { MusicChoiceView, PreselectedSongView, SongSourceSearchRequest, SongSourceSearchResult, SongSourceTabView } from '../sync-ui-types';
 
 const MY_FILES_TAB_ID = 'my-files';
 const MUSIC_FOLDERS_TAB_ID = 'music-folders';
@@ -25,12 +25,14 @@ export interface MusicStepProps extends MusicSources {
   onPickMusic: (music: MusicChoiceView) => void;
   /** "Yes, use it" on a song a song source found: picks it and goes on to the next step. */
   onUseMusic?: (music: MusicChoiceView) => void;
+  /** Opens on the music folders, already searched for this song. */
+  preselectedSong?: PreselectedSongView | null;
 }
 
 /** "Get music from": the player's files, their music folders, and one tab per song source. */
 export function MusicTabs(props: MusicStepProps): ReactElement {
   const tabs = [{ tabId: MY_FILES_TAB_ID, label: 'My files' }, { tabId: MUSIC_FOLDERS_TAB_ID, label: 'My music folders' }, ...props.songSourceTabs.map((tab) => ({ tabId: `addon-${tab.addonId}`, label: tab.name }))];
-  const [selectedTabId, setSelectedTabId] = useState(MY_FILES_TAB_ID);
+  const [selectedTabId, setSelectedTabId] = useState(props.preselectedSong ? MUSIC_FOLDERS_TAB_ID : MY_FILES_TAB_ID);
   const songSourceTab = props.songSourceTabs.find((tab) => `addon-${tab.addonId}` === selectedTabId);
   const moveSelection = (event: KeyboardEvent<HTMLDivElement>): void => {
     const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
@@ -87,9 +89,22 @@ function MyFilesTab({ pickedMusic, onPickMusic, onChooseMusicFile }: MusicStepPr
   );
 }
 
-function MusicFoldersTab({ pickedMusic, onPickMusic, onSearchMusic }: MusicStepProps): ReactElement {
-  const [query, setQuery] = useState('');
+function MusicFoldersTab({ pickedMusic, onPickMusic, onSearchMusic, preselectedSong }: MusicStepProps): ReactElement {
+  const [query, setQuery] = useState(preselectedSong ? getPreselectedSongQuery(preselectedSong) : '');
   const [results, setResults] = useState<readonly MusicChoiceView[] | null>(null);
+  useEffect(() => {
+    if (!preselectedSong) return;
+    let isStillShown = true;
+    void findPreselectedSongMusic({ preselectedSong, onSearchMusic }).then((found) => {
+      if (!isStillShown) return;
+      setQuery(found.query);
+      setResults(found.musics);
+      const onlyMusic = found.musics.length === 1 ? found.musics[0] : undefined;
+      if (onlyMusic) onPickMusic(onlyMusic);
+    });
+    return () => { isStillShown = false; };
+    // Searches once, when the tab opens for the preselected song; later searches are the player's own.
+  }, []);
   const search = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     if (query.trim() === '') return;
@@ -113,6 +128,18 @@ function MusicFoldersTab({ pickedMusic, onPickMusic, onSearchMusic }: MusicStepP
       )}
     </div>
   );
+}
+
+function getPreselectedSongQuery(preselectedSong: PreselectedSongView): string {
+  return [preselectedSong.title, preselectedSong.artist].filter(Boolean).join(' ');
+}
+
+/** Title and artist first; a file often has no artist tag, so then the title alone. */
+async function findPreselectedSongMusic({ preselectedSong, onSearchMusic }: { preselectedSong: PreselectedSongView; onSearchMusic: MusicSources['onSearchMusic'] }): Promise<{ query: string; musics: readonly MusicChoiceView[] }> {
+  const fullQuery = getPreselectedSongQuery(preselectedSong);
+  const musics = await onSearchMusic(fullQuery).catch(() => []);
+  if (musics.length > 0 || fullQuery === preselectedSong.title) return { query: fullQuery, musics };
+  return { query: preselectedSong.title, musics: await onSearchMusic(preselectedSong.title).catch(() => []) };
 }
 
 type SearchState =
