@@ -43,6 +43,16 @@ To try it against a StepsVault site on your own computer, set `STEPSVAULT_SITE_U
 `http://127.0.0.1:8787`). `STEPSVAULT_USER_DATA_DIR` keeps a test run's settings apart from your real ones, and
 `STEPSVAULT_LOG_STATE=1` prints one line per change (never the sign-in token).
 
+## Links from the website
+
+The website's "Open in Sync app" opens `dancedance-sync://generators/make?title=…&artist=…&wanted=…&party=…`: Sync
+comes to the front on Generators › Make a song, already searching your music folders for that song (a sign-in or a
+game comes first when they are missing). `wanted` (the Wanted request) and `party` (the party list) stay with the song's
+job on your computer. Sync reads only this one address and these four parts, and ignores any other link. The installer
+registers the scheme; to try it from a development run, start it from `apps/desktop` with the link as an argument
+(`pnpm exec electron . "dancedance-sync://generators/make?title=Neon+Rain"`), or set `STEPSVAULT_REGISTER_LINKS=1` once to make
+links in your browser open the development copy.
+
 ## Licence
 
 Apache-2.0. See [LICENSE](LICENSE).

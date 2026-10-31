@@ -223,3 +223,61 @@ describe('GeneratorsScreen', () => {
     expect(screen.getByRole('dialog', { name: 'Your song is ready' }).textContent).toContain('Added to the library.');
   });
 });
+
+describe('GeneratorsScreen with a preselected song', () => {
+  const PRESELECTED_SONG = { preselectionKey: 'link-1', title: 'Neon Rain', artist: 'Kaito & Mio' };
+  const NEON_RAIN = { musicId: 'file:neon', title: 'Neon Rain', artist: 'Kaito & Mio', sourceText: 'Music\\Neon Rain.mp3', lengthText: '3:40', hasVideo: false };
+
+  it('opens Make a song at once, searches the music folders for it, picks the only match, and keeps the preselection with the job', async () => {
+    const onSearchMusic = vi.fn(() => Promise.resolve([NEON_RAIN]));
+    let props: GeneratorsScreenProps | undefined;
+    await settle(() => { props = renderGenerators({ preselectedSong: PRESELECTED_SONG, onSearchMusic, onDismissPreselectedSong: vi.fn() }); });
+    const dialog = screen.getByRole('dialog', { name: 'Pick the music' });
+    expect(dialog.textContent).toContain('Making Neon Rain · Kaito & Mio. Pick your copy of its music.');
+    expect(within(dialog).getByRole('tab', { name: 'My music folders' }).getAttribute('aria-selected')).toBe('true');
+    expect(within(dialog).getByRole('searchbox', { name: 'Search your music folders' })).toHaveProperty('value', 'Neon Rain Kaito & Mio');
+    expect(onSearchMusic).toHaveBeenCalledWith('Neon Rain Kaito & Mio');
+    expect(within(dialog).getByRole('radio', { name: /Neon Rain/ })).toHaveProperty('checked', true);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next' }));
+    const setupDialog = screen.getByRole('dialog', { name: 'Pick the generator and difficulties' });
+    fireEvent.click(within(setupDialog).getByRole('radio', { name: /Tap Forge/ }));
+    await settle(() => { fireEvent.click(within(setupDialog).getByRole('button', { name: 'Make the steps' })); });
+    expect(props?.onMakeSong).toHaveBeenCalledWith({ musicId: 'file:neon', generatorId: 'stepcat.tap-forge', difficulties: ['Easy', 'Medium', 'Hard'], hasAgreedToMusicUpload: false, preselectionKey: 'link-1' });
+    expect(props?.onDismissPreselectedSong).not.toHaveBeenCalled();
+  });
+
+  it('searches by the title alone when no file has the artist, and lets the player pick among several', async () => {
+    const onSearchMusic = vi.fn((query: string) => Promise.resolve(query === 'Neon Rain' ? FAKE_MUSIC_CHOICES : []));
+    await settle(() => { renderGenerators({ preselectedSong: PRESELECTED_SONG, onSearchMusic }); });
+    expect(onSearchMusic.mock.calls).toEqual([['Neon Rain Kaito & Mio'], ['Neon Rain']]);
+    expect(screen.getByRole('searchbox', { name: 'Search your music folders' })).toHaveProperty('value', 'Neon Rain');
+    expect(within(screen.getByRole('radiogroup', { name: 'Music in your folders' })).getAllByRole('radio')).toHaveLength(FAKE_MUSIC_CHOICES.length);
+    expect(screen.getByRole('button', { name: 'Next' })).toHaveProperty('disabled', true);
+  });
+
+  it('forgets the preselection when the player closes Make a song', async () => {
+    const onDismissPreselectedSong = vi.fn();
+    await settle(() => { renderGenerators({ preselectedSong: PRESELECTED_SONG, onDismissPreselectedSong }); });
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Pick the music' })).getByRole('button', { name: 'Cancel' }));
+    expect(onDismissPreselectedSong).toHaveBeenCalledWith('link-1');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('without a generator of their own, says to add one first, and still opens Make a song with the song when asked', async () => {
+    const onDismissPreselectedSong = vi.fn();
+    renderGenerators({ generators: [], preselectedSong: PRESELECTED_SONG, onDismissPreselectedSong });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('To make Neon Rain · Kaito & Mio for free, you need a generator of your own. Use Add a generator first, then Make a song. Or make it now with the dancedance.studio generator for 1 token.Not now');
+    await settle(() => { fireEvent.click(screen.getByRole('button', { name: 'Make a song' })); });
+    expect(screen.getByRole('dialog', { name: 'Pick the music' }).textContent).toContain('Making Neon Rain · Kaito & Mio.');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onDismissPreselectedSong).toHaveBeenCalledWith('link-1');
+  });
+
+  it('lets the player put the note away', () => {
+    const onDismissPreselectedSong = vi.fn();
+    renderGenerators({ generators: [], preselectedSong: PRESELECTED_SONG, onDismissPreselectedSong });
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(onDismissPreselectedSong).toHaveBeenCalledWith('link-1');
+  });
+});

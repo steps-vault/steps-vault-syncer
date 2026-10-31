@@ -7,7 +7,7 @@ import { LIBRARY_GENERATOR_NAME, SITE_NAME } from '../shared/brand-names';
 import { joinClassNames } from '../shared/class-names';
 import { MissLine } from '../shared/miss-line';
 import { ReceptorLoader } from '../shared/receptor-loader';
-import type { GeneratorJobView, GeneratorView, MakeSongRequest, MakeSongResult, MusicChoiceView, StepsVaultGeneratorView } from '../sync-ui-types';
+import type { GeneratorJobView, GeneratorView, MakeSongRequest, MakeSongResult, MusicChoiceView, PreselectedSongView, StepsVaultGeneratorView } from '../sync-ui-types';
 import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
 import { MusicUploadWarning } from './add-generator-dialog';
 import { CancelJobButton, GeneratorJobProgress, type GeneratorJobActions } from './generator-jobs';
@@ -25,6 +25,8 @@ export interface MakeSongDialogProps extends MusicSources, GeneratorJobActions {
   onClose: () => void;
   /** The website's My songs page, offered when the song is ready. */
   mySongsHref?: string;
+  /** The song to make, for example from a website link: the music step starts by searching for it. */
+  preselectedSong?: PreselectedSongView | null;
 }
 
 type DialogStep = { kind: 'music' } | { kind: 'setup'; music: MusicChoiceView } | { kind: 'job'; music: MusicChoiceView; jobKey: string };
@@ -38,6 +40,7 @@ export function MakeSongDialog(props: MakeSongDialogProps): ReactElement {
       {step.kind === 'music' && (
         <>
           <DialogHeading titleId="sv-sync-make-song-title" title="Pick the music" stepText="Step 1 of 3" />
+          {props.preselectedSong && <PreselectedSongLine preselectedSong={props.preselectedSong} />}
           <MusicTabs {...props} pickedMusic={pickedMusic} onPickMusic={setPickedMusic} onUseMusic={(music) => { setPickedMusic(music); setStep({ kind: 'setup', music }); }} />
           <div className="sv-sync-dialog-buttons">
             <button className="sv-sync-button sv-sync-button--ghost" type="button" onClick={props.onClose} data-autofocus>Cancel</button>
@@ -48,6 +51,15 @@ export function MakeSongDialog(props: MakeSongDialogProps): ReactElement {
       {step.kind === 'setup' && <SetupStep {...props} music={step.music} onBack={() => { setStep({ kind: 'music' }); }} onStarted={(jobKey) => { setStep({ kind: 'job', music: step.music, jobKey }); }} />}
       {step.kind === 'job' && <JobStep {...props} music={step.music} jobKey={step.jobKey} />}
     </SyncDialog>
+  );
+}
+
+function PreselectedSongLine({ preselectedSong }: { preselectedSong: PreselectedSongView }): ReactElement {
+  return (
+    <div className="sv-sync-addon-who">
+      <Icon name="note" size={18} className="sv-sync-link-colour" />
+      <span>Making <b className="sv-sync-strong" dir="auto">{[preselectedSong.title, preselectedSong.artist].filter(Boolean).join(' · ')}</b>. Pick your copy of its music.</span>
+    </div>
   );
 }
 
@@ -94,7 +106,9 @@ function SetupStep(props: SetupStepProps): ReactElement {
     if (!pickedChoice || pickedDifficulties.length === 0) return;
     setIsStarting(true);
     setProblem(null);
-    const result = await props.onMakeSong({ musicId: props.music.musicId, generatorId: pickedChoice.generatorId, difficulties: pickedDifficulties, hasAgreedToMusicUpload: pickedChoice.uploadAddress !== null || pickedChoice.uploadWarning !== null }).catch((): MakeSongResult => ({ kind: 'failed', message: 'Sync couldn’t start this song. Try again.' }));
+    const request: MakeSongRequest = { musicId: props.music.musicId, generatorId: pickedChoice.generatorId, difficulties: pickedDifficulties, hasAgreedToMusicUpload: pickedChoice.uploadAddress !== null || pickedChoice.uploadWarning !== null };
+    if (props.preselectedSong) request.preselectionKey = props.preselectedSong.preselectionKey;
+    const result = await props.onMakeSong(request).catch((): MakeSongResult => ({ kind: 'failed', message: 'Sync couldn’t start this song. Try again.' }));
     setIsStarting(false);
     if (result.kind === 'failed') setProblem(result.message);
     else props.onStarted(result.jobKey);

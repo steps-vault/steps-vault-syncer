@@ -29,6 +29,10 @@ export function DesktopApp({ bridge }: { bridge: DesktopSyncBridge }): ReactElem
   const [currentScreen, setCurrentScreen] = useState<SyncScreen>('songs');
   const [selectedSongId, setSelectedSongId] = useState<string | null>(null);
   const [wasActivityCopied, setWasActivityCopied] = useState(false);
+  const preselectionKey = state?.preselectedSong?.preselectionKey ?? null;
+  useEffect(() => {
+    if (preselectionKey !== null) setCurrentScreen('generators');
+  }, [preselectionKey]);
   if (!state) return <div className="sv-sync-root sv-sync-stage sv-desktop-loading" aria-busy="true"><SyncLoadingPanel /></div>;
   if (state.signIn.kind !== 'signed-in') return <SignInFrame state={state} bridge={bridge} />;
   if (!state.game) return <ConnectFrame state={state} bridge={bridge} />;
@@ -66,6 +70,7 @@ function SignInFrame({ state, bridge }: { state: DesktopSyncState; bridge: Deskt
   return (
     <SyncShell platform="desktop" currentScreen="account" onNavigate={() => undefined} isBare>
       {state.problem ? <p className="sv-desktop-problem" role="alert">{state.problem}</p> : null}
+      <WaitingSongNote state={state} firstStepText="Sign in first" />
       <DesktopSignInScreen signIn={signIn} onOpenLinkPage={() => void bridge.openLinkPage()} onGetNewCode={() => void bridge.startSignIn()} onConnectGame={() => undefined} />
     </SyncShell>
   );
@@ -75,6 +80,7 @@ function ConnectFrame({ state, bridge }: { state: DesktopSyncState; bridge: Desk
   const [selectedGameId, setSelectedGameId] = useState<string | null>(state.foundGames[0]?.gameId ?? null);
   return (
     <SyncShell platform="desktop" currentScreen="songs" onNavigate={() => undefined} isBare>
+      <WaitingSongNote state={state} firstStepText="Connect your game first" />
       <ConnectGameScreen
         platform="desktop"
         foundGames={state.foundGames}
@@ -88,6 +94,13 @@ function ConnectFrame({ state, bridge }: { state: DesktopSyncState; bridge: Desk
       />
     </SyncShell>
   );
+}
+
+/** Before sign-in or a game, a song asked for by a website link waits; this says it hasn't been forgotten. */
+function WaitingSongNote({ state, firstStepText }: { state: DesktopSyncState; firstStepText: string }): ReactNode {
+  if (!state.preselectedSong) return null;
+  const songName = [state.preselectedSong.title, state.preselectedSong.artist].filter(Boolean).join(' · ');
+  return <p className="sv-desktop-note" role="status">{firstStepText}. Then Sync opens Make a song for <b dir="auto">{songName}</b>.</p>;
 }
 
 interface ScreenOptions {
@@ -212,6 +225,8 @@ function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
       onDismissJob={(jobKey) => void bridge.dismissGeneratorJob(jobKey)}
       onFetchSongReport={(songKey) => bridge.fetchGeneratedSongReport(songKey)}
       mySongsHref={`${state.siteUrl}/my-songs`}
+      preselectedSong={state.preselectedSong}
+      onDismissPreselectedSong={(preselectionKey) => void bridge.dismissPreselectedSong(preselectionKey)}
     />
   );
 }
