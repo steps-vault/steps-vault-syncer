@@ -14,6 +14,17 @@ export type SavedGeneratorJobState = (typeof SAVED_JOB_STATES)[number];
 
 export type GeneratorJobResult = (typeof JOB_RESULTS)[number];
 
+/**
+ * The website request a song answers, when the player opened Make a song from a link on the website. It stays on this
+ * computer with the job; nothing reads it yet.
+ */
+export interface SiteSongRequest {
+  /** The Wanted board request the song is for. */
+  wantedRequestId: string | null;
+  /** The party list the link came from. */
+  partySlug: string | null;
+}
+
 /** A song being made, saved so Sync can go on asking about it after a restart. */
 export interface SavedGeneratorJob {
   /** Sync's own id for the job, known before the generator gives its job id. */
@@ -42,6 +53,7 @@ export interface SavedGeneratorJob {
   playerVideoLocation: string | null;
   /** Where the platform keeps the files of a finished job until the song is written; opaque to the core. */
   collectedFilesLocation: string | null;
+  siteRequest: SiteSongRequest | null;
   startedAt: string;
   updatedAt: string;
 }
@@ -101,6 +113,7 @@ function loadSavedGeneratorJobOrNull(value: unknown): SavedGeneratorJob | null {
     playerMusicLocation: value.playerMusicLocation as string,
     playerVideoLocation: getTextOrNull(value.playerVideoLocation),
     collectedFilesLocation: getTextOrNull(value.collectedFilesLocation),
+    siteRequest: loadSiteSongRequestOrNull(value.siteRequest),
     startedAt: value.startedAt as string,
     updatedAt: value.updatedAt as string,
   };
@@ -114,6 +127,12 @@ function loadSongFactsOrNull(value: unknown): GeneratorSongFacts | null {
 function loadVaultChoiceOrNull(value: unknown): SavedGeneratorJob['vaultChoice'] {
   if (!isRecord(value) || typeof value.vaultSongId !== 'string' || typeof value.question !== 'string') return null;
   return { vaultSongId: value.vaultSongId, question: value.question };
+}
+
+function loadSiteSongRequestOrNull(value: unknown): SiteSongRequest | null {
+  if (!isRecord(value)) return null;
+  const siteRequest = { wantedRequestId: getTextOrNull(value.wantedRequestId), partySlug: getTextOrNull(value.partySlug) };
+  return siteRequest.wantedRequestId === null && siteRequest.partySlug === null ? null : siteRequest;
 }
 
 function getOneOfOrNull<Value extends string>({ value, values }: { value: unknown; values: readonly Value[] }): Value | null {

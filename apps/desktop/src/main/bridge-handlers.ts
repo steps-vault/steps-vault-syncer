@@ -47,6 +47,7 @@ export function buildBridgeHandlers(controller: SyncController): BridgeHandlers 
     findSongWithSource: (argument) => controller.findSongWithSource(getSongSourceSearch(argument)),
     stopFindingSong: () => controller.stopFindingSong(),
     makeSong: (argument) => controller.makeSong(getMakeSongRequest(argument)),
+    dismissPreselectedSong: (argument) => controller.dismissPreselectedSong(getText(argument)),
     cancelGeneratorJob: (argument) => controller.cancelGeneratorJob(getText(argument)),
     answerVaultChoice: (argument) => controller.answerVaultChoice(getVaultChoiceAnswer(argument)),
     dismissGeneratorJob: (argument) => controller.dismissGeneratorJob(getText(argument)),
@@ -106,7 +107,9 @@ function getSongSourceSearch(value: unknown): SongSourceSearchRequest {
 
 function getMakeSongRequest(value: unknown): MakeSongRequest {
   const request = getRecord(value);
-  return { musicId: getText(request.musicId), generatorId: getText(request.generatorId), difficulties: getDifficulties(request.difficulties), hasAgreedToMusicUpload: getBoolean(request.hasAgreedToMusicUpload) };
+  const makeSongRequest: MakeSongRequest = { musicId: getText(request.musicId), generatorId: getText(request.generatorId), difficulties: getDifficulties(request.difficulties), hasAgreedToMusicUpload: getBoolean(request.hasAgreedToMusicUpload) };
+  if (request.preselectionKey !== undefined) makeSongRequest.preselectionKey = getText(request.preselectionKey);
+  return makeSongRequest;
 }
 
 function getVaultChoiceAnswer(value: unknown): VaultChoiceAnswer {

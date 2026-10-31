@@ -76,6 +76,7 @@ import { NodeHttpClient } from './node-http-client';
 import { NodeMultipartHttpClient } from './node-multipart-http-client';
 import { NodeMusicLibrary } from './node-music-library';
 import { NodeSongsFolder } from './node-songs-folder';
+import type { MakeSongLink } from './sync-link';
 
 const MAX_ADDON_FILE_BYTES = 200 * 1024 * 1024;
 const ADDON_DOWNLOAD_TIMEOUT_MILLISECONDS = 120_000;
@@ -142,6 +143,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private problem: string | null = null;
   private readyUpdateVersion: string | null = null;
   private dismissedUpdateVersion: string | null = null;
+  /** The song a website link asked to make, until the player makes it or closes Make a song. */
+  private songLink: (MakeSongLink & { preselectionKey: string }) | null = null;
   private readonly addonNamesBySourceId = new Map<string, string>();
   private readonly lookedUpAddonsByAddress = new Map<string, { baseUrl: string; manifest: AddonManifest; startCommand: string | null }>();
 
@@ -358,15 +361,34 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     return Promise.resolve();
   }
 
+  /**
+   * A "make this song" link from the website. The window then opens Make a song with it; a newer link replaces an older
+   * one. Only the song's name reaches the window: the Wanted request and party list stay here and go with the job.
+   */
+  openMakeSongLink(link: MakeSongLink): void {
+    this.songLink = { ...link, preselectionKey: randomUUID() };
+    this.publish();
+  }
+
+  dismissPreselectedSong(preselectionKey: string): Promise<void> {
+    if (this.songLink?.preselectionKey === preselectionKey) {
+      this.songLink = null;
+      this.publish();
+    }
+    return Promise.resolve();
+  }
+
   /** Gets the music ready and starts the job; from then on the job's progress is in the state. */
-  async makeSong({ musicId, generatorId, difficulties, hasAgreedToMusicUpload }: MakeSongRequest): Promise<MakeSongResult> {
+  async makeSong({ musicId, generatorId, difficulties, hasAgreedToMusicUpload, preselectionKey }: MakeSongRequest): Promise<MakeSongResult> {
     const jobKey = randomUUID();
+    const songLink = preselectionKey !== undefined && this.songLink?.preselectionKey === preselectionKey ? this.songLink : null;
     try {
       const jobGenerator = await this.generatorSettings.getGeneratorForNewSong({ generatorId, hasAgreedToMusicUpload });
       const jobFolder = this.jobFiles.getJobFolder(jobKey);
       await mkdir(jobFolder, { recursive: true });
       const prepared = await this.makeSongMusic.prepareMusic({ musicId, manifest: jobGenerator.generator.manifest, jobFolder });
-      await this.jobRunner.startJob({ jobKey, generatorBaseUrl: jobGenerator.generator.baseUrl, difficulties, ...prepared });
+      await this.jobRunner.startJob({ jobKey, generatorBaseUrl: jobGenerator.generator.baseUrl, difficulties, siteRequest: songLink?.siteRequest ?? null, ...prepared });
+      if (songLink) await this.dismissPreselectedSong(songLink.preselectionKey);
       return { kind: 'started', jobKey };
     } catch (error) {
       await this.jobFiles.removeJobFiles(jobKey).catch(() => undefined);
@@ -680,6 +702,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       generators: this.settings.generators.map((generator) => buildGeneratorView({ generator, startCommand: this.settings.startCommandsByBaseUrl[generator.baseUrl] ?? null })),
       songSourceTabs: buildSongSourceTabs(this.settings.addons),
       generatorJobs: [...this.jobRunner.jobs].reverse().map(buildGeneratorJobView),
+      preselectedSong: this.songLink ? { preselectionKey: this.songLink.preselectionKey, title: this.songLink.title, artist: this.songLink.artist } : null,
       generatedSongs: buildGeneratedSongViews({ generatedSongs: getGeneratedSongs(this.record), reportSongKeys: new Set(getGeneratedSongs(this.record).flatMap((song) => (this.reportSongKeys.has(getReportFileName(song.songKey)) ? [song.songKey] : []))) }),
       layout: this.settings.layout,
       ...layoutViews,
