@@ -94,9 +94,7 @@ function createController(tray: { show: (status: DesktopSyncState['trayStatus'])
       chooseFolder: async (title) => (await dialog.showOpenDialog({ title, properties: ['openDirectory'] })).filePaths[0] ?? null,
       chooseAudioFile: async () => (await dialog.showOpenDialog({ title: 'Choose this song’s music', properties: ['openFile'], filters: [{ name: 'Music', extensions: AUDIO_FILE_EXTENSIONS }] })).filePaths[0] ?? null,
       openExternal: (url) => shell.openExternal(url),
-      writeClipboard: (text) => {
-        clipboard.writeText(text);
-      },
+      writeClipboard: (text) => clipboard.writeText(text),
       isGameRunning,
       confirmStartCommand: async ({ address, command, folder }) => {
         const options = {

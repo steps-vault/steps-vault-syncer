@@ -1,4 +1,4 @@
-import { useRef, type ClipboardEvent, type FormEvent, type KeyboardEvent, type ReactElement } from 'react';
+import { useRef, type ClipboardEvent, type SubmitEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { DialogHeading } from '../dialog/dialog-heading';
 import { JudgmentText } from '../progress/judgment-flash';
@@ -43,7 +43,7 @@ export function LinkCodeForm(props: LinkCodeFormProps): ReactElement {
     if (event.key === 'Backspace' && (props.characters[index] ?? '') === '' && index > 0) focusBox(index - 1);
   };
   const typedCode = props.characters.join('');
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     if (typedCode.length === LINK_CODE_LENGTH) props.onSubmitCode(typedCode);
   };
