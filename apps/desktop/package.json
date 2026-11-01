@@ -14,7 +14,7 @@
     "installer": "node scripts/build.mjs && electron-builder --win --publish never"
   },
   "dependencies": {
-    "electron-updater": "~6.8.10"
+    "electron-updater": "~6.8.11"
   },
   "devDependencies": {
     "@stepsvault/sync-core": "workspace:*",
