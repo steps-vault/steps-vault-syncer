@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactElement } from 'react';
+import { useState, type SubmitEvent, type ReactElement } from 'react';
 import { SyncDialog } from '../dialog/sync-dialog';
 import { DialogHeading } from '../dialog/dialog-heading';
 import { Icon } from '../icons/icon';
@@ -75,7 +75,7 @@ function AddressStep({ onLookUpAddon, canUseStartCommand, draft, onChangeDraft, 
     if (result.kind === 'failed') setErrorMessage(result.message);
     else onFound(result.addon);
   };
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     void lookUp();
   };

@@ -1,5 +1,5 @@
 import { getCheckedSongSourceInputValue, InvalidSongSourceInputError, type SongSourceInput } from '@stepsvault/sync-core';
-import { useEffect, useState, type FormEvent, type KeyboardEvent, type ReactElement } from 'react';
+import { useEffect, useState, type SubmitEvent, type KeyboardEvent, type ReactElement } from 'react';
 import { Icon } from '../icons/icon';
 import { joinClassNames } from '../shared/class-names';
 import { MissLine } from '../shared/miss-line';
@@ -105,7 +105,7 @@ function MusicFoldersTab({ pickedMusic, onPickMusic, onSearchMusic, preselectedS
     return () => { isStillShown = false; };
     // Searches once, when the tab opens for the preselected song; later searches are the player's own.
   }, []);
-  const search = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+  const search = async (event: SubmitEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     if (query.trim() === '') return;
     setResults(await onSearchMusic(query.trim()).catch(() => []));
@@ -169,7 +169,7 @@ function SongSourceTab({ tab, pickedMusic, onPickMusic, onUseMusic, onFindSong, 
     const onlyMusic = result.kind === 'found' && result.musics.length === 1 ? result.musics[0] : undefined;
     if (onlyMusic) onPickMusic(onlyMusic);
   };
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     void findSong();
   };

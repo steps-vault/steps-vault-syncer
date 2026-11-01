@@ -90,7 +90,7 @@ export interface DesktopServices {
   chooseFolder(title: string): Promise<string | null>;
   chooseAudioFile(): Promise<string | null>;
   openExternal(url: string): Promise<void>;
-  writeClipboard(text: string): void;
+  writeClipboard(text: string): Promise<void>;
   isGameRunning(): Promise<boolean>;
   /** Asks the player, in the app's own dialog, whether Sync may run this command; the window can't answer for them. */
   confirmStartCommand(confirmation: StartCommandConfirmation): Promise<boolean>;
@@ -423,10 +423,9 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.publish();
   }
 
-  copyActivityDetails(): Promise<void> {
+  async copyActivityDetails(): Promise<void> {
     const lines = this.settings.activity.slice(-MAX_ACTIVITY_IN_COPY).map((event) => `${event.at} ${describeActivityKind(event)} ${event.folderPath.join('/')}${event.message ? ` — ${event.message}` : ''}`);
-    this.options.services.writeClipboard([`DanceDance Sync ${this.options.appVersion}`, ...lines].join('\n'));
-    return Promise.resolve();
+    await this.options.services.writeClipboard([`DanceDance Sync ${this.options.appVersion}`, ...lines].join('\n'));
   }
 
   /** Called when a new version finished downloading. */

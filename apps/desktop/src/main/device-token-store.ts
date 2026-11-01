@@ -17,12 +17,15 @@ export class DeviceTokenStore {
 
   async load(): Promise<string | null> {
     if (this.tokenInMemory) return this.tokenInMemory;
-    if (!safeStorage.isEncryptionAvailable()) return null;
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) return null;
     const encrypted = await readFile(this.filePath).catch(() => null);
     if (!encrypted) return null;
     try {
-      this.tokenInMemory = safeStorage.decryptString(encrypted);
-      return this.tokenInMemory;
+      const { result, shouldReEncrypt } = await safeStorage.decryptStringAsync(encrypted);
+      // The system rotated its key: save under the new one so the next start can still read the token.
+      if (shouldReEncrypt) await this.save(result);
+      this.tokenInMemory = result;
+      return result;
     } catch {
       return null;
     }
@@ -30,9 +33,9 @@ export class DeviceTokenStore {
 
   async save(token: string): Promise<void> {
     this.tokenInMemory = token;
-    if (!safeStorage.isEncryptionAvailable()) return;
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) return;
     await mkdir(path.dirname(this.filePath), { recursive: true });
-    await writeFile(this.filePath, safeStorage.encryptString(token));
+    await writeFile(this.filePath, await safeStorage.encryptStringAsync(token));
   }
 
   async clear(): Promise<void> {
