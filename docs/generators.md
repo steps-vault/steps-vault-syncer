@@ -180,9 +180,32 @@ generator sends its own music, the song source's video is left out.
 
 ## On the website
 
-While Sync is running and linked, the website's **My songs** also lists the songs made on this computer. The player can
-play them in the simulator and download them. They are never uploaded: the website reads them from Sync on the same
-computer. That needs a one-time pairing in Sync, and Sync answers only the StepsVault website.
+While Sync is running, the website's **Play** page ("Your songs on this PC") lists the songs made on this computer and
+plays them in game mode. They are never uploaded: the page, in the player's own browser, reads them from Sync on the
+same computer (the "local bridge"). The website's server never talks to it. That needs a one-time pairing in Sync, and
+Sync answers only the StepsVault website.
+
+The local bridge (protocol 1):
+
+- Sync listens on `http://127.0.0.1:47821` (or 47822, then 47823 when a port is taken), on the loopback address only,
+  so no other computer can reach it.
+- **Pairing.** In Sync, Generators › Play on the website › **Pair a browser** shows a code like `K7QM-4ZPX`. The player
+  types it on the website, whose page sends `POST /v1/pairing` with `{ "code": "K7QM-4ZPX" }` and gets back
+  `{ "protocol": 1, "token": "…" }`: 32 random bytes made by Sync, kept by the browser, never seen by any server. A code
+  works once, for 5 minutes; five wrong codes throw it away, and Sync takes at most 10 tries a minute. Sync keeps the
+  tokens encrypted like its own sign-in. **Forget paired browsers** cancels them all.
+- Every other request carries `Authorization: Bearer <token>`:
+  - `GET /v1/songs`: `{ "protocol": 1, "songs": [{ "songKey", "title", "artist", "generatorName", "difficulties":
+    [{ "difficulty", "level" }], "location": { "groupName", "folderName" }, "fileKinds", "generatedAt" }] }`, the songs
+    in Sync's own record of generated songs whose folder is still the one Sync wrote.
+  - `GET /v1/songs/<songKey, URI-encoded>/<kind>`, where kind is `chart`, `music`, `video`, `banner`, `background` or
+    `jacket`: that file of the song. A request never names a file: Sync takes the folder from its record and the file
+    from its own names, and refuses links or anything else outside the Songs folder.
+- Sync answers only requests whose `Origin` is exactly `https://dancedance.studio` (a development build also answers
+  the test site it syncs with) and whose `Host` is its own loopback address. Every other request, and one without
+  `Origin`, is refused without CORS headers. On a preflight that asks `Access-Control-Request-Private-Network: true`,
+  Sync answers `Access-Control-Allow-Private-Network: true`.
+- Errors are `{ "protocol": 1, "reason", "error" }`, `error` being one sentence for the player.
 
 ## Rules for generator makers
 

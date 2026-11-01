@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -10,6 +10,9 @@ import {
   getAddonBaseUrl,
   getGeneratedSongs,
   getPlayerGroupNames,
+  LOCAL_BRIDGE_HOST,
+  LOCAL_BRIDGE_PORTS,
+  LocalBridgePairing,
   loadSavedGeneratorJobs,
   pollDeviceSignIn,
   runSync,
@@ -26,6 +29,7 @@ import {
   type GeneratedSongWriteResult,
   type InstalledSongsRecord,
   type MusicIndex,
+  type PairedBrowserStore,
   type SavedGeneratorJob,
   type SyncOutcome,
   type SyncPorts,
@@ -70,6 +74,7 @@ import { GeneratorJobFiles } from './generator-job-files';
 import { GeneratorJobRunner } from './generator-job-runner';
 import { GeneratorSettings, type StartCommandConfirmation } from './generator-settings';
 import { JsonFileStore } from './json-file-store';
+import { LocalBridgeServer } from './local-bridge-server';
 import { isServiceAnswering, startProgramWithShell, StartingHttpClient } from './local-program-process';
 import { LocalProgramStarter } from './local-program-starter';
 import { MakeSongMusic } from './make-song-music';
@@ -106,6 +111,10 @@ export interface SyncControllerOptions {
   computerName: string;
   systemName: string;
   tokenStore: DeviceTokenStore;
+  /** The tokens of browsers paired with the local bridge, kept like the device token. */
+  pairedBrowserStore: PairedBrowserStore;
+  /** The website origins the local bridge answers (only the real site in a release build). */
+  bridgeOrigins: readonly string[];
   audioBridge: AudioBridge;
   services: DesktopServices;
   onStateChange: (state: DesktopSyncState) => void;
@@ -127,6 +136,9 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   private readonly jobRunner: GeneratorJobRunner;
   private readonly reportsFolder: string;
   private readonly reportSongKeys = new Set<string>();
+  private readonly browserPairing: LocalBridgePairing;
+  private readonly bridgeServer: LocalBridgeServer;
+  private pairingExpiryTimer: ReturnType<typeof setTimeout> | null = null;
   private settings: DesktopSettings = buildDefaultSettings();
   private record: InstalledSongsRecord = buildEmptyInstalledSongsRecord();
   private recordTurn: Promise<unknown> = Promise.resolve();
@@ -169,6 +181,12 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       confirmStartCommand: (confirmation) => options.services.confirmStartCommand(confirmation), getNow: () => new Date().toISOString(),
     });
     this.jobRunner = this.createJobRunner();
+    this.browserPairing = new LocalBridgePairing({ store: options.pairedBrowserStore, getRandomBytes: (byteCount) => new Uint8Array(randomBytes(byteCount)), getNowMilliseconds: () => Date.now(), onChange: () => { this.publish(); } });
+    this.bridgeServer = new LocalBridgeServer({
+      dependencies: { pairing: this.browserPairing, getRecord: () => this.record, getSongsFolder: () => (this.settings.game ? this.buildSongsFolder() : null), allowedOrigins: options.bridgeOrigins },
+      openSongFile: (songsPath) => this.buildSongsFolder().openFileForReading(songsPath),
+      ports: LOCAL_BRIDGE_PORTS,
+    });
   }
 
   async initialize(): Promise<void> {
@@ -180,6 +198,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
     this.foundGames = await findInstalledGames({ parentFolders: getInstallParentFolders({ appDataFolder: this.options.appDataFolder }) });
     setInterval(() => void this.starter.stopIdlePrograms(), IDLE_PROGRAM_CHECK_MILLISECONDS);
     await this.jobRunner.initialize();
+    await this.browserPairing.initialize();
+    await this.bridgeServer.start();
     void this.generatorSettings.loadStepsVaultGenerator().then(() => { this.publish(); });
     void this.refreshTokenBalance();
     this.publish();
@@ -187,8 +207,8 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
   }
 
   /** When Sync quits, programs it started for addons and generators stop too. */
-  shutdown(): Promise<void> {
-    return this.starter.stopAll();
+  async shutdown(): Promise<void> {
+    await Promise.all([this.starter.stopAll(), this.bridgeServer.stop()]);
   }
 
   get isReadyToSync(): boolean {
@@ -412,6 +432,18 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
 
   async fetchGeneratedSongReport(songKey: string): Promise<string | null> {
     return readFile(path.join(this.reportsFolder, getReportFileName(songKey)), 'utf8').catch(() => null);
+  }
+
+  /** The code shows until it is used or expires; the window is told when it expires so it never shows a dead code. */
+  startBrowserPairing(): Promise<void> {
+    const { expiresAtMilliseconds } = this.browserPairing.startPairing();
+    if (this.pairingExpiryTimer) clearTimeout(this.pairingExpiryTimer);
+    this.pairingExpiryTimer = setTimeout(() => { this.publish(); }, expiresAtMilliseconds - Date.now() + 100);
+    return Promise.resolve();
+  }
+
+  forgetPairedBrowsers(): Promise<void> {
+    return this.browserPairing.forgetPairedBrowsers();
   }
 
   async setLayout(layout: FolderLayout): Promise<void> {
@@ -707,6 +739,7 @@ export class SyncController implements Omit<DesktopSyncBridge, 'onState'> {
       songSourceTabs: buildSongSourceTabs(this.settings.addons),
       generatorJobs: [...this.jobRunner.jobs].reverse().map(buildGeneratorJobView),
       preselectedSong: this.songLink ? { preselectionKey: this.songLink.preselectionKey, title: this.songLink.title, artist: this.songLink.artist } : null,
+      browserPairing: { bridgeAddress: this.bridgeServer.port === null ? null : `http://${LOCAL_BRIDGE_HOST}:${String(this.bridgeServer.port)}`, code: this.browserPairing.getPendingCode()?.code ?? null, pairedBrowserCount: this.browserPairing.pairedBrowserCount },
       generatedSongs: buildGeneratedSongViews({ generatedSongs: getGeneratedSongs(this.record), reportSongKeys: new Set(getGeneratedSongs(this.record).flatMap((song) => (this.reportSongKeys.has(getReportFileName(song.songKey)) ? [song.songKey] : []))) }),
       layout: this.settings.layout,
       ...layoutViews,

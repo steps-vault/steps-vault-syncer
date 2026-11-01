@@ -359,6 +359,15 @@ export interface VaultChoiceAnswer {
 }
 
 /** A song in "My generated songs" in the game. */
+/** Desktop only: the website plays the player's generated songs from Sync on this computer, after a one-time pairing. */
+export interface BrowserPairingView {
+  /** Where the website reads the songs, like `http://127.0.0.1:47821`; null when Sync couldn't open it. */
+  bridgeAddress: string | null;
+  /** `ABCD-EFGH` while Sync waits for the player to type it on the website; null otherwise. */
+  code: string | null;
+  pairedBrowserCount: number;
+}
+
 export interface GeneratedSongView {
   songKey: string;
   title: string;

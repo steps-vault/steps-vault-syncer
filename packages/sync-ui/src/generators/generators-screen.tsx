@@ -9,6 +9,7 @@ import { GeneratorCard, StepsVaultGeneratorCard } from './generator-card';
 import { GeneratorJobList, type GeneratorJobActions } from './generator-jobs';
 import { MakeSongDialog, type MakeSongDialogProps } from './make-song-dialog';
 import type { MusicSources } from './music-step';
+import { PlayOnWebsite, type PlayOnWebsiteProps } from './play-on-website';
 
 export interface GeneratorsScreenProps extends MusicSources, GeneratorJobActions {
   stepsVaultGenerator: StepsVaultGeneratorView;
@@ -33,6 +34,8 @@ export interface GeneratorsScreenProps extends MusicSources, GeneratorJobActions
   preselectedSong?: PreselectedSongView | null;
   /** The player closed Make a song, or the note, without making the preselected song. */
   onDismissPreselectedSong?: (preselectionKey: string) => void;
+  /** Desktop only: pairing a browser so the website plays the generated songs from this computer. */
+  playOnWebsite?: PlayOnWebsiteProps;
 }
 
 /** Make a song is closed, or open with the song it was opened for (null for a plain Make a song). */
@@ -73,6 +76,7 @@ export function GeneratorsScreen(props: GeneratorsScreenProps): ReactElement {
       <GeneratorJobList jobs={props.jobs} onCancelJob={props.onCancelJob} onAnswerVaultChoice={props.onAnswerVaultChoice} onDismissJob={props.onDismissJob} />
       <CommunityGenerators {...props} onAdd={() => { setIsAddingGenerator(true); }} />
       <GeneratedSongList songs={props.generatedSongs} onFetchSongReport={props.onFetchSongReport} onMakeSong={openMakeSong} />
+      {props.playOnWebsite && <PlayOnWebsite {...props.playOnWebsite} />}
       {isAddingGenerator && (
         <AddGeneratorDialog onLookUpGenerator={props.onLookUpGenerator} canUseStartCommand={props.canUseStartCommand} onAdd={(generator) => { setIsAddingGenerator(false); props.onAddGenerator(generator); }} onClose={() => { setIsAddingGenerator(false); }} />
       )}

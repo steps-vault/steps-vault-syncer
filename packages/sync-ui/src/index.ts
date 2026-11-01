@@ -39,6 +39,7 @@ export * from './generators/make-song-dialog';
 export * from './generators/music-step';
 export * from './generators/generator-jobs';
 export * from './generators/generated-song-list';
+export * from './generators/play-on-website';
 export * from './layout/folder-layout-screen';
 export * from './layout/layout-change-dialog';
 export * from './layout/folder-tree-preview';

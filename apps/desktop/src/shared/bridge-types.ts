@@ -4,6 +4,7 @@ import type {
   AddonInstallPreview,
   AddonLookupResult,
   AddonView,
+  BrowserPairingView,
   FinishedSyncView,
   FoundGameView,
   GeneratedSongView,
@@ -57,6 +58,8 @@ export interface DesktopSyncState {
   songSourceTabs: SongSourceTabView[];
   generatorJobs: GeneratorJobView[];
   generatedSongs: GeneratedSongView[];
+  /** The local bridge: whether the website can reach Sync on this computer, and the pairing code it waits for. */
+  browserPairing: BrowserPairingView;
   /** A song a website link asked to make: the window opens Generators › Make a song with it. */
   preselectedSong: PreselectedSongView | null;
   layout: FolderLayout;
@@ -116,6 +119,9 @@ export interface DesktopSyncBridge {
   answerVaultChoice(answer: VaultChoiceAnswer): Promise<void>;
   dismissGeneratorJob(jobKey: string): Promise<void>;
   fetchGeneratedSongReport(songKey: string): Promise<string | null>;
+  /** Shows a new pairing code; the website trades it for its own token straight with Sync, never through a server. */
+  startBrowserPairing(): Promise<void>;
+  forgetPairedBrowsers(): Promise<void>;
   setLayout(layout: FolderLayout): Promise<void>;
   copyActivityDetails(): Promise<void>;
   restartToUpdate(): Promise<void>;
@@ -176,6 +182,8 @@ export const BRIDGE_METHOD_NAMES = [
   'answerVaultChoice',
   'dismissGeneratorJob',
   'fetchGeneratedSongReport',
+  'startBrowserPairing',
+  'forgetPairedBrowsers',
   'setLayout',
   'copyActivityDetails',
   'restartToUpdate',

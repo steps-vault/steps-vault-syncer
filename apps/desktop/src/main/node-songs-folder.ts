@@ -1,4 +1,4 @@
-import { copyFile, lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, lstat, mkdir, open, readdir, readFile, realpath, rename, rm, writeFile, type FileHandle } from 'node:fs/promises';
 import path from 'node:path';
 import { SongsFolderError, type SongsFolder, type SongsFolderEntry, type SongsFolderFailure, type SongsPath } from '@stepsvault/sync-core';
 import type { MusicSourceRegistry } from './music-source-registry';
@@ -118,6 +118,21 @@ export class NodeSongsFolder implements SongsFolder {
     await this.run(() => rm(folder, { recursive: true, force: true }));
   }
 
+  /**
+   * Opens a file to send it to the website through the local bridge. Besides the usual checks, the file's real place
+   * must still be inside the Songs folder, and it must be a plain file.
+   */
+  async openFileForReading(songsPath: SongsPath): Promise<{ fileHandle: FileHandle; byteCount: number }> {
+    const filePath = await this.resolveInside(songsPath);
+    const [realRootFolder, realFilePath] = await Promise.all([realpath(this.rootFolder), realpath(filePath).catch((error: unknown) => { throw toSongsFolderError(error); })]);
+    if (!isInsideFolder({ folder: realRootFolder, filePath: realFilePath })) throw new SongsFolderError({ failure: 'no-permission', message: 'Sync refused to read outside your Songs folder.' });
+    const fileHandle = await open(realFilePath, 'r').catch((error: unknown) => { throw toSongsFolderError(error); });
+    const stats = await fileHandle.stat();
+    if (stats.isFile()) return { fileHandle, byteCount: stats.size };
+    await fileHandle.close();
+    throw new SongsFolderError({ failure: 'not-found', message: `${songsPath.join('/')} isn't a file.` });
+  }
+
   private async writeFileInside({ songsPath, contents }: { songsPath: SongsPath; contents: string | Uint8Array }): Promise<void> {
     const filePath = await this.resolveInside(songsPath);
     await this.run(async () => {
@@ -163,6 +178,11 @@ export function toSongsFolderError(error: unknown): SongsFolderError {
 
 function getErrorCode(error: unknown): string | null {
   return typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string' ? error.code : null;
+}
+
+function isInsideFolder({ folder, filePath }: { folder: string; filePath: string }): boolean {
+  const relativePath = path.relative(folder, filePath);
+  return relativePath !== '' && relativePath !== '..' && !relativePath.startsWith(`..${path.sep}`) && !path.isAbsolute(relativePath);
 }
 
 async function exists(filePath: string): Promise<boolean> {
