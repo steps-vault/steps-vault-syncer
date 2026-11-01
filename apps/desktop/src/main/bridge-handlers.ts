@@ -52,6 +52,8 @@ export function buildBridgeHandlers(controller: SyncController): BridgeHandlers 
     answerVaultChoice: (argument) => controller.answerVaultChoice(getVaultChoiceAnswer(argument)),
     dismissGeneratorJob: (argument) => controller.dismissGeneratorJob(getText(argument)),
     fetchGeneratedSongReport: (argument) => controller.fetchGeneratedSongReport(getText(argument)),
+    startBrowserPairing: () => controller.startBrowserPairing(),
+    forgetPairedBrowsers: () => controller.forgetPairedBrowsers(),
     setLayout: (argument) => controller.setLayout(getLayout(argument)),
     copyActivityDetails: () => controller.copyActivityDetails(),
     restartToUpdate: () => controller.restartToUpdate(),

@@ -58,3 +58,7 @@ export * from './ownership/generated-song-marker';
 export * from './writing/generated-song-writer';
 export * from './generators/generated-song-activity';
 export * from './generators/saved-generator-jobs';
+export * from './local-bridge/local-bridge-protocol';
+export * from './local-bridge/local-bridge-pairing';
+export * from './local-bridge/local-bridge-songs';
+export * from './local-bridge/local-bridge-requests';

@@ -5,6 +5,7 @@ import type { GeneratorJobView, GeneratorLookupResult, MakeSongResult, SongSourc
 import { STEPSVAULT_GENERATOR_ID } from '../views/build-generator-views';
 import { GENERATOR_GETS, GENERATOR_NEVER_GETS } from './add-generator-dialog';
 import { GeneratorsScreen, type GeneratorsScreenProps } from './generators-screen';
+import { PlayOnWebsite } from './play-on-website';
 
 const PICKED_FILE = { musicId: 'picked-file', title: 'my new song', artist: 'Unknown artist', sourceText: 'my_new_song.mp3', lengthText: '3:05', hasVideo: false };
 
@@ -279,5 +280,33 @@ describe('GeneratorsScreen with a preselected song', () => {
     renderGenerators({ generators: [], preselectedSong: PRESELECTED_SONG, onDismissPreselectedSong });
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     expect(onDismissPreselectedSong).toHaveBeenCalledWith('link-1');
+  });
+});
+
+describe('Play on the website', () => {
+  const pairingActions = { playPageHref: 'https://dancedance.studio/play', onStartPairing: vi.fn(), onForgetPairedBrowsers: vi.fn() };
+
+  it('pairs a browser from a button, then shows the code to type on the Play page', () => {
+    const { rerender } = render(<PlayOnWebsite pairing={{ bridgeAddress: 'http://127.0.0.1:47821', code: null, pairedBrowserCount: 0 }} {...pairingActions} />);
+    expect(screen.queryByRole('button', { name: 'Forget paired browsers' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Pair a browser' }));
+    expect(pairingActions.onStartPairing).toHaveBeenCalled();
+    rerender(<PlayOnWebsite pairing={{ bridgeAddress: 'http://127.0.0.1:47821', code: 'K7QM-4ZPX', pairedBrowserCount: 1 }} {...pairingActions} />);
+    expect(screen.getByLabelText('Pairing code K 7 Q M 4 Z P X').textContent).toBe('K7QM-4ZPX');
+    expect(screen.getByRole('link', { name: 'the Play page' }).getAttribute('href')).toBe('https://dancedance.studio/play');
+    expect(screen.getByText('1 browser is paired.')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Forget paired browsers' }));
+    expect(pairingActions.onForgetPairedBrowsers).toHaveBeenCalled();
+  });
+
+  it('says what to do when Sync couldn’t open its address', () => {
+    render(<PlayOnWebsite pairing={{ bridgeAddress: null, code: null, pairedBrowserCount: 0 }} {...pairingActions} />);
+    expect(screen.getByText(/other programs use ports 47821 to 47823/)).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Pair a browser' })).toBeNull();
+  });
+
+  it('sits on the Generators screen in the desktop app', () => {
+    renderGenerators({ playOnWebsite: { pairing: { bridgeAddress: 'http://127.0.0.1:47821', code: null, pairedBrowserCount: 2 }, ...pairingActions } });
+    expect(screen.getByRole('region', { name: 'Play on the website' }).textContent).toContain('2 browsers are paired.');
   });
 });

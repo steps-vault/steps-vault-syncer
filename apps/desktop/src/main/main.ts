@@ -6,6 +6,8 @@ import { AudioBridge } from './audio-bridge';
 import { buildBridgeHandlers } from './bridge-handlers';
 import { DEFAULT_SITE_URL } from './desktop-settings';
 import { DeviceTokenStore } from './device-token-store';
+import { getLocalBridgeOrigins } from './local-bridge-origins';
+import { SafePairedBrowserStore } from './paired-browser-store';
 import { isGameRunning } from './game-process';
 import { SyncController } from './sync-controller';
 import { findSyncLinkInArguments, getMakeSongLinkOrNull, SYNC_LINK_SCHEME, type MakeSongLink } from './sync-link';
@@ -89,6 +91,8 @@ function createController(tray: { show: (status: DesktopSyncState['trayStatus'])
     computerName: getComputerName(),
     systemName: getSystemName(),
     tokenStore: new DeviceTokenStore({ dataFolder: app.getPath('userData') }),
+    pairedBrowserStore: new SafePairedBrowserStore({ dataFolder: app.getPath('userData') }),
+    bridgeOrigins: getLocalBridgeOrigins({ isPackaged: app.isPackaged, siteUrl: getSiteUrl(), developmentOriginsText: process.env.STEPSVAULT_BRIDGE_DEV_ORIGINS }),
     audioBridge: new AudioBridge({ ipcMain, getAudioWindow }),
     services: {
       chooseFolder: async (title) => (await dialog.showOpenDialog({ title, properties: ['openDirectory'] })).filePaths[0] ?? null,

@@ -229,6 +229,7 @@ function renderGenerators({ state, bridge }: ScreenOptions): ReactNode {
       mySongsHref={`${state.siteUrl}/my-songs`}
       preselectedSong={state.preselectedSong}
       onDismissPreselectedSong={(preselectionKey) => void bridge.dismissPreselectedSong(preselectionKey)}
+      playOnWebsite={{ pairing: state.browserPairing, playPageHref: `${state.siteUrl}/play`, onStartPairing: () => void bridge.startBrowserPairing(), onForgetPairedBrowsers: () => void bridge.forgetPairedBrowsers() }}
     />
   );
 }
